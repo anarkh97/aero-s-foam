@@ -253,7 +253,7 @@ HData::makeKss(Domain* dom)
  for(iDof = 0; iDof < cLen; ++iDof) {
    sBoundMap[iDof] = flag[iDof] ? sBoundLen++:-1;
  }
- Kss = std::make_unique<DBSparseMatrix>(dom->nodeToNode, dom->dsa, sBoundMap);
+ Kss = std::make_unique<DBSparseMatrix>(dom->nodeToNode.get(), dom->dsa, sBoundMap);
 
  delete[] flag;
  delete[] eleflag;

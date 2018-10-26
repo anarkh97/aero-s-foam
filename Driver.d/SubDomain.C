@@ -754,7 +754,7 @@ void
 GenSubDomain<Scalar>::constructKrc() {
 	this->Src = std::make_unique<GenSparseSet<Scalar>>();
 	if (numCRNdof) {
-		this->Krc = std::make_unique<GenCuCSparse<Scalar>>(nodeToNode, dsa, cornerMap, cc_dsa->getUnconstrNum());
+		this->Krc = std::make_unique<GenCuCSparse<Scalar>>(nodeToNode.get(), dsa, cornerMap, cc_dsa->getUnconstrNum());
 		this->Src->addSparseMatrix(this->Krc);
 	}
 	setMpcSparseMatrix();

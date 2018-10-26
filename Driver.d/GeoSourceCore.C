@@ -4739,7 +4739,7 @@ GeoSource::getDecomposition()
 	}
 #endif
   }
-  if(matchName != NULL && !unsortedSubToElem) unsortedSubToElem = subToElem->copy();
+  if(matchName != NULL && !unsortedSubToElem) unsortedSubToElem = new Connectivity(*subToElem);
   return std::make_unique<Connectivity>( *subToElem );
 }
 

@@ -345,7 +345,9 @@ protected:
 	int maxNumDOFsFluid; 	// maximum number of dofs a fluid element has
 	int maxNumNodes;           // maximum number of nodes an element has
 	int maxNumNodesFluid;      // maximum number of nodes a fluid element has
-	Connectivity *elemToNode, *nodeToElem, *nodeToNode, *fsiToNode, *nodeToFsi, *nodeToNodeDirect;
+	Connectivity *elemToNode, *nodeToElem;
+	std::unique_ptr<Connectivity> nodeToNode;
+	Connectivity *fsiToNode, *nodeToFsi, *nodeToNodeDirect;
 	Connectivity *elemToNodeFluid, *nodeToElemFluid, *nodeToNodeFluid;
 	Connectivity *nodeToNode_sommer; // for higher order sommerfeld
 	SolverInfo sinfo;		// solver information structure
@@ -1341,7 +1343,7 @@ public:
 	void aeroHeatPreProcess(Vector&, Vector&, Vector&, double *bcx );
 	void thermohPreProcess(Vector&, Vector&, Vector&, double *bcx );
 
-	Connectivity *getNodeToNode();
+	const Connectivity *getNodeToNode();
 	Connectivity *getNodeToElem() { return nodeToElem; }
 	Connectivity* getNodeToNode_sommer() { return nodeToNode_sommer;}
 	ConstrainedDSA *makeCDSA(int nbc, BCond *bcs);

@@ -854,7 +854,7 @@ Connectivity::alloc_append(Connectivity *con2) const
 }
 
 void
-Connectivity::combine(Connectivity *con2, int *&cmap, int *cmap2)
+Connectivity::combine(const Connectivity *con2, std::vector<int> &cmap, const std::vector<int> &cmap2)
 {
 	// add con2 to this and make combined cmap
 	int i, j;
@@ -888,7 +888,7 @@ Connectivity::combine(Connectivity *con2, int *&cmap, int *cmap2)
 		}
 	}
 	cp[size1 + count] = fp;
-	int *new_cmap = new int[size1 + count];
+	std::vector<int> new_cmap(size1 + count);
 
 	std::vector<int> ct(fp);
 	fp = 0;
@@ -910,9 +910,7 @@ Connectivity::combine(Connectivity *con2, int *&cmap, int *cmap2)
 				ct[fp++] = -1 - (*con2)[i][j]; // merged are -ve
 		}
 	}
-	delete [] cmap;
 	cmap = new_cmap;
-
 
 	size      = size1+count;
 	pointer   = cp;
@@ -983,20 +981,6 @@ Connectivity::collapse() {
 	ptr[count] = grIndex;
 	delete [] flag;
 	return new Connectivity(count, ptr, group);
-}
-
-Connectivity *
-Connectivity::copy()
-{
-	if(size==0) return new Connectivity();
-	int *nptr = new int[size+1];
-	int *ntrg = new int[numConnect()];
-	int i;
-	for(i = 0; i <= size; ++i)
-		nptr[i] = pointer[i];
-	for(i = 0; i < numConnect(); ++i)
-		ntrg[i] = target[i];
-	return new Connectivity(size,nptr,ntrg);
 }
 
 // Trim a connectivity to remove targets that have only one corresponding
@@ -1091,8 +1075,8 @@ Connectivity::modifyAlt()
 	return new Connectivity(size, nptr, ntrg);
 }
 
-Connectivity *
-Connectivity::combineAll(int addSize, int* cmap)
+Connectivity
+Connectivity::combineAll(int addSize, int *cmap)
 {
 	int i,j,k;
 	int count;
@@ -1100,8 +1084,8 @@ Connectivity::combineAll(int addSize, int* cmap)
 	//count = 0;
 	//for(i = 0; i < size; ++i)
 	//if(num(i) == 0) count++;
-	int *ntrg = new int[getNumTarget()+(addSize)*(addSize)];
-	int *nptr = new int[size+1];
+	std::vector<int> ntrg( getNumTarget()+(addSize)*(addSize) );
+	std::vector<int> nptr( size+1 );
 
 	count = 0;
 	for(i = 0; i < size; ++i) {
@@ -1135,7 +1119,7 @@ Connectivity::combineAll(int addSize, int* cmap)
 		}
 	}
 	nptr[size] = count;
-	return new Connectivity(size, nptr, ntrg);
+	return { size, std::move(nptr), std::move(ntrg) };
 }
 
 void

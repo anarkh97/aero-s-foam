@@ -118,7 +118,7 @@ public:
 	int countElemNodes();
 	int globalNumNodes();
 	int numNodes() const        { return numnodes; }
-	const Connectivity *getNodeToNode() const override { return nodeToNode; }
+	const Connectivity *getNodeToNode() const override { return nodeToNode.get(); }
 	int findProfileSize();
 	int renumberBC(int *);
 	void makeGlobalToLocalNodeMap();

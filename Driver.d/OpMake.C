@@ -847,7 +847,7 @@ Domain::constructDBSparseMatrix(DofSetArray *dof_set_array, Connectivity *cn)
 {
 	if(dof_set_array == 0) dof_set_array = c_dsa;
 	if(cn == 0)
-		return new GenDBSparseMatrix<Scalar>(nodeToNode, dsa, c_dsa);
+		return new GenDBSparseMatrix<Scalar>(nodeToNode.get(), dsa, c_dsa);
 	else
 		return new GenDBSparseMatrix<Scalar>(cn, dsa, c_dsa);
 }
@@ -857,8 +857,10 @@ template<typename Scalar>
 GenEiSparseMatrix<Scalar,Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> > *
 Domain::constructEiSparse(DofSetArray *c_dsa, Connectivity *nodeToNode, bool flag)
 {
-	if(c_dsa == 0) c_dsa = Domain::c_dsa;
-	if(nodeToNode == 0) nodeToNode = Domain::nodeToNode;
+	if(c_dsa == nullptr)
+		c_dsa = Domain::c_dsa;
+	if(nodeToNode == nullptr)
+		nodeToNode = Domain::nodeToNode.get();
 	return new GenEiSparseMatrix<Scalar,Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(nodeToNode, dsa, c_dsa, flag);
 }
 #endif
@@ -868,8 +870,10 @@ GenEiSparseMatrix<Scalar,SolverClass> *
 Domain::constructEiSparseMatrix(DofSetArray *c_dsa, Connectivity *nodeToNode, bool flag)
 {
 #ifdef USE_EIGEN3
-	if(c_dsa == 0) c_dsa = Domain::c_dsa;
-	if(nodeToNode == 0) nodeToNode = Domain::nodeToNode;
+	if(c_dsa == nullptr)
+		c_dsa = Domain::c_dsa;
+	if(nodeToNode == nullptr)
+		nodeToNode = Domain::nodeToNode.get();
 	return new GenEiSparseMatrix<Scalar,SolverClass>(nodeToNode, dsa, c_dsa, flag);
 #else
 	std::cerr << "USE_EIGEN3 is not defined\n";
@@ -880,7 +884,7 @@ template<class Scalar>
 GenNBSparseMatrix<Scalar> *
 Domain::constructNBSparseMatrix()
 {
-	return new GenNBSparseMatrix<Scalar>(nodeToNode, c_dsa);
+	return new GenNBSparseMatrix<Scalar>(nodeToNode.get(), c_dsa);
 }
 
 template<class Scalar>
@@ -892,7 +896,7 @@ Domain::constructCuCSparse(DofSetArray *dof_set_array)
 	if((dsa->size() - dof_set_array->size()) == 0)
 		sp = 0;
 	else
-		sp = new GenCuCSparse<Scalar>(nodeToNode, dsa, dof_set_array);
+		sp = new GenCuCSparse<Scalar>(nodeToNode.get(), dsa, dof_set_array);
 	return sp;
 }
 
@@ -902,7 +906,7 @@ Domain::constructCCSparse(DofSetArray *dof_set_array)
 {
 	if(dof_set_array == 0)
 		dof_set_array = c_dsa;
-	return new GenCuCSparse<Scalar>(nodeToNode, dsa, dof_set_array->getConstrndNum(),
+	return new GenCuCSparse<Scalar>(nodeToNode.get(), dsa, dof_set_array->getConstrndNum(),
 	                                dof_set_array->getConstrndNum());
 }
 
@@ -930,7 +934,7 @@ Domain::constructBLKSparseMatrix(DofSetArray *DSA, Rbm *rbm)
 	}
 	else {
 		if(!sinfo.getDirectMPC())
-			return new GenBLKSparseMatrix<Scalar>(nodeToNode, dsa, DSA, sinfo.solvercntl->trbm, *sinfo.solvercntl, rbm);
+			return new GenBLKSparseMatrix<Scalar>(nodeToNode.get(), dsa, DSA, sinfo.solvercntl->trbm, *sinfo.solvercntl, rbm);
 		else {
 			if(nodeToNodeDirect) delete nodeToNodeDirect;
 			nodeToNodeDirect = prepDirectMPC();
@@ -1119,7 +1123,9 @@ Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, Rbm 
 	allOps.Kcc = constructCCSparse<Scalar>();
 #ifdef USE_EIGEN3
 	if(sinfo.sensitivity)
-		allOps.K = constructEiSparseMatrix<Scalar, Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(c_dsa, nodeToNode, false);
+		allOps.K =
+			constructEiSparseMatrix<Scalar, Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(
+				c_dsa, nodeToNode.get(), false);
 #endif
 
 	// for freqency sweep: need M, Muc, C, Cuc
@@ -1225,7 +1231,7 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
 #else
 	FSCommunicator *com = 0;
 #endif
-	systemSolver = GenSolverFactory<Scalar>::getFactory()->createSolver(nodeToNode, dsa, c_dsa, *sinfo.solvercntl, spm, rbm,
+	systemSolver = GenSolverFactory<Scalar>::getFactory()->createSolver(nodeToNode.get(), dsa, c_dsa, *sinfo.solvercntl, spm, rbm,
 	                                                                    allOps.spp, allOps.prec, com);
 	makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
 }
@@ -1241,7 +1247,7 @@ Domain::makeDynamicOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mco
 #else
 	FSCommunicator *com = 0;
 #endif
-	systemSolver = GenSolverFactory<Scalar>::getFactory()->createSolver(nodeToNode, dsa, c_dsa, *sinfo.solvercntl, spm, rbm,
+	systemSolver = GenSolverFactory<Scalar>::getFactory()->createSolver(nodeToNode.get(), dsa, c_dsa, *sinfo.solvercntl, spm, rbm,
 	                                                                    allOps.spp, allOps.prec, com);
 	makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
 	if(allOps.prec) allOps.prec->factor();
@@ -3449,13 +3455,16 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
 					break;  // This is handled in Problems.d/DynamDescr.C
 					// The following 3 cases are not officially supported in manual
 				case OutputInfo::ElemToNode:
-					if(elemToNode) elemToNode->print(oinfo[i].filptr, oinfo[i].nodeNumber);
+					if(elemToNode)
+						elemToNode->print(oinfo[i].filptr, oinfo[i].nodeNumber);
 					break;
 				case OutputInfo::NodeToElem:
-					if(nodeToElem) nodeToElem->print(oinfo[i].filptr, oinfo[i].nodeNumber);
+					if(nodeToElem)
+						nodeToElem->print(oinfo[i].filptr, oinfo[i].nodeNumber);
 					break;
 				case OutputInfo::NodeToNode:
-					if(nodeToNode) nodeToNode->print(oinfo[i].filptr, oinfo[i].nodeNumber);
+					if(nodeToNode)
+						nodeToNode->print(oinfo[i].filptr, oinfo[i].nodeNumber);
 					break;
 				case OutputInfo::Reactions: {
 					GenVector<Scalar> fc(numDirichlet+numComplexDirichlet);

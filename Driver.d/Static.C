@@ -3014,7 +3014,9 @@ Domain::computeStiffnessWRTthicknessSensitivity(int sindex, AllSensitivities<dou
      std::map<int, Group> &group = geoSource->group;
      std::map<int, AttributeToElement> &atoe = geoSource->atoe;
      for(int g=0; g<numThicknessGroups; ++g) {
-       allSens.stiffnessWRTthickSparse[g] = constructEiSparseMatrix<double, Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> >(c_dsa, nodeToNode, false); 
+       allSens.stiffnessWRTthickSparse[g] =
+           constructEiSparseMatrix<double, Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> >(
+               c_dsa, nodeToNode.get(), false);
        allSens.dKucdthick[g] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numUncon(),numDirichlet); 
        allSens.dKucdthick[g]->setZero();
 //       allSens.dKucdthickSparse[g] = constructCuCSparse<double>(); 
@@ -3061,7 +3063,9 @@ Domain::computeStiffnessWRTShapeVariableSensitivity(int sindex, AllSensitivities
      allSens.dKucdshape = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numShapeVars];
      allSens.dKucdshapeSparse = new GenSparseMatrix<double>*[numShapeVars]; 
      for(int g=0; g<numShapeVars; ++g) {
-       allSens.stiffnessWRTshapeSparse[g] = constructEiSparseMatrix<double, Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> >(c_dsa, nodeToNode, false);
+       allSens.stiffnessWRTshapeSparse[g] =
+           constructEiSparseMatrix<double, Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> >(
+               c_dsa, nodeToNode.get(), false);
        allSens.dKucdshape[g] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numUncon(),numDirichlet); 
        allSens.dKucdshape[g]->setZero();
        allSens.dKucdshapeSparse[g] = constructCuCSparse<double>(); 

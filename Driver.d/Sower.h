@@ -209,33 +209,33 @@ class TOCEntry
  */
 class Sower 
 {
- private:
-  std::map<TypeTag,DataStruct*> entries;
-  int nCluster;                                /* true number of cluster */
-  int numSubdomains;                           /* number of subdomains in mesh decomposition */ 
-  Connectivity * clusToSub; // used for writing
-  Connectivity * subToClus; // used for reading
-  std::map<TypeTag,std::map<int,int>* > globalToLocal;   // mapsglobalnumber to local indexes
-  std::map<TypeTag,std::map<int,RangeSet*>* > rangeSets; // rangesets for each type of data
-  std::map<TypeTag,TOCEntry*> toc;                  // we read the table of content only one time
-  bool tocRead;
+private:
+    std::map<TypeTag,DataStruct*> entries;
+    int nCluster = 0;                                /* true number of cluster */
+    int numSubdomains = 0;                           /* number of subdomains in mesh decomposition */
+    std::unique_ptr<Connectivity> clusToSub; // used for writing
+    std::unique_ptr<Connectivity> subToClus; // used for reading
+    std::map<TypeTag,std::map<int,int>* > globalToLocal;   // mapsglobalnumber to local indexes
+    std::map<TypeTag,std::map<int,RangeSet*>* > rangeSets; // rangesets for each type of data
+    std::map<TypeTag,TOCEntry*> toc;                  // we read the table of content only one time
+    bool tocRead = true;
 
-  int nSurfaces; //HB
-  ResizeArray<SurfaceEntity*>* Surfaces; //HB
+    int nSurfaces = 0; //HB
+    ResizeArray<SurfaceEntity*>* Surfaces; //HB
 
-  void nomask( Connectivity* mn, int* maskno, int nelem ); /**< utility function for cpuGreedyBuild **/
+    void nomask( Connectivity* mn, int* maskno, int nelem ); /**< utility function for cpuGreedyBuild **/
 
- public:
+public:
   /*
     This constructor will create the cluster to elements connectivity from which we will
     compute all the others
    */
   Sower(Connectivity* subToElem, Elemset& eset, int nClus, ResizeArray<SurfaceEntity*>* Surfs, Connectivity *cpuToSub); //HB
-  Sower() { clusToSub = subToClus = 0; tocRead = true; }  // PJSA: constructor for reading
+  Sower() = default; // PJSA: constructor for reading
   ~Sower();
 
   /*** ACCESS ***/
-  Connectivity* getSubToClus() { return subToClus; } 
+  const Connectivity* getSubToClus() const { return subToClus.get(); }
   
   /*** WRITING ***/
   void writeSubFile(BinFileHandler& f)
@@ -247,7 +247,7 @@ class Sower
 
   void readSubFile(BinFileHandler& f)
     {
-      subToClus = new Connectivity(f);
+      subToClus = std::make_unique<Connectivity>(f);
     }
 
 	std::unique_ptr<BinFileHandler> openBinaryFile(int sub)
@@ -426,17 +426,16 @@ class Sower
       return 0;
     }
 
-  /* prints the connectivities contained in the sower object */
-  void printDebug();
-  void printTables()
+    /* prints the connectivities contained in the sower object */
+    void printDebug() const;
+    void printTables() const
     {
-      for(std::map<TypeTag, std::map<int, int>* >::iterator ite = globalToLocal.begin(); ite != globalToLocal.end(); ++ite) {
-        std::cerr << "Table for type " << ite->first << std::endl;
-        std::map<int, int>* m = ite->second;
-        for(std::map<int, int>::iterator it = (*m).begin(); it!=(*m).end(); ++it) {
-          std::cerr << it->first << " -> " << it->second << std::endl;
+        for( const auto &ite : globalToLocal ) {
+            std::cerr << "Table for type " << ite.first << std::endl;
+            for( const auto &it : *ite.second ) {
+                std::cerr << it.first << " -> " << it.second << std::endl;
+            }
         }
-      }
     }
 
   //HB

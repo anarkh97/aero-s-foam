@@ -229,7 +229,6 @@ public:
 	Connectivity *collapse();
 	Connectivity *subSection(bool *);
 	Connectivity *trim(Connectivity *);
-	Connectivity *copy();
 	void sortTargets();
 	void renumberTargets(int *map);
 	void renumberTargets(std::map<int, int> &);
@@ -240,10 +239,10 @@ public:
 	/// \brief Create a similar connectivity with a self connection for nodes that did not have one.
 	Connectivity withSelfConnection() const;
 	Connectivity *modifyAlt();
-	void combine(Connectivity *con2, int *&cmap, int *cmap2);  // adds con2 to this
+	void combine(const Connectivity *con2, std::vector<int> &cmap, const std::vector<int> &cmap2);  // adds con2 to this
 	// adds all the entries in cmap (of size addSize)to each of the line in the current connectivity specified by entries in cmap
 	// e.g. cmap = [2 3] and (*this)[2] = [1 2 4 5] (*this)[3] = [3 5], then (*this)[2] becomes [1 2 4 5 3]; (*this)[3] becomes [3 5 2]
-	Connectivity *combineAll(int addSize, int *cmap);
+	Connectivity combineAll(int addSize, int *cmap);
 
 	double estimateComponentCost(EqNumberer *eqn, compStruct &cs, double *cost, double *bandwidth,
 	                             double coef=400, int unroll=1);

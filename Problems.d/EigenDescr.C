@@ -111,8 +111,11 @@ SingleDomainEigen::buildEigOps( DynamMat &dMat )
 {
  AllOps<double> allOps;
 
- if(domain->solInfo().addedMass == 2) allOps.M = new AddedMassMatrix<double, Domain>(domain->getNodeToNode(), domain->getDSA(), domain->getCDSA(),
-                                                                                     domain, &Domain::multCV, &Domain::trMultCV);
+ if(domain->solInfo().addedMass == 2) allOps.M =
+                                          new AddedMassMatrix<double, Domain>(domain->getNodeToNode(), domain->getDSA(),
+                                                                              domain->getCDSA(),
+                                                                              domain,
+                                                                              &Domain::multCV, &Domain::trMultCV);
 #ifdef USE_EIGEN3
  else if(domain->solInfo().printMatLab)
    allOps.M = domain->constructEiSparse<double>();

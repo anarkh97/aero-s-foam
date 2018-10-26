@@ -33,7 +33,7 @@ public:
 	int numEdgeNeighb = 0; //!< number of neighbors that have at least one non-virtual node on the interface
 	bool *isEdgeNeighb = nullptr;
 
-	Connectivity *sharedDOFs = nullptr;  //<! DOFs # shared (all of types 0, 1 and 2)
+	Connectivity *sharedDOFs = nullptr;  //<! DOFs # shared (all of types 0, 1 and 2) (non owning pointer)
 	Connectivity *sharedDOFsPlus = nullptr; //<! also includes corner dofs
 
 
@@ -56,19 +56,20 @@ public:
 
 private:
 	int numDofType;  // current default is 6, set in SComm constructor
-	int *NumNeighb = nullptr;
-	int **SubNums = nullptr;
-	int **TypeMap = nullptr;  // maps from type-specific interface to general interface
-	Connectivity **SharedDOFs = nullptr;
+	std::vector<int> NumNeighb;
+	std::vector<std::vector<gl_sub_idx>> SubNums;
+	std::vector<std::vector<int>> TypeMap;  // maps from type-specific interface to general interface
+	/// \brief Shared degrees of freedom per type.
+	std::vector<Connectivity> sharedDOFsPerType;
 
 public:
 	void setNumDofType(int _numDofType) { numDofType = _numDofType; }
 	void print(DofType t);
-	Connectivity *getTypeSpecificList(DofType type) { return SharedDOFs[type]; }
+	const Connectivity *getTypeSpecificList(DofType type) const { return &sharedDOFsPerType[type]; }
 
 	/** \brief Set any one individual type-specific list.
 	 * \details If this function is used to set the individual types then mergeTypeSpecificLists() must be called */
-	void setTypeSpecificList(DofType type, int *_subNums, Connectivity *_sharedDOFs);
+	void setTypeSpecificList(DofType type, std::vector<gl_sub_idx> _subNums, std::unique_ptr<Connectivity> _sharedDOFs);
 	void deleteTypeSpecificList(DofType type);
 	/** build combined list of all types 0, 1 and 2 shared dofs:
 	 * also make **TypeMap and *boundDofFlag (returned)
@@ -77,22 +78,21 @@ public:
 	 * to sharedNodes list. however, check in code where sharedNodes is used and convert to "std"
 	 * NumNeighb and SubNums etc. */
 	std::vector<int> mergeTypeSpecificLists();
-	void setTypeMap(DofType t, int *map);
 
 	// functions to access any of the type-specific lists
-	int numT(DofType type) const { return SharedDOFs[type]->csize(); }
+	int numT(DofType type) const { return sharedDOFsPerType[type].csize(); }
 	int neighbT(DofType type, int iNeighb) const { return SubNums[type][iNeighb]; }
 	int mapT(DofType type, int iDof) const { return TypeMap[type][iDof]; }
-	int mapT(DofType type, int iNeighb, int jDof) const { return TypeMap[type][SharedDOFs[type]->offset(iNeighb)+jDof]; }
-	int lenT(DofType type) const { return SharedDOFs[type]->numConnect(); }
-	int lenT(DofType type, int iNeighb) const { return SharedDOFs[type]->num(iNeighb); }
-	int boundDofT(DofType type, int iDof) const { return (*SharedDOFs[type]).allTargets()[iDof]; }
-	int boundDofT(DofType type, int iNeighb, int jDof) const { return (*SharedDOFs[type])[iNeighb][jDof]; }
-	int offsetT(DofType type, int iNeighb) const { return SharedDOFs[type]->offset(iNeighb); }
-	int offsetT(DofType type, int iNeighb, int jDof) const { return SharedDOFs[type]->offset(iNeighb)+jDof; }
-	const int* boundDofsT(DofType type) const { return (*SharedDOFs[type])[0].data(); }
-	const int* boundDofsT(DofType type, int iNeighb) const { return (*SharedDOFs[type])[iNeighb].data(); }
-	const int* neighbsT(DofType type) const { return SubNums[type]; }
+	int mapT(DofType type, int iNeighb, int jDof) const { return TypeMap[type][sharedDOFsPerType[type].offset(iNeighb)+jDof]; }
+	int lenT(DofType type) const { return sharedDOFsPerType[type].numConnect(); }
+	int lenT(DofType type, int iNeighb) const { return sharedDOFsPerType[type].num(iNeighb); }
+	int boundDofT(DofType type, int iDof) const { return sharedDOFsPerType[type].allTargets()[iDof]; }
+	int boundDofT(DofType type, int iNeighb, int jDof) const { return sharedDOFsPerType[type][iNeighb][jDof]; }
+	int offsetT(DofType type, int iNeighb) const { return sharedDOFsPerType[type].offset(iNeighb); }
+	int offsetT(DofType type, int iNeighb, int jDof) const { return sharedDOFsPerType[type].offset(iNeighb)+jDof; }
+	const int* boundDofsT(DofType type) const { return sharedDOFsPerType[type][0].data(); }
+	const int* boundDofsT(DofType type, int iNeighb) const { return sharedDOFsPerType[type][iNeighb].data(); }
+	const auto &neighbsT(DofType type) const { return SubNums[type]; }
 
 	// standard (boundary) dofs helper functions
 	int stdDofNb(int i) const { return boundDofT(std,i); }
@@ -107,9 +107,9 @@ public:
 	int wetDofNb(int i, int j) const { return boundDofT(wet,i,j); }
 
 	// TODO make these return spans.
-	const int *allBoundDofs() const {  return (SharedDOFs[all]->numConnect() > 0) ? (*SharedDOFs[all])[0].data() : nullptr; }
-	const int *allBoundDofs(int i) const { return (*SharedDOFs[all])[i].data(); }
-	int totalInterfSize() const { return SharedDOFs[all]->numConnect(); }
+	const int *allBoundDofs() const {  return (sharedDOFsPerType[all].numConnect() > 0) ? sharedDOFsPerType[all][0].data() : nullptr; }
+	const int *allBoundDofs(int i) const { return sharedDOFsPerType[all][i].data(); }
+	int totalInterfSize() const { return sharedDOFsPerType[all].numConnect(); }
 };
 
 #endif

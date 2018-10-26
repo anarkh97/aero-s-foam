@@ -307,7 +307,7 @@ BaseSub::getC(int &crnDofSize, FSCommPattern<int> *sPat)
     fprintf(stderr, " ... Sub %3d has %2d Corner Modes %d   ... \n",
             subNumber+1,numCRN,numCRNdof);
 
-  Connectivity *dofToNeighb = scomm->getTypeSpecificList(SComm::std)->alloc_reverse();
+  auto dofToNeighb = scomm->getTypeSpecificList(SComm::std)->alloc_reverse();
 
   int numDOFs = c_dsa->size();
 
@@ -317,7 +317,7 @@ BaseSub::getC(int &crnDofSize, FSCommPattern<int> *sPat)
   for(i = 0; i < numDOFs; ++i)
     cornerNum[i] = dofCorner[i] = -1;
 
-  const int *subNums = scomm->neighbsT(SComm::std);
+  auto subNums = scomm->neighbsT(SComm::std);
   int offset = 0;
   int cDof;
   for(i=0; i< numnodes; i++)  {
@@ -1544,121 +1544,124 @@ void
 BaseSub::makeMpcInterface(Connectivity *subToMpc, const Connectivity &lmpcToSub,
                           Connectivity *subToSub_mpc)
 {
-  int i,j,k;
+    int i,j,k;
 
-  // Step 0: figure out the Mpc neigbors
-  int numMpcNeighb = subToSub_mpc->num(subNumber);
-  int *mpcNeighb = new int[numMpcNeighb];
-  for(i = 0; i < numMpcNeighb; ++i)  mpcNeighb[i] = (*subToSub_mpc)[subNumber][i];
-  int *mpcNeighbSize = new int[numMpcNeighb];
-  for(i = 0; i < numMpcNeighb; ++i) mpcNeighbSize[i] = 0;
-  int numtarget = 0;
-  for(i = 0; i < subToMpc->num(subNumber); ++i) {
-    int iMPC = (*subToMpc)[subNumber][i];
-    for(j = 0; j < lmpcToSub.num(iMPC); ++j) {
-      int jSub = lmpcToSub[iMPC][j];
-      if( (jSub != subNumber) || (lmpcToSub.num(iMPC) == 1) ) {
-        int jMpcNeighb = subToSub_mpc->cOffset(subNumber, jSub);
-        mpcNeighbSize[jMpcNeighb] += 1;
-        numtarget++;
-      }
+    // Step 0: figure out the Mpc neigbors
+    int numMpcNeighb = subToSub_mpc->num(subNumber);
+    std::vector<gl_sub_idx> mpcNeighb((*subToSub_mpc)[subNumber].begin() ,
+                                      (*subToSub_mpc)[subNumber].begin() + numMpcNeighb);
+    for(i = 0; i < numMpcNeighb; ++i)  mpcNeighb[i] = (*subToSub_mpc)[subNumber][i];
+    int *mpcNeighbSize = new int[numMpcNeighb];
+    for(i = 0; i < numMpcNeighb; ++i) mpcNeighbSize[i] = 0;
+    int numtarget = 0;
+    for(i = 0; i < subToMpc->num(subNumber); ++i) {
+        int iMPC = (*subToMpc)[subNumber][i];
+        for(j = 0; j < lmpcToSub.num(iMPC); ++j) {
+            int jSub = lmpcToSub[iMPC][j];
+            if( (jSub != subNumber) || (lmpcToSub.num(iMPC) == 1) ) {
+                int jMpcNeighb = subToSub_mpc->cOffset(subNumber, jSub);
+                mpcNeighbSize[jMpcNeighb] += 1;
+                numtarget++;
+            }
+        }
     }
-  }
 
-  // Step 1: build the mpcNeighbToMpc connectivity
-  int *pointer = new int[numMpcNeighb+1]; pointer[0] = 0;
-  for(i=0; i<numMpcNeighb; ++i) pointer[i+1] = pointer[i] + mpcNeighbSize[i];
-  int *target = new int[numtarget];
-  for(i = 0; i < numMpcNeighb; ++i) mpcNeighbSize[i] = 0;
-  for(i = 0; i < subToMpc->num(subNumber); ++i) {
-    int iMPC = (*subToMpc)[subNumber][i];
-    int locMpc = globalToLocalMPC[iMPC];
-    for(j = 0; j < lmpcToSub.num(iMPC); ++j) {
-      int jSub = lmpcToSub[iMPC][j];
-      if( (jSub != subNumber) || (lmpcToSub.num(iMPC) == 1) ) {
-        int jMpcNeighb = subToSub_mpc->cOffset(subNumber, jSub);
-        int t = pointer[jMpcNeighb] + mpcNeighbSize[jMpcNeighb];
-        target[t] = locMpc;
-        mpcNeighbSize[jMpcNeighb] += 1;
-      }
+    // Step 1: build the mpcNeighbToMpc connectivity
+    int *pointer = new int[numMpcNeighb+1]; pointer[0] = 0;
+    for(i=0; i<numMpcNeighb; ++i) pointer[i+1] = pointer[i] + mpcNeighbSize[i];
+    int *target = new int[numtarget];
+    for(i = 0; i < numMpcNeighb; ++i) mpcNeighbSize[i] = 0;
+    for(i = 0; i < subToMpc->num(subNumber); ++i) {
+        int iMPC = (*subToMpc)[subNumber][i];
+        int locMpc = globalToLocalMPC[iMPC];
+        for(j = 0; j < lmpcToSub.num(iMPC); ++j) {
+            int jSub = lmpcToSub[iMPC][j];
+            if( (jSub != subNumber) || (lmpcToSub.num(iMPC) == 1) ) {
+                int jMpcNeighb = subToSub_mpc->cOffset(subNumber, jSub);
+                int t = pointer[jMpcNeighb] + mpcNeighbSize[jMpcNeighb];
+                target[t] = locMpc;
+                mpcNeighbSize[jMpcNeighb] += 1;
+            }
+        }
     }
-  }
-  Connectivity *mpcNeighbToMpc = new Connectivity(numMpcNeighb, pointer, target);
+    Connectivity *mpcNeighbToMpc = new Connectivity(numMpcNeighb, pointer, target);
 
-  int *ptr = new int[numMpcNeighb+1];
-  ptr[0] = 0;
-  for(i = 0; i < numMpcNeighb; ++i) ptr[i+1] = ptr[i] + mpcNeighbSize[i];
-  int *tgt = new int[ptr[numMpcNeighb]];
-  i = 0;
-  for(j = 0; j < numMpcNeighb; ++j) {
-    for(k = 0; k < mpcNeighbSize[j]; ++k)
-      tgt[i++] = (*mpcNeighbToMpc)[j][k];
-  }
-  Connectivity *mpcInterfaceDOFs = new Connectivity(numMpcNeighb, ptr, tgt);
-  scomm->setTypeSpecificList(SComm::mpc, mpcNeighb, mpcInterfaceDOFs);
+    std::vector<int> ptr(numMpcNeighb+1);
+    ptr[0] = 0;
+    for(i = 0; i < numMpcNeighb; ++i)
+        ptr[i+1] = ptr[i] + mpcNeighbSize[i];
+    std::vector<int> tgt( ptr[numMpcNeighb] );
+    i = 0;
+    for(j = 0; j < numMpcNeighb; ++j) {
+        for(k = 0; k < mpcNeighbSize[j]; ++k)
+            tgt[i++] = (*mpcNeighbToMpc)[j][k];
+    }
+    auto mpcInterfaceDOFs = std::make_unique<Connectivity>( numMpcNeighb, std::move(ptr), std::move(tgt) );
+    scomm->setTypeSpecificList( SComm::mpc, std::move(mpcNeighb), std::move(mpcInterfaceDOFs) );
 
-  delete [] mpcNeighbSize;
-  delete mpcNeighbToMpc;
+    delete [] mpcNeighbSize;
+    delete mpcNeighbToMpc;
 }
 
 void
 BaseSub::makeFsiInterface(const Connectivity *subToFsi, const Connectivity &fsiToSub,
                           const Connectivity *subToSub_fsi)
 {
-  int i,j,k;
+    int i,j,k;
 
-  // Step 0: figure out the Fsi neigbors
-  numFsiNeighb = subToSub_fsi->num(subNumber);
-  fsiNeighb = new int[numFsiNeighb];
-  for(i = 0; i < numFsiNeighb; ++i)  fsiNeighb[i] = (*subToSub_fsi)[subNumber][i];
-  int *fsiNeighbSize = new int[numFsiNeighb];
-  for(i = 0; i < numFsiNeighb; ++i) fsiNeighbSize[i] = 0;
-  int numtarget = 0;
-  for(i = 0; i < subToFsi->num(subNumber); ++i) {
-    int glFsi = (*subToFsi)[subNumber][i];
-    for(j = 0; j < fsiToSub.num(glFsi); ++j) {
-      int jSub = fsiToSub[glFsi][j];
-      if( (jSub != subNumber) || (fsiToSub.num(glFsi) == 1) ) {
-        int jFsiNeighb = subToSub_fsi->cOffset(subNumber, jSub);
-        fsiNeighbSize[jFsiNeighb] += 1;
-        numtarget++;
-      }
+    // Step 0: figure out the Fsi neigbors
+    numFsiNeighb = subToSub_fsi->num(subNumber);
+    fsiNeighb = new int[numFsiNeighb];
+    for(i = 0; i < numFsiNeighb; ++i)  fsiNeighb[i] = (*subToSub_fsi)[subNumber][i];
+    int *fsiNeighbSize = new int[numFsiNeighb];
+    for(i = 0; i < numFsiNeighb; ++i) fsiNeighbSize[i] = 0;
+    int numtarget = 0;
+    for(i = 0; i < subToFsi->num(subNumber); ++i) {
+        int glFsi = (*subToFsi)[subNumber][i];
+        for(j = 0; j < fsiToSub.num(glFsi); ++j) {
+            int jSub = fsiToSub[glFsi][j];
+            if( (jSub != subNumber) || (fsiToSub.num(glFsi) == 1) ) {
+                int jFsiNeighb = subToSub_fsi->cOffset(subNumber, jSub);
+                fsiNeighbSize[jFsiNeighb] += 1;
+                numtarget++;
+            }
+        }
     }
-  }
 
-  // Step 1: build the fsiNeighbToFsi connectivity
-  int *pointer = new int[numFsiNeighb+1]; pointer[0] = 0;
-  for(i=0; i<numFsiNeighb; ++i) pointer[i+1] = pointer[i] + fsiNeighbSize[i];
-  int *target = new int[numtarget];
-  for(i = 0; i < numFsiNeighb; ++i) fsiNeighbSize[i] = 0;
-  for(i = 0; i < subToFsi->num(subNumber); ++i) {
-    int glFsi = (*subToFsi)[subNumber][i];
-    for(j = 0; j < fsiToSub.num(glFsi); ++j) {
-      int jSub = fsiToSub[glFsi][j];
-      if( (jSub != subNumber) || (fsiToSub.num(glFsi) == 1) ) {
-        int jFsiNeighb = subToSub_fsi->cOffset(subNumber, jSub);
-        int t = pointer[jFsiNeighb] + fsiNeighbSize[jFsiNeighb];
-        target[t] = glFsi;
-        fsiNeighbSize[jFsiNeighb] += 1;
-      }
+    // Step 1: build the fsiNeighbToFsi connectivity
+    int *pointer = new int[numFsiNeighb+1]; pointer[0] = 0;
+    for(i=0; i<numFsiNeighb; ++i) pointer[i+1] = pointer[i] + fsiNeighbSize[i];
+    int *target = new int[numtarget];
+    for(i = 0; i < numFsiNeighb; ++i) fsiNeighbSize[i] = 0;
+    for(i = 0; i < subToFsi->num(subNumber); ++i) {
+        int glFsi = (*subToFsi)[subNumber][i];
+        for(j = 0; j < fsiToSub.num(glFsi); ++j) {
+            int jSub = fsiToSub[glFsi][j];
+            if( (jSub != subNumber) || (fsiToSub.num(glFsi) == 1) ) {
+                int jFsiNeighb = subToSub_fsi->cOffset(subNumber, jSub);
+                int t = pointer[jFsiNeighb] + fsiNeighbSize[jFsiNeighb];
+                target[t] = glFsi;
+                fsiNeighbSize[jFsiNeighb] += 1;
+            }
+        }
     }
-  }
-  Connectivity *fsiNeighbToFsi = new Connectivity(numFsiNeighb, pointer, target);
+    Connectivity fsiNeighbToFsi(numFsiNeighb, pointer, target);
 
-  int *ptr = new int[numFsiNeighb+1];
-  ptr[0] = 0;
-  for(i = 0; i < numFsiNeighb; ++i) ptr[i+1] = ptr[i] + fsiNeighbSize[i];
-  int *tgt = new int[ptr[numFsiNeighb]];
-  i = 0;
-  for(j = 0; j < numFsiNeighb; ++j) {
-    for(k = 0; k < fsiNeighbSize[j]; ++k)
-      tgt[i++] = (*fsiNeighbToFsi)[j][k];
-  }
-  Connectivity *fsiInterfaceDOFs = new Connectivity(numFsiNeighb, ptr, tgt);
-  scomm->setTypeSpecificList(SComm::fsi, fsiNeighb, fsiInterfaceDOFs);
-                                                                                                                                             
-  delete [] fsiNeighbSize;
-  delete fsiNeighbToFsi;
+    std::vector<int> ptr(numFsiNeighb+1);
+    ptr[0] = 0;
+    for(i = 0; i < numFsiNeighb; ++i) ptr[i+1] = ptr[i] + fsiNeighbSize[i];
+    std::vector<int> tgt( ptr[numFsiNeighb] );
+    i = 0;
+    for(j = 0; j < numFsiNeighb; ++j) {
+        for(k = 0; k < fsiNeighbSize[j]; ++k)
+            tgt[i++] = fsiNeighbToFsi[j][k];
+    }
+    auto fsiInterfaceDOFs = std::make_unique<Connectivity>(numFsiNeighb, std::move(ptr), std::move(tgt) );
+    scomm->setTypeSpecificList(SComm::fsi,
+                               std::vector<gl_sub_idx>(fsiNeighb, fsiNeighb+numFsiNeighb),
+                               std::move(fsiInterfaceDOFs) );
+
+    delete [] fsiNeighbSize;
 }
 
 void

@@ -15,7 +15,8 @@ class AddedMassMatrix : public GenDBSparseMatrix<Scalar>
 
   public:
     // Constructor
-    AddedMassMatrix(Connectivity* con, DofSetArray* dsa, ConstrainedDSA* c_dsa, ConstraintOperator *_op,
+    AddedMassMatrix(const Connectivity* con, const DofSetArray* dsa, const ConstrainedDSA* c_dsa,
+                    ConstraintOperator *_op,
                     void (ConstraintOperator::*_multC)(const GenVector<Scalar> &, GenVector<Scalar> &),
                     void (ConstraintOperator::*_trMultC)(const GenVector<Scalar> &, GenVector<Scalar> &)) 
      : op(_op), multC(_multC), trMultC(_trMultC), GenDBSparseMatrix<Scalar>(con, dsa, c_dsa) {}

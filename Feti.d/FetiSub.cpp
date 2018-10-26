@@ -125,10 +125,10 @@ void FetiBaseSub::setLocalMpcToBlock(Connectivity *mpcToBlock, Connectivity *blo
 		blockToLocalMpc = localMpcToBlock->alloc_reverse();
 
 		if(localMpcToBlock->isDiagonal()) { // <=> a local lmpc belong to only ONE block
-			blockToBlockMpc = blockToLocalMpc->transcon(localMpcToBlockMpc);
+			blockToBlockMpc = std::make_unique<Connectivity>( blockToLocalMpc->transcon(*localMpcToBlockMpc) );
 		} else {
 			// HB & PJSA: to deal with possible overlapping (a local lmpc can belong to several blocks)
-			blockToBlockMpc = blockToLocalMpc->copy();
+			blockToBlockMpc = std::make_unique<Connectivity>(*blockToLocalMpc);
 			// over-write the target array
 			auto &array = blockToBlockMpc->tgt();
 			count = 0;
@@ -163,7 +163,7 @@ void FetiBaseSub::setLocalMpcToBlock(Connectivity *mpcToBlock, Connectivity *blo
 		localMpcToBlockMpc = 0;
 		mpcToBoundDof      = 0;
 		blockToLocalMpc    = 0;
-		blockToBlockMpc    = 0;
+		blockToBlockMpc.reset();
 	}
 }
 
@@ -5206,11 +5206,11 @@ FetiSub<Scalar>::gatherDOFList(FSCommPattern<int> *pat) {
 	int *boundDofs = new int[nbdofs];
 	int *boundDofPointer = new int[nbneighb + 1];
 	boundDofPointer[0] = 0;
-	int *boundNeighbs = new int[nbneighb];
+	std::vector<int> boundNeighbs(nbneighb);
 	int *wetDofs = new int[nwdofs];
 	int *wetDofPointer = new int[nwneighb + 1];
 	wetDofPointer[0] = 0;
-	int *wetNeighbs = new int[nwneighb];
+	std::vector<int> wetNeighbs(nwneighb);
 	nbdofs = 0;
 	nwdofs = 0;
 	nbneighb = 0;
@@ -5249,17 +5249,19 @@ FetiSub<Scalar>::gatherDOFList(FSCommPattern<int> *pat) {
 		}
 	}
 
-	Connectivity *stdSharedDOFs = new Connectivity(nbneighb, boundDofPointer, boundDofs);
-	if (!getFetiInfo().bmpc) FetiBaseSub::scomm->setTypeSpecificList(SComm::std, boundNeighbs, stdSharedDOFs);
-	Connectivity *wetSharedDOFs = new Connectivity(nwneighb, wetDofPointer, wetDofs);
-	FetiBaseSub::scomm->setTypeSpecificList(SComm::wet, wetNeighbs, wetSharedDOFs);
-
+	auto stdSharedDOFs = std::make_unique<Connectivity>(nbneighb, std::move(boundDofPointer), std::move(boundDofs));
 	int ndof = FetiBaseSub::localLen();
 	auto &weight = getWeights();
-	weight.resize(ndof);
-	for (int i = 0; i < ndof; ++i) weight[i] = 1;
+	weight.assign(ndof, 1);
 	for (auto n : stdSharedDOFs->allTargets())
 		weight[n] += 1;
+
+	if (!getFetiInfo().bmpc)
+		FetiBaseSub::scomm->setTypeSpecificList(SComm::std, std::move(boundNeighbs), std::move(stdSharedDOFs) );
+	auto wetSharedDOFs = std::make_unique<Connectivity>(nwneighb, wetDofPointer, wetDofs);
+	FetiBaseSub::scomm->setTypeSpecificList(SComm::wet, wetNeighbs, std::move(wetSharedDOFs) );
+
+
 	if (FetiBaseSub::numWIdof) {
 		this->wweight.resize(FetiBaseSub::numWIdof);
 		for (i = 0; i < FetiBaseSub::numWIdof; ++i) this->wweight[i] = 0.0;

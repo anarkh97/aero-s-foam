@@ -244,7 +244,7 @@ protected:
 	Connectivity *mpcToDof = nullptr;
 	Connectivity *localMpcToBlock = nullptr;
 	Connectivity *blockToLocalMpc = nullptr;
-	Connectivity *blockToBlockMpc = nullptr;
+	std::unique_ptr<Connectivity> blockToBlockMpc;
 	Connectivity *localMpcToBlockMpc = nullptr;
 	Connectivity *mpcToBoundDof = nullptr;
 	double *localLambda = nullptr;  // used for contact pressure output

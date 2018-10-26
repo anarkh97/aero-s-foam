@@ -1769,16 +1769,13 @@ Domain::getRenumbering()
  nodeToElem = elemToNode->alloc_reverse();
 
  // create node to node connectivity
- if(nodeToNode) delete nodeToNode;
- nodeToNode = nodeToElem->transcon(elemToNode);
+ nodeToNode = std::make_unique<Connectivity>( nodeToElem->transcon(*elemToNode) );
 
  if(solInfo().HEV == 1 && solInfo().addedMass == 1) {
    int numWetNodes = 0;
    int *wetIFNodes = getAllWetInterfaceNodes(numWetNodes);
-   Connectivity* nodeToNodeTemp = nodeToNode->combineAll(numWetNodes,wetIFNodes);
-   delete nodeToNode;
-   nodeToNode = nodeToNodeTemp->copy();
-   delete nodeToNodeTemp;
+   auto nodeToNodeTemp = std::make_unique<Connectivity>( nodeToNode->combineAll(numWetNodes,wetIFNodes) );
+   nodeToNode = std::move(nodeToNodeTemp);
  }
 
  // get number of nodes (actually, this is the maximum node number when there are gaps in the node numbering)
@@ -2494,15 +2491,16 @@ char * Domain::getBasename(char * fname)
 
 // New functions added for Helmholtz-Axisymmetric
 
-Connectivity *
-Domain::getNodeToNode() {
- if(nodeToNode) return nodeToNode;
- if(elemToNode == 0)
-   elemToNode = new Connectivity(packedEset.asSet());
- if(nodeToElem == 0)
-   nodeToElem = elemToNode->alloc_reverse();
- nodeToNode = nodeToElem->transcon(elemToNode);
- return nodeToNode;
+const Connectivity *
+Domain::getNodeToNode()
+{
+	if(nodeToNode) return nodeToNode.get();
+	if(elemToNode == 0)
+		elemToNode = new Connectivity(packedEset.asSet());
+	if(nodeToElem == 0)
+		nodeToElem = elemToNode->alloc_reverse();
+	nodeToNode = std::make_unique<Connectivity>( nodeToElem->transcon(*elemToNode) );
+	return nodeToNode.get();
 }
 
 
@@ -3324,7 +3322,7 @@ Domain::initialize()
  numLMPC = 0; numYMTT = 0; numCTETT = 0; numSDETAFT = 0; numRUBDAFT = 0; numSS1DT = 0; numSS2DT = 0; numYSST = 0; numYSSRT = 0; MidPoint = 0; temprcvd = 0;
  heatflux = 0; elheatflux = 0; elTemp = 0; dbc = 0; nbc = 0; nbcModal = 0;
  iDis = 0; iDisModal = 0; iVel = 0; iVelModal = 0; iDis6 = 0; elemToNode = 0; nodeToElem = 0;
- nodeToNode = 0; dsa = 0; c_dsa = 0; cdbc = 0; cnbc = 0;
+ dsa = 0; c_dsa = 0; cdbc = 0; cnbc = 0;
  dsaFluid = 0; c_dsaFluid = 0; allDOFsFluid = 0; dbcFluid = 0;
  elemToNodeFluid = 0; nodeToElemFluid = 0; nodeToNodeFluid = 0;
  nSurfEntity = 0; nMortarCond = 0; nMortarLMPCs= 0; mortarToMPC = 0;
@@ -3358,7 +3356,6 @@ Domain::initialize()
 
 Domain::~Domain()
 {
- if(nodeToNode) { delete nodeToNode; nodeToNode = 0; }
  if(nodeToNodeFluid) { delete nodeToNodeFluid; nodeToNodeFluid = 0; }
  if(renumb.order) { delete [] renumb.order; renumb.order = 0; }
  if(renumb.renum) { delete [] renumb.renum; renumb.renum = 0; }

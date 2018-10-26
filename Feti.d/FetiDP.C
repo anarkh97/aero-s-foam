@@ -2338,7 +2338,7 @@ GenFetiDPSolver<Scalar>::getBlockToMpc()
          if(numMortarMpcs == 0) blockToMpc = otherToMpc;
          else blockToMpc = otherToMpc->alloc_append(domain->GetMortarToMPC());
        }
-       else blockToMpc = domain->GetMortarToMPC()->copy();
+       else blockToMpc = new Connectivity(*domain->GetMortarToMPC());
      } 
      break;
  }

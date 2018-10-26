@@ -314,6 +314,7 @@ formSubdomains(const gsl::span<gl_sub_idx> &cpuMetasubIndices, const Connectivit
  getSharedFSIs();  // N/A right now
 
  getSharedMPCs(); // N/A right now
+
   paralApply(subDomain, &BaseSub::mergeInterfaces);
  paralApply(subDomain, &GenSubDomain<Scalar>::applySplitting);
 

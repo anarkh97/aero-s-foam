@@ -502,7 +502,9 @@ MDNLDynamic::updateContactSurfaces(DistrGeomState& geomState, DistrGeomState *re
     domain->ExpComputeMortarLMPC(MortarHandler::CTC);
     domain->CreateMortarToMPC();
     decDomain->reProcessMPCs();
-    if(fetiSolver) fetiSolver->reconstructMPCs(decDomain->mpcToSub_dual.get(), decDomain->mpcToMpc, decDomain->mpcToCpu);
+    if(fetiSolver)
+      fetiSolver->reconstructMPCs(decDomain->mpcToSub_dual.get(),
+        decDomain->mpcToMpc.get(), decDomain->mpcToCpu.get());
   }
   else {
     clean();
@@ -1515,7 +1517,7 @@ MDNLDynamic::aeroPreProcess(DistrVector &disp, DistrVector &vel,
   if(sinfo.aeroFlag < 0)
     return 0;
 
-  Connectivity *cpuToSub = geoSource->getCpuToSub();
+  auto cpuToSub = geoSource->getCpuToSub();
 
   // get cpu id
 #ifdef USE_MPI
@@ -1622,7 +1624,7 @@ MDNLDynamic::aeroPreProcess(DistrVector &disp, DistrVector &vel,
     }
     distFlExchanger = new DistFlExchanger(cs, elemSet, (*domain->viewSurfEntities())[iSurf],
                                           &domain->getNodes(), domain->getNodeToElem(),
-                                          decDomain->getElemToSub(), subdomain,
+                                          decDomain->getElemToSub().get(), subdomain,
                                           cdsa, dsa, oinfo_aero, false);
   }
   else {
@@ -1698,7 +1700,7 @@ MDNLDynamic::thermoePreProcess()
 {
   if(domain->solInfo().thermoeFlag >=0) {
 
-    Connectivity *cpuToSub = geoSource->getCpuToSub();
+    auto cpuToSub = geoSource->getCpuToSub();
     int myId = structCom->myID();
     int numLocSub = cpuToSub->num(myId);
     SubDomain **subdomain = decDomain->getAllSubDomains();
@@ -1758,7 +1760,7 @@ MDNLDynamic::thermohPreProcess(DistrVector& d)
 {
   if(domain->solInfo().thermohFlag >=0) {
 
-    Connectivity *cpuToSub = geoSource->getCpuToSub();
+    auto cpuToSub = geoSource->getCpuToSub();
     int myId = structCom->myID();
     int numLocSub = cpuToSub->num(myId);
     SubDomain **subdomain = decDomain->getAllSubDomains();
@@ -1843,7 +1845,7 @@ MDNLDynamic::aeroheatPreProcess(DistrVector &disp, DistrVector &vel, DistrVector
   if(sinfo.aeroheatFlag < 0)
     return;
 
-  Connectivity *cpuToSub = geoSource->getCpuToSub();
+  auto cpuToSub = geoSource->getCpuToSub();
 
   // get cpu id
 #ifdef USE_MPI

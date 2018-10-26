@@ -104,7 +104,6 @@ class GenSpoolesSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar
 
    void    zeroAll() override;
    void    cleanUp();
-   double  getConstructTime() { return 0.0; }
 
    int numRBM() const override { return 0; } // note: spooles should not be used for singular matrices.
  

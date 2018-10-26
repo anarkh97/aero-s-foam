@@ -212,7 +212,9 @@ protected:
 	T **crossRecvBuffer;
 
 public:
-	FSCommPattern(FSCommunicator *communicator, const Connectivity *cpuToSub, int myCPU = 0, Mode = Share, Symmetry = Sym);
+	FSCommPattern(FSCommunicator *communicator, const Connectivity *cpuToSub,
+	              int myCPU = 0,
+	              Mode = Share, Symmetry = Sym);
 	// FSCommPattern() {};
 	~FSCommPattern();
 	void finalize(); // complete the internal setup

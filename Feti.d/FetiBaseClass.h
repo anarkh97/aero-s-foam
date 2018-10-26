@@ -193,6 +193,7 @@ protected:
 	SimpleNumberer *PFcNums = nullptr;
 	int gOffset;
 	int mOffset;
+	// TODO Find ownership (and of many other variables)
 	Connectivity *cpuToSub = nullptr;
 	int glNumMpc = 0, glNumMpc_primal = 0;
 	int *glSubToLoc = nullptr;

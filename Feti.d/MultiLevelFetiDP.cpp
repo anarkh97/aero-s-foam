@@ -509,7 +509,7 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDPNew(const Connectivity &subToCorne
 }
 
 template <typename Scalar>
-void GenFetiDPSolver<Scalar>::makeMultiLevelDP(const Connectivity *subToCorner) {
+void GenFetiDPSolver<Scalar>::makeMultiLevelDP(unique_ptr<const Connectivity> subToCorner) {
 	makeMultiLevelDPNew(*subToCorner);
 
 	Domain *coarseDomain = new Domain();
@@ -518,19 +518,18 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDP(const Connectivity *subToCorner) 
 	coarseDomain->setNumElements(subToCorner->csize());
 
 	// Get the decomposition of subdomains into super-subdomains.
-	Connectivity *decCoarse = this->cpuToSub;
+	std::unique_ptr<Connectivity> decCoarse{std::make_unique<Connectivity>(*this->cpuToSub)};
 	char fn[65];
 	FILE *f;
 	sprintf(fn,"decomposition.%d",numSub);
 	if ((f = fopen(fn,"r")) != NULL) {
 		if(verboseFlag) filePrint(stderr, " ... Reading Decomposition from file %s ...\n", fn);
-		decCoarse = new Connectivity(f,numSub);
+		decCoarse = std::make_unique<Connectivity>(f,numSub);
 		fclose(f);
 	}
 
-	Connectivity *elemToSubCoarse = decCoarse->alloc_reverse();
-	Connectivity *CPUMapCoarse = this->cpuToSub->transcon(elemToSubCoarse);
-	delete elemToSubCoarse;
+	Connectivity elemToSubCoarse = decCoarse->reverse();
+	auto CPUMapCoarse = std::make_unique<Connectivity>(this->cpuToSub->transcon(elemToSubCoarse));
 
 	std::vector<int> pointer(this->glNumSub+1, 0);
 
@@ -618,7 +617,7 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDP(const Connectivity *subToCorner) 
 #endif
 	GenDecDomain<Scalar> *decCoarseDomain = new GenDecDomain<Scalar>(coarseDomain, structCom, false, true);
 
-	const Connectivity *elemToNode; // JAT 220216
+	std::unique_ptr<const Connectivity> elemToNode; // JAT 220216
 	if (fetiInfo->augmentimpl == FetiInfo::Primal) { // JAT 041114
 #ifdef DISTRIBUTED
 		this->fetiCom->globalSum(this->glNumSub, pointer.data());
@@ -650,15 +649,15 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDP(const Connectivity *subToCorner) 
 #ifdef DISTRIBUTED
 		this->fetiCom->globalSum(total, target.data());
 #endif
-		elemToNode = new Connectivity(this->glNumSub, std::move(pointer), std::move(target));
+		elemToNode = std::make_unique<Connectivity>(this->glNumSub, std::move(pointer), std::move(target));
 	} else
-		elemToNode = subToCorner;
+		elemToNode = std::move(subToCorner);
 
-	decCoarseDomain->setElemToNode(elemToNode);
+	decCoarseDomain->setElemToNode(std::move(elemToNode));
 	if (elemToNode == subToCorner)
 		elemToNode = 0;
-	decCoarseDomain->setSubToElem(decCoarse);
-	decCoarseDomain->setCPUMap(CPUMapCoarse);
+	decCoarseDomain->setSubToElem(std::move(decCoarse));
+	decCoarseDomain->setCPUMap(std::move(CPUMapCoarse));
 	decCoarseDomain->preProcess();
 	for(int i=0; i<decCoarseDomain->getNumSub(); ++i) decCoarseDomain->getSubDomain(i)->makeAllDOFs();
 	GenMDDynamMat<Scalar> ops;
@@ -675,7 +674,7 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDP(const Connectivity *subToCorner) 
 }
 
 template
-void GenFetiDPSolver<double>::makeMultiLevelDP(const Connectivity *subToCorner);
+void GenFetiDPSolver<double>::makeMultiLevelDP(unique_ptr<const Connectivity> subToCorner);
 
 template
-void GenFetiDPSolver<std::complex<double>>::makeMultiLevelDP(const Connectivity *subToCorner);
+void GenFetiDPSolver<std::complex<double>>::makeMultiLevelDP(unique_ptr<const Connectivity> subToCorner);

@@ -1184,7 +1184,7 @@ public:
 	template<class Scalar>
 	void forceDistributedContinuity(Scalar *u, Scalar (*xyz)[11]);//DofSet::max_known_nonL_dof
 
-	Connectivity *makeSommerToNode();
+	Connectivity makeSommerToNode();
 	Connectivity *prepDirectMPC();
 	// renumbering functions
 	Renumber  getRenumbering();

@@ -2189,22 +2189,28 @@ template<class Scalar>
 void
 GenDistrDomain<Scalar>::makeNodePat()
 {
-  nodePat = new FSCommPattern<Scalar>(this->communicator, this->cpuToSub, this->myCPU, FSCommPattern<Scalar>::CopyOnSend);
-  for(int i=0; i<this->numSub; ++i) this->subDomain[i]->setNodeCommSize(nodePat);
+  nodePat = new FSCommPattern<Scalar>(
+      this->communicator, this->cpuToSub.get(), this->myCPU, FSCommPattern<Scalar>::CopyOnSend);
+  for(int i=0; i<this->numSub; ++i)
+    this->subDomain[i]->setNodeCommSize(nodePat);
   nodePat->finalize();
 }
 
 template<class Scalar>
 void
 GenDistrDomain<Scalar>::unify(DistSVec<Scalar, 11> &vec)
-{ 
+{
   // make sure that every subdomain sharing a node has the same solution for all the dofs. Actually the master sub is really the only one that needs it.
-  FSCommPattern<Scalar> *pat = new FSCommPattern<Scalar>(this->communicator, this->cpuToSub, this->myCPU, FSCommPattern<Scalar>::CopyOnSend);
-  for(int i=0; i<this->numSub; ++i) this->subDomain[i]->setNodeCommSize(pat, 11);
+  FSCommPattern<Scalar> *pat =
+      new FSCommPattern<Scalar>(this->communicator, this->cpuToSub.get(), this->myCPU, FSCommPattern<Scalar>::CopyOnSend);
+  for(int i=0; i<this->numSub; ++i)
+    this->subDomain[i]->setNodeCommSize(pat, 11);
   pat->finalize();
-  for(int i=0; i<this->numSub; ++i) this->subDomain[i]->sendNode((Scalar (*)[11]) vec.subData(i), pat);
+  for(int i=0; i<this->numSub; ++i)
+    this->subDomain[i]->sendNode((Scalar (*)[11]) vec.subData(i), pat);
   pat->exchange();
-  for(int i=0; i<this->numSub; ++i) this->subDomain[i]->collectNode((Scalar (*)[11]) vec.subData(i), pat);
+  for(int i=0; i<this->numSub; ++i)
+    this->subDomain[i]->collectNode((Scalar (*)[11]) vec.subData(i), pat);
   delete pat;
 }
 

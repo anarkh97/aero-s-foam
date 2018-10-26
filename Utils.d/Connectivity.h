@@ -236,7 +236,7 @@ public:
 	int numNonZeroP() const;
 
 	bool isDiagonal() const; // returns true if each target is only connected to itself
-	Connectivity *modify();
+	Connectivity modify();
 	/// \brief Create a similar connectivity with a self connection for nodes that did not have one.
 	Connectivity withSelfConnection() const;
 	Connectivity *modifyAlt();

@@ -354,7 +354,7 @@ public:
 	void makeFcB(int iSub, GenDistrVector<Scalar> &bf) const;
 	void KrrReSolve(int iSub, GenDistrVector<Scalar> &ur);
 	void makeKcc();
-	void makeMultiLevelDP(const Connectivity *subToCorner);
+	void makeMultiLevelDP(std::unique_ptr<const Connectivity> subToCorner);
 	void makeMultiLevelDPNew(const Connectivity &subToCorner);
 	void assembleFcStar(GenVector<Scalar> &FcStar) const;
 	void mergeSolution(GenDistrVector<Scalar> &ur, GenVector<Scalar> &uc, GenDistrVector<Scalar> &u,
@@ -440,7 +440,7 @@ private:
 	mutable int nLinesearch = 0, nLinesearchIter = 0, nStatChDual = 0, nStatChPrimal = 0;
 	mutable bool dualStatusChange = false, primalStatusChange = false, stepLengthChange = false;
 	int ngrbms = 0;
-	Connectivity *coarseConnectGtG = nullptr;
+	Connectivity coarseConnectGtG;
 	SimpleNumberer *eqNumsGtG = nullptr;
 	Connectivity *mpcToMpc = nullptr;
 	CCtSolver<Scalar> *CCtsolver = nullptr;
@@ -499,7 +499,7 @@ public:
 	void deleteG();
 
 	/** \brief Build the sub to corner connectivity into the member variable and return corner to subdomain. */
-	Connectivity *makeCornerToSub();
+	Connectivity makeCornerToSub();
 };
 
 typedef GenFetiSolver<double> FetiSolver;

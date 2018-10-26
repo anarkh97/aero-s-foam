@@ -19,7 +19,8 @@ MultiDomainRbm<Scalar>::computeRbms()
 {
   int i, nGroups, nGroups1;
   int *groups = 0, *ngrbmGr = 0;
-  Connectivity *groupToSub, *subToGroup;
+  Connectivity *groupToSub;
+  Connectivity subToGroup;
   auto bodyToSub = decDomain->getGroupToSub();
   if(!bodyToSub) {
     int nsubGl = decDomain->getGlobalNumSub();
@@ -29,7 +30,7 @@ MultiDomainRbm<Scalar>::computeRbms()
     pointer[nsubGl] = nsubGl;
     bodyToSub = new Connectivity(nsubGl, pointer, target);
   }
-  Connectivity *subToBody = bodyToSub->alloc_reverse();
+  Connectivity subToBody = bodyToSub->reverse();
   int nsub = decDomain->getNumSub();
   GenSubDomain<Scalar> **sd = decDomain->getAllSubDomains();
   FSCommunicator *com = decDomain->getCommunicator();
@@ -48,12 +49,12 @@ MultiDomainRbm<Scalar>::computeRbms()
 
     // Find out which bodies are connected together by mpcs 
     // a collection of inter-connected bodies is referred to as a group
-    Connectivity *subToMpc = mpcToSub_primal->alloc_reverse();
-    Connectivity *bodyToMpc = bodyToSub->transcon(subToMpc);
-    Connectivity *mpcToBody = bodyToMpc->alloc_reverse();
-    Connectivity *bodyToBodyTmp = bodyToMpc->transcon(mpcToBody);
-    Connectivity *bodyToBody = bodyToBodyTmp->modify();
-    compStruct renumber = bodyToBody->renumByComponent(1);  // 1 = sloan renumbering
+    Connectivity subToMpc = mpcToSub_primal->reverse();
+    Connectivity bodyToMpc = bodyToSub->transcon(subToMpc);
+    Connectivity mpcToBody = bodyToMpc.reverse();
+    Connectivity bodyToBodyTmp = bodyToMpc.transcon(mpcToBody);
+    Connectivity bodyToBody = bodyToBodyTmp.modify();
+    compStruct renumber = bodyToBody.renumByComponent(1);  // 1 = sloan renumbering
     nGroups = renumber.numComp;
     if(nGroups < nBodies) { // at least one multi-body group exists
       mbgflag = true;
@@ -69,15 +70,10 @@ MultiDomainRbm<Scalar>::computeRbms()
       }
       groupToBody = new Connectivity(nGroups, pointer, renumber.order);
       groupToSub = groupToBody->transcon(bodyToSub);
-      subToGroup = groupToSub->alloc_reverse();
+      subToGroup = groupToSub->reverse();
     }
     if(renumber.xcomp) delete [] renumber.xcomp;
     if(renumber.renum) delete [] renumber.renum;
-    delete subToMpc;
-    delete bodyToMpc;
-    delete mpcToBody;
-    delete bodyToBodyTmp;
-    delete bodyToBody;
   }
   if(!mbgflag) { // one body per group
     groupToSub = bodyToSub;
@@ -86,14 +82,14 @@ MultiDomainRbm<Scalar>::computeRbms()
   }
 
   // tell each subDomain what group it is in and find groups on each processor
-  paralApply(nsub, sd, &BaseSub::setGroup, subToGroup);
+  paralApply(nsub, sd, &BaseSub::setGroup, &subToGroup);
   groups = new int[nGroups];  // groups represented on this processor
 #ifdef  DISTRIBUTED
   if(sd && nsub > 0) {
-    groups[0] = (*subToGroup)[sd[0]->subNum()][0];
+    groups[0] = subToGroup[sd[0]->subNum()][0];
     int n = 1;
     for(int i = 1; i < nsub; ++i) {
-      int group = (*subToGroup)[sd[i]->subNum()][0];
+      int group = subToGroup[sd[i]->subNum()][0];
       int j;
       for(j = 0; j < n; ++j) if(group == groups[j]) j = n+1;
       if(j == n) groups[n++] = group;
@@ -183,7 +179,7 @@ MultiDomainRbm<Scalar>::computeRbms()
     }
   }
   for(int iSub = 0; iSub < nsub; ++iSub) {
-    int subGroup = (*subToGroup)[sd[iSub]->subNum()][0];
+    int subGroup = subToGroup[sd[iSub]->subNum()][0];
     zRowDim[subGroup] += sd[iSub]->zRowDim();
   }
   if(glNumMpc_primal > 0) {
@@ -211,8 +207,8 @@ MultiDomainRbm<Scalar>::computeRbms()
   }
   // could do this in parallel (by groups)
   for(int iSub = 0; iSub < nsub; ++iSub) {
-    int subBody = (*subToBody)[sd[iSub]->subNum()][0];
-    int subGroup = (*subToGroup)[sd[iSub]->subNum()][0];
+    int subBody = subToBody[sd[iSub]->subNum()][0];
+    int subGroup = subToGroup[sd[iSub]->subNum()][0];
     if(sd[iSub]->zRowDim() > 0) 
       sd[iSub]->addSPCsToGlobalZstar(globalZstar[subGroup], zRow[subGroup], zColOffset[subBody]);
     if(sd[iSub]->numMPCs_primal() > 0) {
@@ -220,7 +216,7 @@ MultiDomainRbm<Scalar>::computeRbms()
       sd[iSub]->addMPCsToGlobalZstar(globalZstar[subGroup], startRow, zColOffset[subBody], zColDim1);
     }
   }
-  if(glNumMpc_primal > 0) execParal(nsub, this, &MultiDomainRbm<Scalar>::setBodyRBMoffset, zColOffset, subToBody);
+  if(glNumMpc_primal > 0) execParal(nsub, this, &MultiDomainRbm<Scalar>::setBodyRBMoffset, zColOffset, &subToBody);
   delete [] zColOffset;
   if(groupToMpc) delete groupToMpc;
  
@@ -291,7 +287,7 @@ MultiDomainRbm<Scalar>::computeRbms()
     paralApply(nsub, sd, &GenSubDomain<Scalar>::makeG);
 
     // 2. exchange G's between neighboring subdomains
-    Connectivity *cpuToSub = decDomain->getCpuToSub();
+    Connectivity *cpuToSub = decDomain->getCpuToSub().get();
     FSCommPattern<int> *sPat = new FSCommPattern<int>(com, cpuToSub, myCPU, FSCommPattern<int>::CopyOnSend);
     for(int i = 0; i < nsub; ++i) sd[i]->setMpcNeighbCommSize(sPat, 2);
     sPat->finalize();
@@ -309,14 +305,13 @@ MultiDomainRbm<Scalar>::computeRbms()
     delete gPat;
 
     // 3. build coarse connectivity and equation numberer
-    Connectivity *coarseConnectGtG;
+    Connectivity coarseConnectGtG;
     const Connectivity &mpcToSub = decDomain->getMpcToSub();
     if(mpcToSub.csize() > 0) {
-      Connectivity *mpcToBody = mpcToSub.transcon(subToGroup);
-      Connectivity *bodyToMpc = mpcToBody->alloc_reverse();
-      Connectivity *bodyToBody_mpc = bodyToMpc->transcon(mpcToBody);
-      coarseConnectGtG = bodyToBody_mpc->modify();
-      delete mpcToBody; delete bodyToMpc; delete bodyToBody_mpc;
+      Connectivity mpcToBody = mpcToSub.transcon(subToGroup);
+      Connectivity bodyToMpc = mpcToBody.reverse();
+      Connectivity bodyToBody_mpc = bodyToMpc.transcon(mpcToBody);
+      coarseConnectGtG = bodyToBody_mpc.modify();
     }
     else {
       coarseConnectGtG = bodyToSub->transcon(subToBody);
@@ -327,7 +322,7 @@ MultiDomainRbm<Scalar>::computeRbms()
     eqNumsGtG->makeOffset();
 
     // 4. create, assemble and factorize GtG
-    GenSkyMatrix<Scalar> *GtGtilda = new GenSkyMatrix<Scalar>(coarseConnectGtG, eqNumsGtG, tolgrb);
+    GenSkyMatrix<Scalar> *GtGtilda = new GenSkyMatrix<Scalar>(&coarseConnectGtG, eqNumsGtG, tolgrb);
     execParal(nGroups1, this, &MultiDomainRbm<Scalar>::assembleGtG, groups, groupToSub, 
                 static_cast<GenSparseMatrix<Scalar> *>(GtGtilda));
 #ifdef DISTRIBUTED
@@ -348,12 +343,10 @@ MultiDomainRbm<Scalar>::computeRbms()
       delete [] zem;
     }
 
-    delete coarseConnectGtG;
     delete eqNumsGtG;
     delete GtGtilda;
   }
   if(!decDomain->getGroupToSub()) delete bodyToSub;
-  delete subToBody;
   delete [] groups;
   delete [] ngrbmGr;
 }

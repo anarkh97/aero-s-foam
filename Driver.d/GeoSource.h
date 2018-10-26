@@ -198,11 +198,13 @@ protected:
 	std::vector<int> subToClus;
 	Connectivity *subToSub;
 	Connectivity *subToNode;
+	// TODO Make a consistent ownership. Ownership used to be passed along, yet can be delete
+	// by contact problems.
 	Connectivity *subToElem;
 	Connectivity *unsortedSubToElem;
 
 	int *subToCPU;
-	Connectivity *cpuToSub;
+	std::shared_ptr<Connectivity> cpuToSub;
 	Connectivity *cpuToCPU;
 
 	double mratio; // consistent-lumped matrix ratio; 1==consistent, 0==lumped
@@ -334,7 +336,7 @@ public:
 	void duplicateFilesForPita(int, const int*);
 
 	// decomp read functions
-	Connectivity* getDecomposition();
+	std::unique_ptr<Connectivity> getDecomposition();
 	void getTextDecomp(bool sowering = false);
 	void getBinaryDecomp();
 
@@ -449,8 +451,8 @@ public:
 	int  glToPackElem(int i) const;
 	const Connectivity &getClusToSub() const { return *clusToSub; }
 	int *getSubToClus()  { return subToClus.data(); }
-	Connectivity *getSubToSub()  { return subToSub; }
-	Connectivity *getSubToElem()  { return subToElem; }
+	const Connectivity *getSubToSub() const { return subToSub; }
+	const Connectivity *getSubToElem() const { return subToElem; }
 	void setSubToElem(Connectivity *ste) { subToElem = ste; }
 	Connectivity *getSubToNode()  { return subToNode; }
 
@@ -523,8 +525,8 @@ public:
 	bool noOutput(int x, int ndflag = 0);
 
 	int *getSubToCPU()  { return subToCPU; }
-	void setCpuToSub(Connectivity *c) { cpuToSub=c; }
-	Connectivity *getCpuToSub() { return cpuToSub; }
+//	void setCpuToSub(Connectivity *c) { cpuToSub=c; }
+	std::shared_ptr<Connectivity> getCpuToSub() { return cpuToSub; }
 	Connectivity *getCpuTOCPU()  { return cpuToCPU; }
 
 	ControlLawInfo *getControlLaw()  { return claw; }

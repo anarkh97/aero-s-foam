@@ -142,7 +142,6 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   numTSPitaIVel6 = 0;
 
   subToCPU = 0;
-  cpuToSub = 0;
   cpuToCPU = 0;
   subToNode = 0;
   subToElem = 0;
@@ -209,7 +208,6 @@ void GeoSource::cleanUp()
 GeoSource::~GeoSource()
 {
   /* not fully implemented */
-  if(cpuToSub) delete cpuToSub;
   if(cinfo) delete cinfo;
   if(unsortedSubToElem) delete unsortedSubToElem;
   if(subToCPU) delete [] subToCPU;
@@ -3311,12 +3309,11 @@ int GeoSource::getCPUMap(FILE *f, Connectivity *subToSub, int glNumSub, int numC
 		  }
 		}
 		cx[numCPU] = curSub;
-		if(cpuToSub) delete cpuToSub;
-		cpuToSub = new Connectivity(numCPU, cx, connect);
+		cpuToSub = std::make_shared<Connectivity>(numCPU, cx, connect);
 	  }
 	} else {
 #endif
-	  cpuToSub = new Connectivity(f,totSub);
+	  cpuToSub = std::make_shared<Connectivity>(f,totSub);
 	  numCPU = cpuToSub->csize();
 	  filePrint(stderr, " ... Reading CPU Map from file %s, numCPU = %d ... \n", mapName, numCPU);
 #ifdef DISTRIBUTED
@@ -3328,10 +3325,9 @@ int GeoSource::getCPUMap(FILE *f, Connectivity *subToSub, int glNumSub, int numC
 #endif
   }
 
-  Connectivity *subDomainToCPU = cpuToSub->alloc_reverse();
+  Connectivity subDomainToCPU = cpuToSub->reverse();
   if(cpuToCPU) delete cpuToCPU;
-  cpuToCPU = cpuToSub->transcon(subDomainToCPU);
-  delete subDomainToCPU;
+  cpuToCPU = cpuToSub->transcon(&subDomainToCPU);
 
   if(domain->solInfo().aeroFlag >= 0 || domain->solInfo().aeroheatFlag >= 0) {
 	int numLocSub = 0;
@@ -3721,7 +3717,7 @@ void GeoSource::createSingleCpuToSub(int numSub)
   ptr[1] = numSub;
   for (int iSub = 0; iSub < numSub; ++iSub)
 	trg[iSub] = iSub;
-  cpuToSub = new Connectivity(1, ptr, trg);
+  cpuToSub = std::make_shared<Connectivity>(1, ptr, trg);
   mt.memoryCPUMAP += memoryUsed();
 }
 
@@ -4477,7 +4473,7 @@ void GeoSource::writeDistributedInputFiles(int nCluster, Domain *domain, int nCp
   }
   else {
     filePrint(stderr, " ... Reading CPU Map from file %s ... \n", mapName);
-    cpuToSub = new Connectivity(f, subToElem->csize());
+    cpuToSub = std::make_shared<Connectivity>(f, subToElem->csize());
     if(cpuToSub->csize() != nCpu) {
       filePrint(stderr, "ERROR: specified CPU Map file %s has incorrect number of CPUs\n", mapName);
       exit(-1);
@@ -4485,7 +4481,7 @@ void GeoSource::writeDistributedInputFiles(int nCluster, Domain *domain, int nCp
   }
 
   // TOPOLOGY (also element data PRESSURE and PRELOAD)
-  Sower sower(subToElem, domain->getElementSet(), nCluster, domain->viewSurfEntities(), cpuToSub); //HB
+  Sower sower(subToElem, domain->getElementSet(), nCluster, domain->viewSurfEntities(), cpuToSub.get()); //HB
   /* the sower object creates the cluster to element connectivity and from it will
 	 create cluster to data connectivities for each data added subsequently.
 	 Thus It will finally know which cluster needs what */
@@ -4697,7 +4693,7 @@ void GeoSource::writeDistributedInputFiles(int nCluster, Domain *domain, int nCp
 }
 #endif
 
-Connectivity *
+std::unique_ptr<Connectivity>
 GeoSource::getDecomposition()
 {
   if(binaryInput) getBinaryDecomp();
@@ -4744,7 +4740,7 @@ GeoSource::getDecomposition()
 #endif
   }
   if(matchName != NULL && !unsortedSubToElem) unsortedSubToElem = subToElem->copy();
-  return subToElem;
+  return std::make_unique<Connectivity>( *subToElem );
 }
 
 void GeoSource::getBinaryDecomp()
@@ -4758,7 +4754,7 @@ void GeoSource::getBinaryDecomp()
 	  filePrint(stderr, "*** ERROR: Cannot open CPU Map file %s\n", mapName);
 	  exit(-1);
 	}
-	cpuToSub = new Connectivity(f,0);
+	cpuToSub = std::make_shared<Connectivity>(f,0);
 	fclose(f);
 	int numCPU = cpuToSub->csize();
 	if(numCPU != structCom->numCPUs()) {

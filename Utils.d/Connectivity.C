@@ -1023,9 +1023,9 @@ Connectivity::trim(Connectivity *marker)
 	return new Connectivity(size, std::move(nptr), std::move(ntrg), std::vector<float>());
 }
 
-// PJSA: modify a connectivity to insert connection between each target and itself 
+// PJSA: modify a connectivity to insert connection between each target and itself
 // needed to make bodyToBody, since some bodys may have no MPCs
-Connectivity *
+Connectivity
 Connectivity::modify()
 {
 	int i,j;
@@ -1033,8 +1033,8 @@ Connectivity::modify()
 	count = 0;
 	for(i = 0; i < size; ++i)
 		if(num(i) == 0) count++;
-	int *ntrg = new int[getNumTarget()+count];
-	int *nptr = new int[size+1];
+	std::vector<int> ntrg( getNumTarget()+count );
+	std::vector<int> nptr( size+1 );
 	count = 0;
 	for(i = 0; i < size; ++i) {
 		nptr[i] = count;
@@ -1045,7 +1045,7 @@ Connectivity::modify()
 		}
 	}
 	nptr[size] = count;
-	return new Connectivity(size, nptr, ntrg);
+	return Connectivity(size, std::move(nptr), std::move(ntrg));
 }
 
 Connectivity

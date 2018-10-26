@@ -254,7 +254,7 @@ DistFlExchanger::sendDisplacements(SysState<DistrVector> &state,
                                    double **usrDefDisps, double **usrDefVels, int tag,
                                    DistrGeomState *distrGeomState)
 {
-  Connectivity *cpuToSub = geoSource->getCpuToSub();
+  auto cpuToSub = geoSource->getCpuToSub();
   int myCPU = structCom->myID();
   int numSub = cpuToSub->num(myCPU);
 
@@ -551,7 +551,7 @@ DistFlExchanger::sendEmbeddedWetSurface()
 MatchMap *
 DistFlExchanger::getMatchData()
 {
-  Connectivity *cpuToSub = geoSource->getCpuToSub();
+  auto cpuToSub = geoSource->getCpuToSub();
   int myCPU = structCom->myID();
   int numSub = cpuToSub->num(myCPU);
   MatchMap *globMatches = new MatchMap();
@@ -660,7 +660,7 @@ DistFlExchanger::getMatchData()
 void
 DistFlExchanger::sendTemperature(SysState<DistrVector> &dState)
 {
-  Connectivity *cpuToSub = geoSource->getCpuToSub();
+  auto cpuToSub = geoSource->getCpuToSub();
   int myCPU = structCom->myID();
   int numSub = cpuToSub->num(myCPU);
 
@@ -716,7 +716,7 @@ void
 DistFlExchanger::sendStrucTemp(DistrVector &tempsent)
 {
   // for now we assume that the structure and thermal models have the same mesh and the same decomposition
-  Connectivity *cpuToSub = geoSource->getCpuToSub();
+  auto cpuToSub = geoSource->getCpuToSub();
   int myCPU = structCom->myID();
   int numSub = cpuToSub->num(myCPU);
   // Sends temperature to mechanical structure
@@ -1021,7 +1021,7 @@ DistFlExchanger::sendNoStructure()
 void
 DistFlExchanger::sendNewStructure()
 {
-  Connectivity *cpuToSub = geoSource->getCpuToSub();
+  auto cpuToSub = geoSource->getCpuToSub();
   int myCPU = structCom->myID();
   int numSub = cpuToSub->num(myCPU);
 

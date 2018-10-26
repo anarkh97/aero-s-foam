@@ -136,8 +136,8 @@ public:
 
 	void makeMpcInterface(Connectivity *subToMpc, const Connectivity &lmpcToSub,
 	                      Connectivity *subToSub_mpc);
-	void makeFsiInterface(Connectivity *subToFsi, Connectivity *fsiToSub,
-	                      Connectivity *subToSub_fsi);
+	void makeFsiInterface(const Connectivity *subToFsi, const Connectivity &fsiToSub,
+	                      const Connectivity *subToSub_fsi);
 
 	bool checkForColinearCrossPoints(int numCornerPoints, int *localCornerPoints);
 	void addCornerPoints(int *glCornerList);
@@ -202,6 +202,7 @@ protected:
 	int *fsiNeighb = nullptr;
 
 public:
+	/// \brief Non-owning pointer to the global(?) node to subdomain connectivity.
 	Connectivity *nodeToSub;
 	void setnodeToSubConnectivity(Connectivity *nTsubConn) { nodeToSub = nTsubConn; }
 	void markWetInterface(int nWI, int *wiNum);

@@ -348,12 +348,12 @@ GenFetiDPSolver<Scalar>::makeKcc()
 
 	// STEP 1. count number of corner nodes and make subToCorner connectivity
 	// A global subdomain to corner connectivity. Does not include primal augmentation.
-	Connectivity *subToCorner = 0;
+	std::unique_ptr<Connectivity>subToCorner = 0;
 	if(!cornerToSub) {
-		subToCorner = makeCornerToSub();
+		subToCorner = std::make_unique<Connectivity>( makeCornerToSub() );
 	}
 	else {
-		subToCorner = cornerToSub->alloc_reverse();
+		subToCorner = std::make_unique<Connectivity>( cornerToSub->reverse() );
 	}
 	// filePrint(stderr,"subToCorner %d kb\n",(int)(subToCorner->memsize()/1024));
 	// filePrint(stderr,"cornerToSub %d kb\n",(int)(cornerToSub->memsize()/1024));
@@ -395,7 +395,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 			default:
 				break;
 		}
-		subToCoarse = (coarseToSub != cornerToSub) ? coarseToSub->alloc_reverse() : subToCorner;
+		subToCoarse = (coarseToSub != cornerToSub) ? coarseToSub->alloc_reverse() : subToCorner.get();
 		// filePrint(stderr,"subToCoarse %d kb\n",(int)(subToCoarse->memsize()/1024));
 		coarseConnectivity = coarseToSub->transcon(subToCoarse);
 		// filePrint(stderr,"coarseConnectivity %d kb\n",(int)(coarseConnectivity->memsize()/1024));
@@ -420,8 +420,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
  }
 #endif
 	if(coarseToSub && coarseToSub != cornerToSub) delete coarseToSub;
-	if(subToCoarse && subToCoarse != subToCorner) delete subToCoarse;
-	if(!isFeti(fetiInfo->coarse_cntl->type)) delete subToCorner;
+	if(subToCoarse != subToCorner.get()) delete subToCoarse;
 
 	int *glCornerDofs = new int[glNumCorners];
 	for(int i = 0; i < glNumCorners; ++i) glCornerDofs[i] = 0;
@@ -781,7 +780,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 		// EXPERIMENTAL CODE to use feti dp for the coarse problem
 		if(fetiInfo->coarse_cntl->type == SolverSelection::Feti) {
 			// build coarse solver
-			makeMultiLevelDP(subToCorner);
+			makeMultiLevelDP(std::move(subToCorner));
 		}
 		else {
 
@@ -860,7 +859,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
  * @return
  */
 template <typename Scalar>
-Connectivity *GenFetiDPSolver<Scalar>::makeCornerToSub() {
+Connectivity GenFetiDPSolver<Scalar>::makeCornerToSub() {
 	std::vector<int> pointer(this->glNumSub + 1);
 	for(int i=0; i < this->glNumSub + 1; ++i) pointer[i] = 0;
 	for(int iSub=0; iSub < this->nsub; ++iSub)
@@ -916,8 +915,8 @@ Connectivity *GenFetiDPSolver<Scalar>::makeCornerToSub() {
 	this->fetiCom->globalSum(total, target.data());
 #endif
 
-	auto subToCorner = new Connectivity(this->glNumSub, std::move(pointer), std::move(target));
-	this->cornerToSub = subToCorner->alloc_reverse();
+	Connectivity subToCorner(this->glNumSub, std::move(pointer), std::move(target));
+	this->cornerToSub = subToCorner.alloc_reverse();
 	return subToCorner;
 }
 
@@ -2187,7 +2186,8 @@ GenFetiDPSolver<Scalar>::rebuildGtGtilda()
   startTimerMemory(this->times.coarse1, this->times.memoryGtG);
 
   if(GtGtilda == NULL) {
-    GtGtilda = GenSolverFactory<Scalar>::getFactory()->createSolver(coarseConnectGtG, eqNumsGtG, *fetiInfo->auxcoarse_cntl, GtGsparse);
+	  GtGtilda = GenSolverFactory<Scalar>::getFactory()->createSolver(
+		  &coarseConnectGtG, eqNumsGtG, *fetiInfo->auxcoarse_cntl, GtGsparse);
     GtGtilda->setPrintNullity(fetiInfo->contactPrintFlag && this->myCPU == 0);
   } else
   GtGtilda->zeroAll();
@@ -2397,7 +2397,6 @@ GenFetiDPSolver<Scalar>::~GenFetiDPSolver()
   if(KccSparse) { delete KccSparse; KccSolver = 0; KccSparse = 0; }
   if(cornerToSub) { delete cornerToSub; cornerToSub = 0; }
   if(cornerEqs) { delete cornerEqs; cornerEqs = 0; }
-  if(coarseConnectGtG) { delete coarseConnectGtG; coarseConnectGtG = 0; }
   if(eqNumsGtG) { delete eqNumsGtG; eqNumsGtG = 0; }
   
   if(CCtsolver) { delete CCtsolver; CCtsolver = 0; }
@@ -3085,15 +3084,14 @@ GenFetiDPSolver<Scalar>::makeGtG()
 
 	// 3. build coarse connectivity and equation numberer
 	if(this->mpcToSub) {
-		Connectivity *mpcToBody = this->mpcToSub->transcon(subToGroup); // PJSA 6-15-06
-		Connectivity *bodyToMpc = mpcToBody->alloc_reverse();
-		Connectivity *bodyToBody_mpc = bodyToMpc->transcon(mpcToBody);
-		coarseConnectGtG = bodyToBody_mpc->modify();
-		delete mpcToBody; delete bodyToMpc; delete bodyToBody_mpc;
+		Connectivity mpcToBody = this->mpcToSub->transcon(*subToGroup); // PJSA 6-15-06
+		Connectivity bodyToMpc = mpcToBody.reverse();
+		Connectivity bodyToBody_mpc = bodyToMpc.transcon(mpcToBody);
+		coarseConnectGtG = bodyToBody_mpc.modify();
 	}
 	else {
 		Connectivity *bodyToSub = subToBody->alloc_reverse();
-		coarseConnectGtG = bodyToSub->transcon(subToBody);
+		coarseConnectGtG = bodyToSub->transcon(*subToBody);
 		delete bodyToSub;
 	}
 	eqNumsGtG = new SimpleNumberer(nGroups);

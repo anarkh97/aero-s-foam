@@ -1613,28 +1613,28 @@ Domain::resProcessing(Vector &totRes, int index, double t)
   }
 }
 
-Connectivity *
-Domain::makeSommerToNode() 
+Connectivity
+Domain::makeSommerToNode()
 {
- int size = numSommer;
- // Find out the number of targets we will have
- int *pointer = new int[size+1] ;
- int pp = 0;
- for(int i=0; i < size; ++i) {
-   pointer[i] = pp;
-   pp += sommer[i] ? sommer[i]->numNodes() : 0;
- }
- pointer[size] = pp;
- //int numtarget = pp;
- // Create the target array
- int *target = new int[pp];
- // Fill it in
- for(int i=0; i < size; ++i) {
-   if(sommer[i]) sommer[i]->nodes(target+pointer[i]);
- }
+    int size = numSommer;
+    // Find out the number of targets we will have
+    std::vector<int> pointer(size+1) ;
+    int pp = 0;
+    for(int i=0; i < size; ++i) {
+        pointer[i] = pp;
+        pp += sommer[i] ? sommer[i]->numNodes() : 0;
+    }
+    pointer[size] = pp;
+    //int numtarget = pp;
+    // Create the target array
+    std::vector<int> target( pp );
+    // Fill it in
+    for(int i=0; i < size; ++i) {
+        if(sommer[i])
+            sommer[i]->nodes(target.data()+pointer[i]);
+    }
 
- Connectivity *ret = new Connectivity(size, pointer, target);
- return ret;
+    return { size, pointer, target };
 }
 
 Connectivity *
@@ -1929,27 +1929,22 @@ Domain::getRenumberingFluid()
 void
 Domain::makeNodeToNode_sommer()
 {
- if(solInfo().doFreqSweep && (numSommer > 0)) {
-   Connectivity *sommerToNode = makeSommerToNode();
-   Connectivity *nodeToSommer = sommerToNode->alloc_reverse();
-   nodeToNode_sommer = nodeToSommer->transcon(sommerToNode);
-   delete nodeToSommer; delete sommerToNode;
- }
+    if(solInfo().doFreqSweep && (numSommer > 0)) {
+        Connectivity sommerToNode = makeSommerToNode();
+        Connectivity nodeToSommer = sommerToNode.reverse();
+        nodeToNode_sommer = nodeToSommer.transcon(&sommerToNode);
+    }
 
- if( (solInfo().newmarkBeta==0.0)&&(solInfo().isAcoustic()) ) {
-   Connectivity *sommerToNode = makeSommerToNode();
-   Connectivity *nodeToSommer = sommerToNode->alloc_reverse();
-   //Watch nodeToNode_sommer may not be of the right size !
-   int numnodes = nodeToNode->csize();
-   Connectivity *temp0=new Connectivity(numnodes);
-   Connectivity *temp1 = temp0->modify();
-   Connectivity *temp2 = nodeToSommer->transcon(sommerToNode);
-   nodeToNode_sommer = temp1->transcon(temp2);
-   delete nodeToSommer; delete sommerToNode;
-   delete temp0;
-   delete temp1;
-   delete temp2;
- }
+    if( (solInfo().newmarkBeta==0.0)&&(solInfo().isAcoustic()) ) {
+        Connectivity sommerToNode = makeSommerToNode();
+        Connectivity nodeToSommer = sommerToNode.reverse();
+        //Watch nodeToNode_sommer may not be of the right size !
+        int numnodes = nodeToNode->csize();
+        Connectivity temp0(numnodes);
+        Connectivity temp1 = temp0.modify();
+        Connectivity temp2 = nodeToSommer.transcon(sommerToNode);
+        nodeToNode_sommer = temp1.transcon(&temp2);
+    }
 }
 
 void

@@ -1602,8 +1602,8 @@ BaseSub::makeMpcInterface(Connectivity *subToMpc, const Connectivity &lmpcToSub,
 }
 
 void
-BaseSub::makeFsiInterface(Connectivity *subToFsi, Connectivity *fsiToSub,
-                          Connectivity *subToSub_fsi)
+BaseSub::makeFsiInterface(const Connectivity *subToFsi, const Connectivity &fsiToSub,
+                          const Connectivity *subToSub_fsi)
 {
   int i,j,k;
 
@@ -1616,9 +1616,9 @@ BaseSub::makeFsiInterface(Connectivity *subToFsi, Connectivity *fsiToSub,
   int numtarget = 0;
   for(i = 0; i < subToFsi->num(subNumber); ++i) {
     int glFsi = (*subToFsi)[subNumber][i];
-    for(j = 0; j < fsiToSub->num(glFsi); ++j) {
-      int jSub = (*fsiToSub)[glFsi][j];
-      if( (jSub != subNumber) || (fsiToSub->num(glFsi) == 1) ) {
+    for(j = 0; j < fsiToSub.num(glFsi); ++j) {
+      int jSub = fsiToSub[glFsi][j];
+      if( (jSub != subNumber) || (fsiToSub.num(glFsi) == 1) ) {
         int jFsiNeighb = subToSub_fsi->cOffset(subNumber, jSub);
         fsiNeighbSize[jFsiNeighb] += 1;
         numtarget++;
@@ -1633,9 +1633,9 @@ BaseSub::makeFsiInterface(Connectivity *subToFsi, Connectivity *fsiToSub,
   for(i = 0; i < numFsiNeighb; ++i) fsiNeighbSize[i] = 0;
   for(i = 0; i < subToFsi->num(subNumber); ++i) {
     int glFsi = (*subToFsi)[subNumber][i];
-    for(j = 0; j < fsiToSub->num(glFsi); ++j) {
-      int jSub = (*fsiToSub)[glFsi][j];
-      if( (jSub != subNumber) || (fsiToSub->num(glFsi) == 1) ) {
+    for(j = 0; j < fsiToSub.num(glFsi); ++j) {
+      int jSub = fsiToSub[glFsi][j];
+      if( (jSub != subNumber) || (fsiToSub.num(glFsi) == 1) ) {
         int jFsiNeighb = subToSub_fsi->cOffset(subNumber, jSub);
         int t = pointer[jFsiNeighb] + fsiNeighbSize[jFsiNeighb];
         target[t] = glFsi;

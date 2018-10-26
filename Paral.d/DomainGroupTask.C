@@ -136,10 +136,9 @@ GenDomainGroupTask<Scalar>::runForWB(int isub, bool make_feti)
 			if(solvertype != 10) {
 				int numN = sd[isub]->numNodes();
 				// import a diagonal connectivity for the mass matrix
-				Connectivity *connForMass = new Connectivity(numN);
-				connForMass = connForMass->modify();
-				M[isub] = sd[isub]->template constructDBSparseMatrix<Scalar>(cdsa, connForMass);
-				delete connForMass;
+				Connectivity connForMass(numN);
+				connForMass = connForMass.modify();
+				M[isub] = sd[isub]->template constructDBSparseMatrix<Scalar>(cdsa, &connForMass);
 			}
 			else {
 				// if only spectral elements are used, the mass matrix is purely diagonal for implicit and explicit

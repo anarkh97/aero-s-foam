@@ -220,7 +220,7 @@ GenCoarseSet<Scalar>::getNeighbGs(GenCoarseSet<Scalar> *csets, GenSubDomain<Scal
  int iSub;
  for(iSub = 0; iSub < numNeighb; ++iSub) {
 #ifdef DISTRIBUTED
-   leadingDimGs[iSub] = sd->getSComm()->sharedDOFs->num(iSub);
+   leadingDimGs[iSub] = sd->getSComm()->sharedDOFsCount(iSub);
    neighbGs[iSub] = new Scalar[neighbNumRBMs[iSub]*leadingDimGs[iSub]]; // PJSA
    sd->recvInterfRBMs(iSub, neighbNumRBMs[iSub], neighbGs[iSub], rbmPat);  // PJSA
 #else
@@ -249,7 +249,7 @@ GenCoarseSet<Scalar>::getNeighbQGs(GenCoarseSet<Scalar> *csets, GenSubDomain<Sca
 
  for(iSub = 0; iSub < numNeighb; ++iSub) {
 #ifdef DISTRIBUTED
-   len = sd->getSComm()->sharedDOFs->num(iSub);
+   len = sd->getSComm()->sharedDOFsCount(iSub);
    Scalar *srcG = new Scalar[neighbNumRBMs[iSub]*len]; // PJSA
    sd->recvInterfRBMs(iSub, neighbNumRBMs[iSub], srcG, rbmPat);  // PJSA
 #else

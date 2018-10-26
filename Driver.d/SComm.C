@@ -2,23 +2,12 @@
 #include <Driver.d/SComm.h>
 
 SComm::SComm(int nN, std::vector<gl_sub_idx> subIds, std::vector<lc_sub_idx> ids, std::unique_ptr<Connectivity> con) :
-	subNums(std::move(subIds)), remoteId(std::move(ids)), exchangeData(nN, nullptr), sharedNodes{std::move(con)}
+	subNums(std::move(subIds)), remoteId(std::move(ids)), sharedNodes{std::move(con)}
 {
 	numNeighb = nN;
 
 	// type specific lists
 	numDofType = 8;
-}
-
-SComm::~SComm()
-{
-	//if(sharedDOFs) { delete sharedDOFs; sharedDOFs=0; }
-	if (isEdgeNeighb) {
-		delete[] isEdgeNeighb;
-		isEdgeNeighb = 0;
-	}
-	// don't delete glSubToLocal (DistDom)
-	if (sharedDOFsPlus) delete sharedDOFsPlus;
 }
 
 void
@@ -32,32 +21,10 @@ SComm::deleteTypeSpecificList(DofType type)
 }
 
 void
-SComm::setEdgeNeighb(int _numEdgeNeighb, bool *_isEdgeNeighb)
+SComm::setEdgeNeighb(int _numEdgeNeighb, std::vector<bool> _isEdgeNeighb)
 {
 	numEdgeNeighb = _numEdgeNeighb;
-	if (isEdgeNeighb) delete[] isEdgeNeighb;
-	isEdgeNeighb = _isEdgeNeighb;
-}
-
-void *
-SComm::getExchangeData(int iSub)
-{
-#ifdef DISTRIBUTED
-	std::cerr << " *** ERROR: SComm::getExchangeData is not implemented for distributed memory \n";
-	return 0;
-#else
-	throw std::logic_error("Support was removed for getting exchange data when neighb was removed.");
-#endif
-}
-
-void
-SComm::setExchangeData(int iSub, void *data)
-{
-#ifdef DISTRIBUTED
-	std::cerr << " *** ERROR: SComm::setExchangeData is not implemented for distributed memory \n";
-#else
-	exchangeData[iSub] = data;
-#endif
+	isEdgeNeighb = std::move(_isEdgeNeighb);
 }
 
 void
@@ -113,10 +80,6 @@ SComm::mergeTypeSpecificLists()
 			}
 		}
 	}
-	//numNeighb = allNumNeighb;
-	//subNums = allSubNums;
-	//sharedDOFs = allSharedDOFs;
-	sharedDOFs = allSharedDOFs.get(); // tmp fix to compile MDAxi
 	setTypeSpecificList(all, allSubNums, std::move(allSharedDOFs) );
 
 	for (i = int(all); i < numDofType; ++i)

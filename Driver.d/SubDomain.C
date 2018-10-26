@@ -469,43 +469,40 @@ void
 GenSubDomain<Scalar>::gatherDOFListPlus(FSCommPattern<int> *pat) {
 	int iSub, iNode, i;
 	Connectivity &sharedNodes = *(scomm->sharedNodes);
-	DofSet **boundaryDOFs = new DofSet *[scomm->numNeighb]; // needs to be a local variable
+	std::vector<std::vector<DofSet>> boundaryDOFs(scomm->numNeighb); // needs to be a local variable
 	int nbdofs = 0;
 	for (iSub = 0; iSub < scomm->numNeighb; ++iSub) {
 		FSSubRecInfo<int> rInfo = pat->recData(scomm->subNums[iSub], subNumber);
-		boundaryDOFs[iSub] = new DofSet[sharedNodes.num(iSub)];
+		boundaryDOFs[iSub].resize(sharedNodes.num(iSub));
 		for (iNode = 0; iNode < sharedNodes.num(iSub); ++iNode) {
 			boundaryDOFs[iSub][iNode] = DofSet(rInfo.data[iNode]); // temporarily store neighb c_dsa in boundaryDOFs
 			DofSet shared_bdofs = boundaryDOFs[iSub][iNode] & (*getCDSA())[sharedNodes[iSub][iNode]];
-			int bcount = shared_bdofs.count();
-			nbdofs += bcount;
+			nbdofs += shared_bdofs.count();
 		}
 	}
 
-	int *boundDofs = new int[nbdofs];
-	int *boundDofPointer = new int[scomm->numNeighb + 1];
+	std::vector<int> boundDofs(nbdofs);
+	std::vector<int> boundDofPointer(scomm->numNeighb + 1);
 	boundDofPointer[0] = 0;
 	nbdofs = 0;
 	for (iSub = 0; iSub < scomm->numNeighb; ++iSub) {
 		for (iNode = 0; iNode < sharedNodes.num(iSub); ++iNode) {
 			boundaryDOFs[iSub][iNode] &= (*getCDSA())[sharedNodes[iSub][iNode]]; // ~> shared_bdofs
 			int bcount = getCDSA()->number(sharedNodes[iSub][iNode],
-			                               boundaryDOFs[iSub][iNode], boundDofs + nbdofs);
+			                               boundaryDOFs[iSub][iNode], &boundDofs[nbdofs]);
 			nbdofs += bcount;
 		}
 		boundDofPointer[iSub + 1] = nbdofs;
 	}
 
-	Connectivity *sharedDOFsPlus = new Connectivity(scomm->numNeighb, boundDofPointer, boundDofs);
-	scomm->sharedDOFsPlus = sharedDOFsPlus;
+	scomm->sharedDOFsPlus = std::make_unique<Connectivity>(scomm->numNeighb,
+	                                                       std::move(boundDofPointer), std::move(boundDofs));
 
 	weightPlus.resize(c_dsa->size());
 	for (int i = 0; i < c_dsa->size(); ++i) weightPlus[i] = 1;
-	for (auto n : sharedDOFsPlus->allTargets())
+	for (auto n : scomm->sharedDOFsPlus->allTargets())
 		weightPlus[n] += 1;
 
-	for (int i = 0; i < scomm->numNeighb; ++i) delete[] boundaryDOFs[i];
-	delete[] boundaryDOFs;
 }
 
 template<class Scalar>

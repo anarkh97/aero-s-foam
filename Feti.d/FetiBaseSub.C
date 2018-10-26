@@ -241,9 +241,8 @@ void
 FetiBaseSub::findEdgeNeighbors()
 {
 	int count = 0;
-	bool *isEdgeNeighb = new bool[scomm->numNeighb];  // deleted in ~SComm()
+	std::vector<bool> isEdgeNeighb(scomm->numNeighb, false);  // deleted in ~SComm()
 	for(int iSub = 0; iSub < scomm->numNeighb; ++iSub) {
-		isEdgeNeighb[iSub] = false;
 		for(int j=0; j<scomm->sharedNodes->num(iSub); ++j) {
 			if(boundaryDOFs[iSub][j].count() > 0) {
 				isEdgeNeighb[iSub] = true;
@@ -252,7 +251,7 @@ FetiBaseSub::findEdgeNeighbors()
 			}
 		}
 	}
-	scomm->setEdgeNeighb(count, isEdgeNeighb);
+	scomm->setEdgeNeighb(count, std::move(isEdgeNeighb) );
 }
 
 void

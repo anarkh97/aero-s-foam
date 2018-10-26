@@ -140,12 +140,6 @@ public:
 
 	SComm *getSComm() { return scomm; }
 	void setSComm(SComm *sc);
-	void setSendData(int neighb, void *data)
-	{ scomm->setExchangeData(neighb, data); }
-	void *getExchangeData(int neighbID) // Communication mechanism
-	{ return scomm->getExchangeData(neighbID); }
-	void *getExchangePointer(int neighbID) // Communication mechanism
-	{ return scomm->exchangeData[neighbID]; }
 	/** \brief Obtain the number of neighbor subdomains. */
 	int numNeighbors() const { return scomm->numNeighb;}
 	int numEdgeNeighbors() const { return scomm->numEdgeNeighb; }

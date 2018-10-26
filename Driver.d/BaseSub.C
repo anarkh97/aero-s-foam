@@ -1671,6 +1671,6 @@ BaseSub::mergeInterfaces()
 	boundDofFlag = scomm->mergeTypeSpecificLists(); // merge types 0, 1 and 2 (std, wet and mpc)
 	auto abd = scomm->allBoundDofs();
 	totalInterfSize = scomm->totalInterfSize();
-	allBoundDofs.assign(abd, abd+totalInterfSize);
+	allBoundDofs.assign(abd.begin(), abd.end());
 }
 

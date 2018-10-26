@@ -20,8 +20,6 @@ template<>
 void
 GenFetiOp<double>::sendInterfRBM(FSCommPattern<double> *rbmPat)
 {
- int isUsual = 1;
-
  locInterfRBMs.resize(numRBM*sd->interfLen());
 
  // sd->sendRBMs(numRBM, locRBMs, locInterfRBMs);
@@ -52,41 +50,8 @@ GenFetiOp<double>::sendInterfRBM(FSCommPattern<double> *rbmPat)
      }
    }
  }
- else if(isUsual)
+ else
    control->cset[sd->localSubNum()].locQGs = locInterfRBMs.data();// no preconditioning
- else {
-   DofSetArray *dsa = sd->c_dsa;
-   int numDofs = dsa->size();
-   double *mask = (double *) dbg_alloca(sizeof(double)*numDofs);
-   int numNodes = dsa->numNodes();
-   int idof,inode;
-   for(idof = 0; idof < numDofs; ++idof)
-     mask[idof] = 1;
-   for(inode = 0; inode < numNodes; ++inode) {
-     idof = dsa->locate(inode,DofSet::Xrot);
-     if(idof >= 0) mask[idof] = 0;
-     idof = dsa->locate(inode,DofSet::Yrot);
-     if(idof >= 0) mask[idof] = 0;
-     idof = dsa->locate(inode,DofSet::Zrot);
-     if(idof >= 0) mask[idof] = 0;
-   }
-   
-   auto allBoundDofs = (*sd->scomm->sharedDOFs)[0];
-   thisSet.locQGs = new double[numRBM*sd->interfLen()];
-   int interfaceLen = sd->interfLen();
-   int i,j;
-   const auto &scale = sd->scaling;
-   double minScale = DBL_MAX, maxScale = DBL_MIN;
-   for(i = 0; i < numRBM; ++i) {
-     for(j=0; j< interfaceLen; ++j) {
-       thisSet.locQGs[i*interfaceLen+j] = mask[allBoundDofs[j]]*
-       locInterfRBMs[i*interfaceLen+j]/(sd->dofWeight(allBoundDofs[j]) -1);
-       if(scale[j] > maxScale) maxScale = scale[j];
-       if(scale[j] < minScale) minScale = scale[j];
-     }
-   }
-   fprintf(stderr,"Min Max scale %e %e\n",minScale, maxScale);
- }
 
  if (isFeti2 && isDynamic == 0) {
    if (QGisLocal == 0) {

@@ -44,14 +44,15 @@ public:
 	int cpuNum() { return thisCPU; }
 	int size() { return numCPU; }
 
-	void exchange(int tag, int numNeighb, int *cpus,
+	void exchange(int tag, int numNeighb, gsl::span<const int> cpus,
 	              int *sndPtr, int *sndData, int *rcvPtr, int *rcvData);
-	void exchange(int tag, int numNeighb, int *cpus,
-	              int *sndLen, int **sndData, int *crvLen, int **rcvData);
-	void exchange(int tag, int numNeighb, int *cpus,
-	              int *sndLen, double **sndData, int *crvLen, double **rcvData);
-	void exchange(int tag, int numNeighb, int *cpus,
-	              int *sndLen, std::complex<double> **sndData, int *crvLen, std::complex<double> **rcvData);
+	void exchange(int tag, int numNeighb, gsl::span<const int> cpus,
+	              gsl::span<const int> sndLen, int **sndData, gsl::span<const int> rcvLen, int **rcvData);
+	void exchange(int tag, int numNeighb, gsl::span<const int> cpus,
+	              gsl::span<int> sndLen, double **sndData, gsl::span<int> rcvLen, double **rcvData);
+	void exchange(int tag, int numNeighb, gsl::span<const int> cpus,
+	              gsl::span<const int> sndLen, std::complex<double> **sndData, gsl::span<const int> rcvLen,
+	              std::complex<double> **rcvData);
 
 	void abort(int errorCode);
 	void sync() {
@@ -165,6 +166,14 @@ public:
 	void setLen(int glFrom, int glTo, int len, int leadDim = -1, int nvec = 1) {
 		setLength(glFrom, glTo, len, leadDim, nvec);
 	}
+
+//	Mode getMode() const { return mode; }
+//	Symmetry getSym() const {return sym; }
+//	int getMyCPU() const { return myCPU; }
+//	int getNumChannels() const { return numChannels; }
+//	int *getChannelToCPU() const { return channelToCPU; }
+//	const MapType &getChannelMap() const { return channelMap; }
+//	const Connectivity *getSubToCPU() const { return subToCPU; }
 protected:
 	FSCommunicator *communicator;  // PJSA
 	Mode mode;
@@ -174,14 +183,15 @@ protected:
 	MapType channelMap;
 	Connectivity *subToCPU;
 	int numCPUs;
-	int *reverseChannel; // corresponding reverse channel
-	int *channelToCPU; // this CPU is marked as -1
+	std::vector<int> reverseChannel; // corresponding reverse channel
+	std::vector<int> channelToCPU; // this CPU is marked as -1
 	int numNeighbCPUs;
-	int *neighbCPUs;
-	Connectivity *sendConnect;
-	Connectivity *recvConnect;
+	std::vector<int> neighbCPUs;
+	Connectivity sendConnect;
+	Connectivity recvConnect;
 	// Buffers for cross-memory communication on a cpu per cpu basis
-	int *crossSendLen, *crossRecvLen;
+	std::vector<int> crossSendLen;
+	std::vector<int> crossRecvLen;
 
 	virtual void setLength(int glFrom, int glTo, int len, int leadDim, int nvec) = 0;
 
@@ -223,14 +233,6 @@ public:
 	FSSubRecInfo<T> getSendBuffer(int glFrom, int glTo);
 	void exchange();
 
-	Mode getMode() { return mode; }
-	Symmetry getSym() {return sym; }
-	int getMyCPU() { return myCPU; }
-	int getNumChannels() { return numChannels; }
-	int *getChannelToCPU() { return channelToCPU; }
-	MapType getChannelMap() { return channelMap; }
-	Connectivity *getSubToCPU() { return subToCPU; }
-
 protected:
 	void setLength(int glFrom, int glTo, int len, int leadDim, int nvec) override;
 };
@@ -246,13 +248,8 @@ FSCommPattern<T>::FSCommPattern(FSCommunicator *_communicator, const Connectivit
 	numChannels = 0;
 	numCPUs = communicator->size();
 	subToCPU = cpuToSub->alloc_reverse();
-	reverseChannel = 0;
-	neighbCPUs = 0;
-	channelToCPU = 0;
 	crossSendBuffer = 0;
 	crossRecvBuffer = 0;
-	crossSendLen = 0;
-	crossRecvLen = 0;
 	localDBuffer = 0;
 	sendConnect = 0;
 	recvConnect = 0;
@@ -261,20 +258,13 @@ FSCommPattern<T>::FSCommPattern(FSCommunicator *_communicator, const Connectivit
 template <class T>
 FSCommPattern<T>::~FSCommPattern()
 {
-	if(reverseChannel) { delete [] reverseChannel; reverseChannel = 0; }
-	if(neighbCPUs) { delete [] neighbCPUs; neighbCPUs = 0; }
-	if(channelToCPU) { delete [] channelToCPU; channelToCPU = 0; }
 	if(crossSendBuffer) {
 		delete [] crossSendBuffer[0]; crossSendBuffer[0] = 0;
 		delete [] crossSendBuffer; crossSendBuffer = 0;
 	}
 	if(crossRecvBuffer) { delete [] crossRecvBuffer; crossRecvBuffer = 0; }
-	if(crossSendLen) { delete [] crossSendLen; crossSendLen = 0; }
-	if(crossRecvLen) { delete [] crossRecvLen; crossRecvLen = 0; }
 	if(localDBuffer) { delete [] localDBuffer; localDBuffer = 0; }
 	if(subToCPU) { delete subToCPU; subToCPU = 0; }
-	if(sendConnect) { delete sendConnect; sendConnect = 0; }
-	if(recvConnect) { delete recvConnect; recvConnect = 0; }
 }
 
 template <class T>
@@ -309,8 +299,8 @@ FSCommPattern<T>::finalize()
 {
 	int i, j;
 	// Step 1. build isSend, reverseChannel and channelToCPU
-	reverseChannel = new int[numChannels];
-	channelToCPU = new int[numChannels];
+	reverseChannel.resize(numChannels);
+	channelToCPU.resize(numChannels);
 	MapIter iter = channelMap.begin();
 	while(iter != channelMap.end()) {
 		Triplet key = (*iter).first;
@@ -337,44 +327,38 @@ FSCommPattern<T>::finalize()
 		}
 		else {
 			// send and receive the message length and number of vectors
-			int *sendMsg = new int[2 * sendConnect->numConnect()];
-			int *recvMsg = new int[2 * recvConnect->numConnect()];
-			int **sendPtr = new int*[numNeighbCPUs];
-			int **recvPtr = new int*[numNeighbCPUs];
-			int *sendLen = new int[numNeighbCPUs];
-			int *recvLen = new int[numNeighbCPUs];
+			std::vector<int> sendMsg(2 * sendConnect.numConnect());
+			std::vector<int> recvMsg(2 * recvConnect.numConnect());
+			std::vector<int*> sendPtr(numNeighbCPUs);
+			std::vector<int*> recvPtr(numNeighbCPUs);
+			std::vector<int> sendLen(numNeighbCPUs);
+			std::vector<int> recvLen(numNeighbCPUs);
 			int offset = 0;
 			int totLen = 0;
 			for(i = 0; i < numNeighbCPUs; ++i) {
-				sendPtr[i] = sendMsg + offset;
-				recvPtr[i] = recvMsg + offset;
-				sendLen[i] = 2 * sendConnect->num(i);
-				recvLen[i] = 2 * sendConnect->num(i);
-				for(j = 0; j < sendConnect->num(i); ++j) {
-					sendPtr[i][2*j] = sRecInfo[(*sendConnect)[i][j]].len;
-					sendPtr[i][2*j+1] = sRecInfo[(*sendConnect)[i][j]].nvec;
+				sendPtr[i] = sendMsg.data() + offset;
+				recvPtr[i] = recvMsg.data() + offset;
+				sendLen[i] = 2 * sendConnect.num(i);
+				recvLen[i] = 2 * sendConnect.num(i);
+				for(j = 0; j < sendConnect.num(i); ++j) {
+					sendPtr[i][2*j] = sRecInfo[sendConnect[i][j]].len;
+					sendPtr[i][2*j+1] = sRecInfo[sendConnect[i][j]].nvec;
 					totLen += sendMsg[offset] * sendMsg[offset+1];
 					offset += 2;
 				}
 			}
-			communicator->exchange(101, numNeighbCPUs, neighbCPUs, sendLen, sendPtr,
-			                       recvLen, recvPtr);
+			communicator->exchange(101, numNeighbCPUs, neighbCPUs, sendLen, sendPtr.data(),
+			                       recvLen, recvPtr.data());
 			offset = 0;
 			totLen = 0;
 			for(i = 0; i < numNeighbCPUs; ++i)
-				for(j = 0; j < sendConnect->num(i); ++j) {
-					sRecInfo[(*recvConnect)[i][j]].len = recvMsg[offset];
-					sRecInfo[(*recvConnect)[i][j]].leadDim = recvMsg[offset];
-					sRecInfo[(*recvConnect)[i][j]].nvec = recvMsg[offset+1];
+				for(j = 0; j < sendConnect.num(i); ++j) {
+					sRecInfo[recvConnect[i][j]].len = recvMsg[offset];
+					sRecInfo[recvConnect[i][j]].leadDim = recvMsg[offset];
+					sRecInfo[recvConnect[i][j]].nvec = recvMsg[offset+1];
 					totLen += recvMsg[offset]*recvMsg[offset+1];
 					offset += 2;
 				}
-			delete [] sendMsg;
-			delete [] recvMsg;
-			delete [] sendPtr;
-			delete [] recvPtr;
-			delete [] sendLen;
-			delete [] recvLen;
 		}
 	}
 
@@ -384,19 +368,19 @@ FSCommPattern<T>::finalize()
 		int totLen = 0;
 		crossSendBuffer = new T*[numNeighbCPUs];
 		crossRecvBuffer  = new T*[numNeighbCPUs];
-		crossSendLen = new int[numNeighbCPUs];
-		crossRecvLen  = new int[numNeighbCPUs];
+		crossSendLen.resize(numNeighbCPUs);
+		crossRecvLen.resize(numNeighbCPUs);
 		for(i = 0; i < numNeighbCPUs; ++i)
 			crossSendLen[i] = crossRecvLen[i] = 0;
 		for(i = 0; i < numNeighbCPUs; ++i) {
-			for(j = 0; j < sendConnect->num(i); ++j) {
-				int channel = (*sendConnect)[i][j];
+			for(j = 0; j < sendConnect.num(i); ++j) {
+				int channel = sendConnect[i][j];
 				int msgLen = sRecInfo[channel].len * sRecInfo[channel].nvec;
 				crossSendLen[i] += msgLen;
 				totLen += msgLen;
 			}
-			for(j = 0; j < recvConnect->num(i); ++j) {
-				int channel = (*recvConnect)[i][j];
+			for(j = 0; j < recvConnect.num(i); ++j) {
+				int channel = recvConnect[i][j];
 				int msgLen = sRecInfo[channel].len * sRecInfo[channel].nvec;
 				crossRecvLen[i] += msgLen;
 				totLen += msgLen;
@@ -405,15 +389,15 @@ FSCommPattern<T>::finalize()
 		T *crBuff = new T[totLen];
 		for(i = 0; i < numNeighbCPUs; ++i) {
 			crossSendBuffer[i] = crBuff;
-			for(j = 0; j < sendConnect->num(i); ++j) {
-				int channel = (*sendConnect)[i][j];
+			for(j = 0; j < sendConnect.num(i); ++j) {
+				int channel = sendConnect[i][j];
 				int msgLen = sRecInfo[channel].len*sRecInfo[channel].nvec;
 				sRecInfo[channel].data = {crBuff, msgLen};
 				crBuff += msgLen;
 			}
 			crossRecvBuffer[i] = crBuff;
-			for(j = 0; j < recvConnect->num(i); ++j) {
-				int channel = (*recvConnect)[i][j];
+			for(j = 0; j < recvConnect.num(i); ++j) {
+				int channel = recvConnect[i][j];
 				int msgLen = sRecInfo[channel].len*sRecInfo[channel].nvec;
 				sRecInfo[channel].data = {crBuff, msgLen};
 				crBuff += msgLen;
@@ -451,11 +435,11 @@ FSSubRecInfo<T>
 FSCommPattern<T>::recData(int glFrom, int glTo)
 {
 	int cpuID = (*subToCPU)[glFrom][0];
-	if(cpuID == myCPU) cpuID = -1;
-	int channel = channelMap.at(Triplet(glFrom, glTo, cpuID));
-	FSSubRecInfo<T> ret = sRecInfo[channel];
-	if(mode != Share) ret.leadDim = ret.len;
-	return ret;
+	if (cpuID == myCPU) cpuID = -1;
+		int channel = channelMap.at(Triplet(glFrom, glTo, cpuID));
+		FSSubRecInfo<T> ret = sRecInfo[channel];
+		if (mode != Share) ret.leadDim = ret.len;
+		return ret;
 }
 
 template <class T>

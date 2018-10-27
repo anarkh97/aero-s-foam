@@ -98,9 +98,13 @@ template <typename S>
 class SetAccess<SuperElement<S>> {
 public:
 	SetAccess(gsl::span<const gl_sub_idx> elemIdx,
-		const vector<SuperElement<S>> &elems,
-	          const map<gl_node_idx, lc_node_idx> &glToLoc) : elemIdx(elemIdx), elems(elems),
-	                                                          glToLoc(glToLoc) {}
+	          const lc_sub_idx *glSubToLoc,
+	          const vector<SuperElement<S>> &elems,
+	          const map<gl_node_idx, lc_node_idx> &glToLoc) :
+		elemIdx(elemIdx),
+		glSubToLoc(glSubToLoc),
+		elems(elems),
+		glToLoc(glToLoc) {}
 
 	auto size() const { return elemIdx.size(); }
 	auto numNodes(lc_sub_idx i) const { return ele(i).nodes.size(); }
@@ -113,10 +117,11 @@ public:
 	}
 private:
 	gsl::span<const gl_sub_idx> elemIdx;
+	const lc_sub_idx *glSubToLoc;
 	const std::vector<SuperElement<S>> &elems;
 	const std::map<gl_node_idx, lc_node_idx> &glToLoc;
 
-	const SuperElement<S> &ele(lc_sub_idx i) const { return elems[elemIdx[i]]; }
+	const SuperElement<S> &ele(lc_sub_idx i) const { return elems[glSubToLoc[elemIdx[i]]]; }
 };
 
 namespace {
@@ -150,7 +155,7 @@ formMatrix(const std::vector<SuperElement<S>> &allElements, const std::map<gl_no
 		}
 	}
 	dsa.finish();
-	Connectivity eToN( SetAccess<SuperElement<S>> { elems, allElements, glToLocNodes } );
+	Connectivity eToN( SetAccess<SuperElement<S>> { elems, glSubToLoc, allElements, glToLocNodes } );
 
 	auto nToE = eToN.reverse();
 	auto nToN = nToE.transcon(eToN);
@@ -375,6 +380,7 @@ selectCorners(std::vector<std::unique_ptr<T>> &subs, FSCommunicator *communicato
 	}
 	// CornerSelector(int nGlobSub, int nLocSub, std::vector<FetiSubCornerHandler *> handlers,
 	//	               FSCommPattern<int> *commPattern, FSCommunicator *communicator);
+	std::cout << "I am " << communicator->cpuNum() << "My cpuToSub is " << cpuToSub->csize() << " to " << cpuToSub->getNumTarget() << std::endl;
 	FSCommPattern<int> cpat(communicator, cpuToSub, communicator->cpuNum(), FSCommPattern<int>::CopyOnSend);
 	for(int i=0; i<subs.size(); ++i)
 		subs[i]->setNodeCommSize(&cpat);
@@ -499,7 +505,7 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDPNew(const Connectivity &subToCorne
 	auto subs = formSubdomains(cpuToCoarse[this->myCPU], *decCoarse,
 	                           superElements, subToAllCoarseNodes, nodes, this->glSubToLoc);
 
-	selectCorners(subs, this->fetiCom, this->cpuToSub, this->glNumSub);
+	selectCorners(subs, this->fetiCom, &cpuToCoarse, decCoarse->csize());
 
 //	std::vector<FetiBaseSub *> baseSubs(decCoarseDomain->getAllSubDomains(),
 //	                                    decCoarseDomain->getAllSubDomains()+decCoarseDomain->getNumSub());

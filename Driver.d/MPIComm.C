@@ -48,7 +48,7 @@ FSCommunicator::FSCommunicator(Communicator *c) : communicator(*c)
 #endif
 
 void
-FSCommunicator::exchange(int tag, int numNeighb, int *cpus,
+FSCommunicator::exchange(int tag, int numNeighb, gsl::span<const int> cpus,
                          int *sndPtr, int *sndData, int *rcvPtr, int *rcvData) {
 #ifdef USE_MPI
     int iCpu;
@@ -79,8 +79,8 @@ FSCommunicator::exchange(int tag, int numNeighb, int *cpus,
 }
 
 void
-FSCommunicator::exchange(int tag, int numNeighb, int *cpus,
-                         int *sndLen, int **sndData, int *rcvLen, int **rcvData) {
+FSCommunicator::exchange(int tag, int numNeighb, gsl::span<const int> cpus,
+                         gsl::span<const int> sndLen, int **sndData, gsl::span<const int> rcvLen, int **rcvData) {
 #ifdef USE_MPI
     int iCpu;
     MPI_Request *sndId = (MPI_Request *) dbg_alloca(sizeof(MPI_Request)*numNeighb);
@@ -111,8 +111,8 @@ FSCommunicator::exchange(int tag, int numNeighb, int *cpus,
 
 
 void
-FSCommunicator::exchange(int tag, int numNeighb, int *cpus,
-                         int *sndLen, double **sndData, int *rcvLen, double **rcvData) {
+FSCommunicator::exchange(int tag, int numNeighb, gsl::span<const int> cpus,
+                         gsl::span<int> sndLen, double **sndData, gsl::span<int> rcvLen, double **rcvData) {
 #ifdef USE_MPI
     int iCpu;
     MPI_Request *sndId = (MPI_Request *) dbg_alloca(sizeof(MPI_Request)*numNeighb);
@@ -142,8 +142,9 @@ FSCommunicator::exchange(int tag, int numNeighb, int *cpus,
 }
 
 void
-FSCommunicator::exchange(int tag, int numNeighb, int *cpus,
-                         int *sndLen, complex<double> **sndData, int *rcvLen, complex<double> **rcvData) {
+FSCommunicator::exchange(int tag, int numNeighb, gsl::span<const int> cpus,
+                         gsl::span<const int> sndLen, complex<double> **sndData, gsl::span<const int> rcvLen,
+                         complex<double> **rcvData) {
 #ifdef USE_MPI
     int iCpu;
     MPI_Request *sndId = (MPI_Request *) dbg_alloca(sizeof(MPI_Request)*numNeighb);

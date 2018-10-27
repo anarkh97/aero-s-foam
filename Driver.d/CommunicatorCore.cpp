@@ -18,17 +18,15 @@ FSCommStructure::makeSendAndRecvConnectivities()
 			if(glToLocCPU[cpuID] < 0) glToLocCPU[cpuID] = numNeighbCPUs++;
 		}
 	}
-	neighbCPUs = new int[numNeighbCPUs];
+	neighbCPUs.resize(numNeighbCPUs);
 	for(i = 0; i < numCPUs; ++i)
 		if(glToLocCPU[i] >= 0)
 			neighbCPUs[glToLocCPU[i]] = i;
 
 	// Now count the send and receives (actually they should be the same for
 	// a symmetric communication
-	int *sendPtr = new int[numNeighbCPUs+1];
-	int *recvPtr = new int[numNeighbCPUs+1];
-	for(i = 0; i < numNeighbCPUs+1; ++i)
-		sendPtr[i] = recvPtr[i] = 0;
+	std::vector<int> sendPtr(numNeighbCPUs+1, 0);
+	std::vector<int> recvPtr(numNeighbCPUs+1, 0);
 
 	MapIter iter = channelMap.begin();
 	while(iter != channelMap.end()) {
@@ -49,8 +47,8 @@ FSCommStructure::makeSendAndRecvConnectivities()
 		sendPtr[i+1] += recvPtr[i];
 	}
 
-	int *sendTrgt = new int[sendPtr[numNeighbCPUs]];
-	int *recvTrgt = new int[recvPtr[numNeighbCPUs]];
+	std::vector<int> sendTrgt(sendPtr[numNeighbCPUs]);
+	std::vector<int> recvTrgt(recvPtr[numNeighbCPUs]);
 	// Final fill in
 	iter = channelMap.begin();
 	while(iter != channelMap.end()) {
@@ -70,7 +68,7 @@ FSCommStructure::makeSendAndRecvConnectivities()
 		++iter;
 	}
 
-	sendConnect = new Connectivity(numNeighbCPUs, sendPtr, sendTrgt);
-	recvConnect = new Connectivity(numNeighbCPUs, recvPtr, recvTrgt);
+	sendConnect = Connectivity(numNeighbCPUs, std::move(sendPtr), std::move(sendTrgt));
+	recvConnect = Connectivity(numNeighbCPUs, std::move(recvPtr), std::move(recvTrgt));
 
 }

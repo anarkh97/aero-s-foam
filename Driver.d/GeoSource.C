@@ -205,7 +205,7 @@ GeoSource::readDistributedInputFiles(gsl::span<const int> subs)
 	int lastCluster = -1;
 	for(auto subNum: subs) {
 		int localSubNum = result.size();
-		if(!f || lastCluster != sower.clusterIndex(subNum)) {
+		if (!f || lastCluster != sower.clusterIndex(subNum)) {
 			f = sower.openBinaryFile(subNum);
 			lastCluster = sower.clusterIndex(subNum);
 		} else
@@ -311,7 +311,7 @@ GeoSource::readDistributedInputFiles(gsl::span<const int> subs)
 		GenSubDomainFactory<Scalar> *pFactory;
 		pFactory = GenSubDomainFactory<Scalar>::getFactory();
 		GenSubDomain<Scalar> *subd = pFactory->
-				createSubDomain(*domain, localSubNum, cs, ese, glNodeNums, glElemNums, subNum);
+			createSubDomain(*domain, localSubNum, cs, ese, glNodeNums, glElemNums, subNum);
 		// don't delete glNodeNums and glElemNums, they now belong to the SubDomain object
 
 		// neuman bounday conditions
@@ -656,6 +656,37 @@ GeoSource::readDistributedInputFiles(gsl::span<const int> subs)
 	  }
 #endif
 		result.push_back(subd);
+		//HWIBO
+#ifdef SOWER_DEBUG
+		std::cerr << std::endl << "--Reading HWIBO" << std::endl;
+#endif
+		std::list<SommerElement *> *wetlist = sower.template read<SommerDataIO<WET_TYPE> >(*f, subNum, glNums);
+		if (wetlist) {
+			subd->setWet(wetlist);
+			domain->solInfo().isCoupled = true;
+			domain->solInfo().isMatching = true;
+			// RT - this is a duplicate call but it is needed because the above flags
+			// are not set on the first call - alternative is to move initHelm out of
+			// the BaseSub constructor
+			subd->initHelm(*domain);
+		}
+		if (glNums) {
+			delete[] glNums;
+			glNums = 0;
+		} //not used
+#ifdef SOWER_DEBUG
+		if(wetlist) {
+		  int i, numN = 0;
+		  for(std::list<SommerElement *>::iterator it = wetlist->begin(); it != wetlist->end(); ++it) {
+			//get type and list of nodes
+			numN = (*it)->numNodes();
+			std::cerr << " node: ";
+			for (i = 0 ; i < numN-1 ; i++)
+			  std::cerr << (*it)->getNode(i) << ", ";
+			std::cerr << (*it)->getNode(numN-1) << std::endl;
+		  }
+		}
+#endif
 	}
 	cleanUp();
 	return result;

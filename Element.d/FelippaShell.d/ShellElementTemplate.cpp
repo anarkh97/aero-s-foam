@@ -178,7 +178,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     // andesinvt returns the transformation from element to fibre coordinate system
     // note: eframe.transpose()*v transforms v from global to element coordinate system
     // return the matrix that transforms from global to fibre coordinate system, i.e.:
-    cframe = ShellMaterial<doublereal>::andesinvt(eframe.data(), aframe, 0.)*eframe.transpose();
+    cframe = ShellMaterial<doublereal>::andesinvt(eframe.data(), aframe, 0.)*eframe.transpose(); // XXX is this correct?
 }
 
 template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>

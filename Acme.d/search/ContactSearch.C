@@ -249,7 +249,7 @@ ContactSearch::ContactSearch( int  Dimensionality,
     int max_type = contact_global_maximum(type, SearchComm);
     int min_type = contact_global_minimum(type, SearchComm);
     if (max_type!=min_type) {
-      std::sprintf(message,"Element type for element block %d is not consistent across all processors",i);
+      std::sprintf(message,"Elem type for element block %d is not consistent across all processors",i);
       errors->Add_Error_Message(message);
       error = INVALID_DATA;
     }

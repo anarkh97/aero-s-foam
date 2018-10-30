@@ -5,6 +5,9 @@
 #include <Element.d/NonLinearity.d/NeoHookeanMat.h>
 #include <Element.d/NonLinearity.d/MooneyRivlinMat.h>
 #include <Element.d/NonLinearity.d/OgdenMat.h>
+#include <Element.d/NonLinearity.d/FabricMap.h>
+#include <Element.d/NonLinearity.d/FabricMat.h>
+#include <Math.d/TTensor.h>
 
 class Tensor;
 
@@ -22,6 +25,13 @@ struct stress_policy_stretches
     // Stress tensor is diagonal and needs 3 elements to store (For example as used in the OgdenMat)
     typedef Tensor_d0s4_Ss12s34_diag d0s4_S;
     typedef Tensor_d0s2_Ss12_diag    d0s2_S;
+    const static std::size_t stride = 3;
+};
+
+struct stress_policy_2d
+{
+    typedef SymTensor<SymTensor<double,2>,2> d0s4_S;
+    typedef SymTensor<double,2> d0s2_S;
     const static std::size_t stride = 3;
 };
 
@@ -45,6 +55,10 @@ class PronyViscoElastic : public Material
                       double ginf, double g1, double tau1, double g2, double tau2, double g3, double tau3);
     PronyViscoElastic(double p1, double p2, double p3, double p4, double p5, double p6, double p7, double p8,
                       double ginf, double g1, double tau1, double g2, double tau2, double g3, double tau3);
+    PronyViscoElastic(double p1, int i1, int i2, int i3, double p2, double p3, double p4, FabricMap::StrainMeasure i4,
+                      double ginf, double g1, double tau1, double g2, double tau2, double g3, double tau3); // for FabricMap
+    PronyViscoElastic(double p1, int i1, int i2, double p2, double p3, double p4, double p5, double p6, double p7, FabricMat::StrainMeasure i3,
+                      double ginf, double g1, double tau1, double g2, double tau2, double g3, double tau3); // for FabricMat
 
     int getNumStates() const override;
 

@@ -17,8 +17,8 @@ IsoParamTriLineSommer::IsoParamTriLineSommer(int o, int *nodenums, Element *_el)
 	int i;
 	for (i = 0; i < order; i++) nn[i] = nodenums[i];
 	el = _el;
+ sFlag = false;
 	soundSpeed = 0.0;
-
 }
 
 
@@ -26,6 +26,7 @@ IsoParamTriLineSommer *IsoParamTriLineSommer::clone() {
 	IsoParamTriLineSommer *se = new IsoParamTriLineSommer(order, nn, el);
 	se->el2 = el2;
 	se->dom = dom;
+ se->sFlag = sFlag;
 	se->soundSpeed = soundSpeed;
 	return se;
 }
@@ -224,10 +225,18 @@ void IsoParamTriLineSommer::wetInterfaceLMPC(CoordSet &cs, LMPCons *lmpc, int nd
 		return;
 	}
 
+ if (!sFlag)
 	for (i = 0; i < order; i++) {
 		LMPCTerm lmpct1(nn[i], 0, -d[i * order + j]);
 		lmpc->addterm(&lmpct1);
 		LMPCTerm lmpct2(nn[i], 1, -d[order * order + i * order + j]);
+   lmpc->addterm(&lmpct2);
+ }
+ else
+ for(i=0;i<order;i++) {
+   LMPCTerm lmpct1(nn[i],0, 0.0);
+   lmpc->addterm(&lmpct1);
+   LMPCTerm lmpct2(nn[i],1, 0.0);
 		lmpc->addterm(&lmpct2);
 	}
 

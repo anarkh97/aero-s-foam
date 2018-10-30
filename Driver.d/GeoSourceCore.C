@@ -30,6 +30,7 @@
 #include <limits>
 #include <algorithm>
 #include <iterator>
+#include <string>
 #include <Sfem.d/Sfem.h>
 #ifdef USE_EIGEN3
 #include <Math.d/rref.h>
@@ -44,6 +45,8 @@ BCond null_bcond;
 CoefData null_coef;
 OutputInfo emptyInfo;
 extern ModeData modeData;
+extern bool callDec;
+extern bool exitAfterDec;
 extern bool estFlag;
 extern bool weightOutFlag;
 extern bool trivialFlag;
@@ -1244,7 +1247,7 @@ void GeoSource::setUpData(int topFlag)
 	else {
 	  SPropContainer::iterator it = sProps.find(attrib_i.attr);
 	  if(it == sProps.end()) {
-		if(topFlag != 2 && topFlag != 7)
+        if(topFlag != 2 && topFlag != 7 && !(callDec && exitAfterDec)) 
 		  filePrint(stderr, " *** WARNING: The material for element %d does not exist\n", attrib_i.nele+1);
 	  }
 	  else {
@@ -1373,6 +1376,12 @@ void GeoSource::setUpData(int topFlag)
 	  matIter->second->setS2DProps((*ss2dt->second)[i]);
   }
   delete ss2dt;
+  std::pair<int, ResizeArray<MFTTData*>* > *ymst = domain->getYMST();
+  for(int i = 0; i < ymst->first; ++i) {
+    for(map<int, NLMaterial *>::iterator matIter = materials.begin(); matIter != materials.end(); ++matIter)
+      matIter->second->setEDProps((*ymst->second)[i]);
+  }
+  delete ymst;
   map<int,int>::iterator uIter = matUsage.begin();
   while(uIter != matUsage.end()) {
 	int elemNum = uIter->first;
@@ -3643,19 +3652,21 @@ void GeoSource::closeOutputFileImpl(int fileIndex)
 void GeoSource::outputHeader(int fileNumber)
 {
   // only one node is requested for output,
+  const int& averageFlg = oinfo[fileNumber].averageFlg;
+  std::string s = (averageFlg == -1 || averageFlg == 0) ? "element" : "node";
   if(oinfo[fileNumber].nodeNumber != -1) {
 	if(domain->isComplex()) {
 	  switch(oinfo[fileNumber].complexouttype) {
 		case(OutputInfo::realimag) :
-		  fprintf(oinfo[fileNumber].filptr, "# node %d (real and imaginary parts)\n", oinfo[fileNumber].nodeNumber+1);
+          fprintf(oinfo[fileNumber].filptr, "# %s %d (real and imaginary parts)\n", s.c_str(), oinfo[fileNumber].nodeNumber+1);
 		  break;
 		case(OutputInfo::modulusphase) :
-		  fprintf(oinfo[fileNumber].filptr, "# node %d (complex modulus and phase)\n", oinfo[fileNumber].nodeNumber+1);
+          fprintf(oinfo[fileNumber].filptr, "# %s %d (complex modulus and phase)\n", s.c_str(), oinfo[fileNumber].nodeNumber+1);
 		  break;
 	  }
 	}
 	else
-	  fprintf(oinfo[fileNumber].filptr, "# node %d\n", oinfo[fileNumber].nodeNumber+1);
+      fprintf(oinfo[fileNumber].filptr, "# %s %d\n", s.c_str(), oinfo[fileNumber].nodeNumber+1);
 	return;
   }
 
@@ -4648,6 +4659,17 @@ void GeoSource::writeDistributedInputFiles(int nCluster, Domain *domain, int nCp
   Connectivity *arbToE = new Connectivity(&domain->getElementSet(), arbPair.first, arbPair.second);
   sower.addChildToParentData<SommerDataIO<ARB_TYPE> >(ARB_TYPE, ELEMENTS_TYPE, 0, &arbPair, arbToE);
   delete arbToE;
+
+  // HWIBO
+  // RT: Duplicate the wet elements so they can be sent to both sides
+  ResizeArray<SommerElement *> wet2(0);
+  for(int i=0;i<domain->numWet;i++) wet2[i] = domain->wet[i];
+  for(int i=0;i<domain->numWet;i++) wet2[i+domain->numWet] = domain->wet[i]->clone();
+ 
+  SommerPair wetPair = std::make_pair(2*domain->numWet,wet2.yield());
+  Connectivity *wetToE = new Connectivity(&domain->getElementSet(), domain->numWet, wetPair.second,true);
+  sower.addChildToParentData<SommerDataIO<WET_TYPE> >(WET_TYPE, ELEMENTS_TYPE, 0, &wetPair, wetToE);
+  delete wetToE;
 
   if (claw) {
 	// distribute control law data -> have to do that for all 4 categories...

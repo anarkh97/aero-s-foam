@@ -112,6 +112,7 @@ class HData
      int  nCDirichlet() const { return numComplexDirichlet; }
      int  numSommerfeld() const { return numSommer; }
      int  numSSN() const { return numSommer + numScatter + numNeum + numWet; }
+     int  getNumWet() { return numWet; }
      void makeSommerConnectivities();
      // returns the curvature of the boundary for the Bayliss-Turkel bc
      void getCurvatures(Domain *dom);

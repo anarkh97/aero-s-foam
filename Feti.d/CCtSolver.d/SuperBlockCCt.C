@@ -83,7 +83,6 @@ SuperBlockCCtSolver<Scalar>::~SuperBlockCCtSolver()
   delete mpcToBlock;
   delete blockToSub;
 #ifdef DISTRIBUTED
-  delete blockToMpcCpu;
   delete blockToCpu;
   delete cpuToBlock;
   delete blockCCtPat;
@@ -111,7 +110,7 @@ SuperBlockCCtSolver<Scalar>::initialize()
   blockCCtsolver = 0; 
   blockCCtsparse = 0;
   this->glNumMpc = 0; this->mpcToCpu = 0; blockToMpc = 0; blockToSub = 0; mpcToBlock = 0;
-  blockMpcToMpc = 0; blockToMpcCpu = 0; blockToCpu = 0; cpuToBlock = 0;
+  blockMpcToMpc = 0; blockToCpu = 0; cpuToBlock = 0;
   mpcv = 0; this->numSubsWithMpcs = 0;
   nBigBlocksperMPI       = 0;
   nSmallBlocksperMPI     = 0;
@@ -405,7 +404,7 @@ SuperBlockCCtSolver<Scalar>::createSuperBlockCCt(Connectivity *mpcToSub)
   // nMpcBlocksOnMyCPU always exist even in shared mode <=> 1 MPI
   nMpcBlocksOnMyCPU = cpuToBlock->num(myCPU);
 #ifdef DISTRIBUTED
-  blockToMpcCpu = blockToMpc->transcon(this->mpcToCpu);
+  blockToMpcCpu = std::make_unique<Connectivity>(blockToMpc->transcon(*this->mpcToCpu));
   myCPUToLocAssBlocks = new ResizeArray<int>(0);
   myCPUToTmpAssBlocks = new ResizeArray<int>(0);
   nLocAssBlocksOnMyCPU= 0;
@@ -439,7 +438,7 @@ SuperBlockCCtSolver<Scalar>::createSuperBlockCCt(Connectivity *mpcToSub)
   i = 0;
   while(Ilist!=BlockIdConnectedToMyCPU.end()) { myCPUExtBlockIdArray[i++] = *Ilist++; }
 #else
-  blockToMpcCpu = MPITosuperBlock->copy();
+  blockToMpcCpu = std::make_unique<Connectivity>(*MPITosuperBlock);
   // make the list of "extended" Mpc Block Id: blocks that need to "done"
   // (either fully or partially) on this CPU
   // HERE it is only a simple copy of cpuToBlock

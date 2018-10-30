@@ -84,7 +84,7 @@ void GeoSource::createBinaryOutputFile(int fileId, int glSub, int iter)
  if(!oinfo[fileId].PodRomfile) {
   // Open file for first time and write header
   if(oinfo[fileId].interval != 0) {
-    if (binaryOutput) {
+    if (binaryOutput && oinfo[fileId].groupNumber == -1) {
       // Determine which cluster subdomain is in
       const int clusterId = subToClus[glSub];
       const char *truncateFlag = "w";
@@ -118,7 +118,7 @@ void GeoSource::createBinaryOutputFile(int fileId, int glSub, int iter)
 void GeoSource::outputRange(int fileId, int *globalIndex, int nData, int glSub, int offset, int iter)
 {
   if(!oinfo[fileId].PodRomfile) {
-   if (binaryOutput) {
+   if (binaryOutput && oinfo[fileId].groupNumber == -1) {
     const int clusterId = subToClus[glSub];
     const char *appendFlag = "ws+";
     auto file = openBinaryOutputFile(fileId, clusterId, iter, appendFlag);
@@ -317,8 +317,8 @@ GeoSource::writeElemScalarToFile(double *data, int numData, int glSub, int offse
     timeOffset += (3+oinfo[fileNumber].width+1); // 3 spaces + width + 1 for std::endl
 
     int numNodesPerElem = totData/nElem;
-    if(glSub==0 && time == 0) std::cerr << " *** WARNING: text file output for element stresses in distributed mode is only correctly\n"
-                                        << " ***          implemented for models in which all elements have the same number of nodes \n";
+    if(glSub==0 && time == 0) std::cerr << " *** WARNING: text file output for element stresses and internal forces in distributed mode is only\n"
+                                        << " ***          correctly implemented for models in which all elements have the same number of nodes \n";
      
     int k = 0;
     for(int i=0; i<numData/numNodesPerElem; ++i) {

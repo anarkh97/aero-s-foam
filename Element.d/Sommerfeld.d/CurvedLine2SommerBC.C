@@ -10,6 +10,9 @@ CurvedLine2SommerBC::CurvedLine2SommerBC(int n1, int n2, int n3, Element *_el) {
 	nn[1] = n2;
 	nn[2] = n3;
 	el = _el;
+ sFlag = false;
+ soundSpeed = 0.0;
+
 }
 
 
@@ -29,6 +32,7 @@ CurvedLine2SommerBC *CurvedLine2SommerBC::clone() {
 	CurvedLine2SommerBC *se = new CurvedLine2SommerBC(nn[0], nn[1], nn[2], el);
 	se->el2 = el2;
 	se->dom = dom;
+ se->sFlag = sFlag;
 	return se;
 }
 

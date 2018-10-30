@@ -42,6 +42,16 @@ PronyViscoElastic<Material, tensor_policy>::PronyViscoElastic(double p1, double 
  : Material(p1,p2,p3,p4,p5,p6,p7,p8), ginf(_ginf), g1(_g1), tau1(_tau1), g2(_g2), tau2(_tau2), g3(_g3), tau3(_tau3) {}
 
 template<typename Material, class tensor_policy>
+PronyViscoElastic<Material, tensor_policy>::PronyViscoElastic(double p1, int i1, int i2, int i3, double p2, double p3, double p4, FabricMap::StrainMeasure i4,
+                      double _ginf, double _g1, double _tau1, double _g2, double _tau2, double _g3, double _tau3)
+ : Material(p1, i1, i2, i3, p2, p3, p4, i4), ginf(_ginf), g1(_g1), tau1(_tau1), g2(_g2), tau2(_tau2), g3(_g3), tau3(_tau3) {}
+
+template<typename Material, class tensor_policy>
+PronyViscoElastic<Material, tensor_policy>::PronyViscoElastic(double p1, int i1, int i2, double p2, double p3, double p4, double p5, double p6, double p7,
+                      FabricMat::StrainMeasure i3, double _ginf, double _g1, double _tau1, double _g2, double _tau2, double _g3, double _tau3)
+ : Material(p1, i1, i2, p2, p3, p4, p5, p6, p7, i3), ginf(_ginf), g1(_g1), tau1(_tau1), g2(_g2), tau2(_tau2), g3(_g3), tau3(_tau3) {}
+
+template<typename Material, class tensor_policy>
 NLMaterial *
 PronyViscoElastic<Material, tensor_policy>::clone() const
 {

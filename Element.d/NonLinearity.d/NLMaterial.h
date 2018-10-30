@@ -93,6 +93,7 @@ class NLMaterial
      virtual void setSRDProps(MFTTData *yssrt) {}
      virtual void setS1DProps(MFTTData *ss1dt) {}
      virtual void setS2DProps(SS2DTData *ss2dt) {}
+     virtual void setEDProps(MFTTData *ymst) {}
 
      virtual void getMaterialConstants(std::vector<double> &c) {
        std::cerr << "material law does not implement getMaterialConstants function\n";

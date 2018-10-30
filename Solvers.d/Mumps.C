@@ -3,6 +3,7 @@
 #include <Solvers.d/SolverCntl.h>
 #include <Math.d/VectorSet.h>
 #include <Timers.d/GetTime.h>
+#include <Utils.d/SolverInfo.h>
 #include <iostream>
 #include <map>
 
@@ -11,6 +12,7 @@ inline void Tmumps_c(DMUMPS_STRUC_C &id) { dmumps_c(&id); }
 inline void Tmumps_c(ZMUMPS_STRUC_C &id) { zmumps_c(&id); }
 #endif
 
+extern SolverInfo &solInfo;
 extern long totMemMumps;
 
 #define	USE_COMM_WORLD	-987654
@@ -42,7 +44,7 @@ GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, EqNumberer *_dsa, Sol
 template<class Scalar>
 GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, DofSetArray *_dsa, ConstrainedDSA *c_dsa, SolverCntl& _scntl,
                                        FSCommunicator *_mpicomm)
- : SparseData(_dsa,c_dsa,nToN,0,1,_scntl.unsymmetric), scntl(_scntl)
+    : SparseData(_dsa,c_dsa,nToN,0,1,(_scntl.unsymmetric||solInfo.getNLInfo().unsymmetric)), scntl(_scntl)
 {
 #ifndef USE_MUMPS
   std::cerr << " *** ERROR: Solver requires AERO-S configured with the MUMPS library. Exiting...\n";
@@ -60,18 +62,19 @@ template<class Scalar>
 GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, DofSetArray *_dsa, ConstrainedDSA *c_dsa, int nsub,
                                        gsl::span<GenSubDomain<Scalar> *> sd, SolverCntl& _scntl,
                                        FSCommunicator *_mpicomm)
- : SparseData(_dsa,c_dsa,nToN,0,1,_scntl.unsymmetric), MultiDomainSolver<Scalar>(numUncon, nsub, sd.data(), _mpicomm), scntl(_scntl)
+	: SparseData(_dsa,c_dsa,nToN,0,1,(_scntl.unsymmetric||solInfo.getNLInfo().unsymmetric)),
+	  MultiDomainSolver<Scalar>(numUncon, nsub, sd.data(), _mpicomm), scntl(_scntl)
 {
 #ifndef USE_MUMPS
-  std::cerr << " *** ERROR: Solver requires AERO-S configured with the MUMPS library. Exiting...\n";
-  exit(-1);
+	std::cerr << " *** ERROR: Solver requires AERO-S configured with the MUMPS library. Exiting...\n";
+	exit(-1);
 #endif
-  neq = numUncon;
-  nNonZero = xunonz[numUncon]-1;
-  unonz = new Scalar[nNonZero];
-  for(int i = 0; i < nNonZero; ++i) unonz[i] = 0.0;
-  mpicomm = _mpicomm;
-  init();
+	neq = numUncon;
+	nNonZero = xunonz[numUncon]-1;
+	unonz = new Scalar[nNonZero];
+	for(int i = 0; i < nNonZero; ++i) unonz[i] = 0.0;
+	mpicomm = _mpicomm;
+	init();
 }
 
 template<class Scalar>
@@ -81,7 +84,7 @@ GenMumpsSolver<Scalar>::init()
 #ifdef USE_MUMPS
   mumpsId.id.par = 1; // 1: working host model
   mumpsId.id.sym = scntl.pivot ? 2 : 1; // 2: general symmetric, 1: symmetric positive definite, 0: unsymmetric
-  if(scntl.unsymmetric) mumpsId.id.sym = 0;
+  if(scntl.unsymmetric || solInfo.getNLInfo().unsymmetric) mumpsId.id.sym = 0;
   mumpsCPU = true;
   host = (mpicomm) ? (mpicomm->cpuNum() == 0) : true;
 #ifdef USE_MPI
@@ -212,7 +215,7 @@ GenMumpsSolver<Scalar>::add(const FullSquareMatrix &kel, const int *dofs)
     if(unconstrNum[dofs[i]] == -1) continue;   // Skip constrained dofs
     for(j = 0; j < kndof; ++j) {               // Loop over columns.
       if(unconstrNum[dofs[j]] == -1) continue; // Skip constrained dofs
-      if(!scntl.unsymmetric && unconstrNum[dofs[j]] < unconstrNum[dofs[i]]) continue;
+      if(!(scntl.unsymmetric||solInfo.getNLInfo().unsymmetric) && unconstrNum[dofs[j]] < unconstrNum[dofs[i]]) continue;
       mstart = xunonz[unconstrNum[dofs[j]]];
       mstop  = xunonz[unconstrNum[dofs[j]]+1];
       for(m = mstart; m < mstop; ++m) {

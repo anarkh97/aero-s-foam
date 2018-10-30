@@ -77,9 +77,9 @@ Domain::getInternalForce(GeomState &geomState, Vector& elementForce,
   if(elemAdj.empty()) makeElementAdjacencyLists();
   if(time != domain->solInfo().initialTime) newDeletedElements.clear();
 
+  if(matrixTimers) matrixTimers->formTime -= getTime();
   for(int iele = 0; iele < numele; ++iele) {
 
-    if(matrixTimers) matrixTimers->formTime -= getTime();
     elementForce.zero();
 
     // Get updated tangent stiffness matrix and element internal force
@@ -110,10 +110,8 @@ Domain::getInternalForce(GeomState &geomState, Vector& elementForce,
 
     // Transform internal force vector to nodal frame (note: the stiffness matrix is transformed prior to assembly in Domain::makeSparseOps)
     transformVector(elementForce, iele);
-    if(matrixTimers) matrixTimers->formTime += getTime();
 
     // Assemble element internal force into residual force vector
-    if(matrixTimers) matrixTimers->assemble -= getTime();
     for(int idof = 0; idof < kel[iele].dim(); ++idof) {
       int uDofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
       if(uDofNum >= 0)
@@ -124,8 +122,8 @@ Domain::getInternalForce(GeomState &geomState, Vector& elementForce,
           (*reactions)[cDofNum] += elementForce[idof];
       }
     }
-    if(matrixTimers) matrixTimers->assemble += getTime();
   }
+  if(matrixTimers) matrixTimers->formTime += getTime();
 
   if(sinfo.isDynam() && mel && !solInfo().getNLInfo().linearelastic && !solInfo().quasistatic)
     getFictitiousForce(geomState, elementForce, kel, residual, time, refState, reactions, mel, false, corotators, cel);
@@ -342,16 +340,14 @@ Domain::getFictitiousForce(GeomState &geomState, Vector &elementForce, FullSquar
                            double time, GeomState *refState, Vector *reactions, FullSquareMatrix *mel,
                            bool compute_tangents, Corotator **corotators, FullSquareMatrix *cel)
 {
+  if(matrixTimers) matrixTimers->formTime -= getTime();
   for(int iele = 0; iele < numele; ++iele) {
 
-    if(matrixTimers) matrixTimers->formTime -= getTime();
     elementForce.zero();
     getElemFictitiousForce(iele, geomState, elementForce.data(), kel[iele], time, refState, mel[iele], compute_tangents, corotators[iele], cel);
     transformVector(elementForce, iele);
-    if(matrixTimers) matrixTimers->formTime += getTime();
 
     // Assemble element force into residual force vector
-    if(matrixTimers) matrixTimers->assemble -= getTime();
     for(int idof = 0; idof < kel[iele].dim(); ++idof) {
       int uDofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
       if(uDofNum >= 0)
@@ -362,8 +358,8 @@ Domain::getFictitiousForce(GeomState &geomState, Vector &elementForce, FullSquar
           (*reactions)[cDofNum] += elementForce[idof];
       }
     }
-    if(matrixTimers) matrixTimers->assemble += getTime();
   }
+  if(matrixTimers) matrixTimers->formTime += getTime();
 }
 
 void

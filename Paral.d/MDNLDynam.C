@@ -1451,7 +1451,7 @@ MDNLDynamic::readRestartFile(DistrVector &d_n, DistrVector &v_n, DistrVector &a_
     domain->solInfo().initialTime = decDomain->getSubDomain(0)->solInfo().initialTime;
 
     int aeroFlag = domain->solInfo().aeroFlag;
-    if(aeroFlag >= 0) {
+    if(aeroFlag >= 0 && geoSource->getCheckFileInfo()->hotRestart()) {
       double time = domain->solInfo().initialTime;
       double dt = domain->solInfo().getTimeStep();
       double t_aero = (aeroFlag == 6) ? time+dt/2 : time+dt;

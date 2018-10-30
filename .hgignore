@@ -19,6 +19,7 @@ Parser.d/p.tab.H
 Parser.d/p.tab.c
 HgIdentity.C
 
+.idea
+cmake-build-debug
 syntax: regexp
 .*\#.*\#$
-

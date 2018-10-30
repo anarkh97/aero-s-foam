@@ -112,11 +112,11 @@ DistrROMPostProcessingDriver::preProcess() {
   mddPostPro = MultiDomainDynam::getPostProcessor();
 
   //initialize containers for full coordinates 
-  fullDispBuffer  = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
-  fullVelBuffer   = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
-  fullAccBuffer   = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
-  fullVel2Buffer  = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
-  fullDummyBuffer = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
+  fullDispBuffer  = new GenDistrVector<double>(MultiDomainDynam::solVecInfo()); fullDispBuffer->zero();
+  fullVelBuffer   = new GenDistrVector<double>(MultiDomainDynam::solVecInfo()); fullVelBuffer->zero();
+  fullAccBuffer   = new GenDistrVector<double>(MultiDomainDynam::solVecInfo()); fullAccBuffer->zero();
+  fullVel2Buffer  = new GenDistrVector<double>(MultiDomainDynam::solVecInfo()); fullVel2Buffer->zero();
+  fullDummyBuffer = new GenDistrVector<double>(MultiDomainDynam::solVecInfo()); fullDummyBuffer->zero();
 
   //initialize system state vector container for use in multi domain dynamic post processor
   curState = new SysState<GenDistrVector<double> >( *fullDispBuffer, *fullVelBuffer, *fullAccBuffer, *fullVel2Buffer);}

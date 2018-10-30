@@ -1223,13 +1223,29 @@ GenDistrDomain<Scalar>::getPrincipalStress(GenDistrVector<Scalar> &u, double tim
 template<class Scalar>
 void 
 GenDistrDomain<Scalar>::getElementForce(GenDistrVector<Scalar> &u, double time, int x, 
-                                        int fileNumber, int Findex )  
+                                        int fileNumber, int Findex)  
 {
   for(int iSub = 0; iSub < this->numSub; iSub++)  {
     int numElemNodes = this->subDomain[iSub]->countElemNodes();
     Scalar *elemForce = new Scalar[numElemNodes];
     this->subDomain[iSub]->computeElementForce(fileNumber, u.subData(iSub),
                                                Findex, elemForce);
+    geoSource->writeElemScalarToFile(elemForce, numElemNodes, this->localSubToGl[iSub], elemNodeOffsets[iSub], fileNumber, x,
+                                     numRes[fileNumber], time, this->elemToNode->numConnect(), this->subDomain[iSub]->getGlElems());
+    delete [] elemForce;
+  }
+}
+
+template<class Scalar>
+void
+GenDistrDomain<Scalar>::getElementForce(DistrGeomState *gs, Corotator ***allCorot, double time, int x,
+                                        int fileNumber, int Findex)
+{
+  for(int iSub = 0; iSub < this->numSub; iSub++)  {
+    int numElemNodes = this->subDomain[iSub]->countElemNodes();
+    Scalar *elemForce = new Scalar[numElemNodes];
+    this->subDomain[iSub]->computeElementForce((*gs)[iSub], allCorot[iSub],
+                                               fileNumber, Findex, elemForce);
     geoSource->writeElemScalarToFile(elemForce, numElemNodes, this->localSubToGl[iSub], elemNodeOffsets[iSub], fileNumber, x,
                                      numRes[fileNumber], time, this->elemToNode->numConnect(), this->subDomain[iSub]->getGlElems());
     delete [] elemForce;
@@ -1726,6 +1742,24 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         break;
       case OutputInfo::StrainPR3:
         getPrincipalStress(geomState, allCorot, time, x, iOut, PSTRAIN3, refState);
+        break;
+      case OutputInfo::InXForce:
+        getElementForce(geomState, allCorot, time, x, iOut, INX);
+        break;
+      case OutputInfo::InYForce:
+        getElementForce(geomState, allCorot, time, x, iOut, INY);
+        break;
+      case OutputInfo::InZForce:
+        getElementForce(geomState, allCorot, time, x, iOut, INZ);
+        break;
+      case OutputInfo::AXMoment:
+        getElementForce(geomState, allCorot, time, x, iOut, AXM);
+        break;
+      case OutputInfo::AYMoment:
+        getElementForce(geomState, allCorot, time, x, iOut, AYM);
+        break;
+      case OutputInfo::AZMoment:
+        getElementForce(geomState, allCorot, time, x, iOut, AZM);
         break;
       case OutputInfo::DispX:
         getPrimal(disps, masterDisps, time, x, iOut, 1, 0);

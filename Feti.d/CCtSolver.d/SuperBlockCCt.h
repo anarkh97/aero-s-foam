@@ -32,7 +32,7 @@ class SuperBlockCCtSolver : public CCtSolver<Scalar>
     Connectivity *blockToSub;
     Connectivity *mpcToBlock;
     Connectivity **blockMpcToMpc;
-    Connectivity *blockToMpcCpu;
+    std::unique_ptr<Connectivity> blockToMpcCpu;
     Connectivity *blockToCpu;
     Connectivity *cpuToBlock;
     GenVector<Scalar> **mpcv;

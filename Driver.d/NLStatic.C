@@ -93,9 +93,9 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
   if(elemAdj.empty()) makeElementAdjacencyLists();
   if(time != domain->solInfo().initialTime) newDeletedElements.clear();
 
+  if(matrixTimers) matrixTimers->formTime -= getTime();
   for(int iele = 0; iele < numele; ++iele) {
 
-    if(matrixTimers) matrixTimers->formTime -= getTime();
     elementForce.zero();
 
     // Get updated tangent stiffness matrix and element internal force
@@ -133,10 +133,8 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
 
     // Transform internal force vector to nodal frame
     transformVector(elementForce, iele); 
-    if(matrixTimers) matrixTimers->formTime += getTime();
 
     // Assemble element force into residual vector
-    if(matrixTimers) matrixTimers->assemble -= getTime();
     for(int idof = 0; idof < kel[iele].dim(); ++idof) {
       int uDofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
       if(uDofNum >= 0)
@@ -147,8 +145,8 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
           (*reactions)[cDofNum] += elementForce[idof];
       }
     }
-    if(matrixTimers) matrixTimers->assemble += getTime();
   }
+  if(matrixTimers) matrixTimers->formTime += getTime();
 
   // XXX consider adding the element fictitious forces inside the loop
   if(sinfo.isDynam() && mel && !solInfo().getNLInfo().linearelastic && !solInfo().quasistatic)
@@ -2142,8 +2140,12 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
   int p = oinfo[fileNumber].precision;
 
   // ... WRITE CURRENT TIME VALUE
-  if(avgnum == 0 || avgnum == -1)
-    fprintf(oinfo[fileNumber].filptr,"  % *.*E\n",w,p,time);
+  if(avgnum == 0 || avgnum == -1) {
+    if(oinfo[fileNumber].nodeNumber == -1)
+      fprintf(oinfo[fileNumber].filptr,"  % *.*E\n",w,p,time);
+    else
+      fprintf(oinfo[fileNumber].filptr," % *.*E",w,p,time);
+  }
 
   // ... ALLOCATE VECTORS STRESS AND WEIGHT AND INITIALIZE TO ZERO
   if(stress == 0)
@@ -2191,6 +2193,8 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
   int flag;
   for(iele = 0; iele < numElements(); ++iele) {
     if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isMpcElement()) continue;
+    if ((avgnum == 0 || avgnum == -1) && (oinfo[fileNumber].nodeNumber != -1) &&
+        (oinfo[fileNumber].nodeNumber != packedEset[iele]->getGlNum())) continue;
 
     int NodesPerElement = packedEset[iele]->numNodes();
 
@@ -2625,12 +2629,13 @@ Domain::getElementForces(GeomState &geomState, Corotator **allCorot,
 // ... CALCULATE INTERNAL FORCE VALUE FOR EACH ELEMENT
 
     elemNodeTemps.zero();
-    if(nodalTemperatures) packedEset[iele]->nodes(nodeNumbers);
-    for(int iNode = 0; iNode < packedEset[iele]->numNodes(); ++iNode) {
-      if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
-        elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
-      else
-        elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
+    if(packedEset[iele]->getProperty()) {
+      for(int iNode = 0; iNode < packedEset[iele]->numNodes(); ++iNode) {
+        if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+          elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
+        else
+          elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
+      }
     }
 
     packedEset[iele]->getIntrnForce(*elstress,nodes,elDisp->data(),forceIndex,elemNodeTemps.data());
@@ -2644,6 +2649,8 @@ Domain::getElementForces(GeomState &geomState, Corotator **allCorot,
 
 // ... PRINT THE ELEMENT FORCES TO A FILE
    geoSource->outputElemVectors(fileNumber, forces.data(), numele, time);
+
+   delete [] nodeNumbers;
 }
 
 // Nonlinear restart file
@@ -2747,12 +2754,18 @@ Domain::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_n,
      int readSize = read(fn, &restartTIndex, sizeof(int));
      if(readSize != sizeof(int))
        fprintf(stderr," *** ERROR: Reading restart file time index\n");
-     sinfo.initialTimeIndex = restartTIndex;
+     if(strcmp(cinfo->FlagRST,"new") == 0)
+       sinfo.initialTimeIndex = 0;
+     else
+       sinfo.initialTimeIndex = restartTIndex;
 
      readSize = read(fn, &restartT, sizeof(double));
      if(readSize != sizeof(double))
        fprintf(stderr," *** ERROR: Reading restart file time\n");
-     sinfo.initialTime = restartT;
+     if(strcmp(cinfo->FlagRST,"new") == 0)
+       sinfo.initialTime = 0;
+     else
+       sinfo.initialTime = restartT;
 
      readSize = read(fn, buffer, numnodes*6*sizeof(double));
      if(int(readSize) != int(numnodes*6*sizeof(double)))

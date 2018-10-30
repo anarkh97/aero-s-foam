@@ -3576,13 +3576,13 @@ void GenDecDomain<Scalar>::distributeWetInterfaceNodes()
 template<class Scalar>
 void GenDecDomain<Scalar>::markSubWetInterface(int iSub, int *nWetInterfaceNodesPerSub, int **subWetInterfaceNodes)
 {
-  subDomain[iSub]->markWetInterface(nWetInterfaceNodesPerSub[iSub], subWetInterfaceNodes[iSub]);
+  subDomain[iSub]->markWetInterface(nWetInterfaceNodesPerSub[iSub], subWetInterfaceNodes[iSub], soweredInput);
 }
 
 template<class Scalar>
 void GenDecDomain<Scalar>::setSubWetInterface(int iSub, int *nWetInterfaceNodesPerSub, int **subWetInterfaceNodes)
 {
-  subDomain[iSub]->setWetInterface(nWetInterfaceNodesPerSub[iSub], subWetInterfaceNodes[iSub]);
+  subDomain[iSub]->setWetInterface(nWetInterfaceNodesPerSub[iSub], subWetInterfaceNodes[iSub], soweredInput);
 }
 
 template<class Scalar>

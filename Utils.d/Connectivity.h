@@ -154,7 +154,7 @@ public:
 	/** \brief Build a connectivity which is a map from SommerElement to the actual (single) element to which
 	 * the sommerElement is attached. TODO Get rid of this. The result is a one to one map. Not a connectivity.
 	 */
-	Connectivity(Elemset *, int, SommerElement**);
+	Connectivity(Elemset *, int, SommerElement**, bool wetFlag = false);
 	Connectivity(int _size, int *_pointer, int *_target, int _removeable=1, float *_weight = 0);
 	Connectivity(int _size, std::vector<int> _pointer, std::vector<int> _target,
 		             std::vector<float> _weight = std::vector<float>{});

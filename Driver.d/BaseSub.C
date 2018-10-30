@@ -92,6 +92,7 @@ BaseSub::initHelm(Domain &dom)
   curvatureConst2 = dom.curvatureConst2;
   numFFPDirections = dom.numFFPDirections;
 
+
   if(dom.solInfo().isCoupled) { // check if subdomain is mixed fluid & structure
     int nFluid = 0, nStruct = 0;
     for(int i=0; i<numele; ++i) {
@@ -700,7 +701,7 @@ BaseSub::setCorners(int nCrn, int *cNum)
 }
 
 void
-BaseSub::markWetInterface(int nWI, int *wiNum)
+BaseSub::markWetInterface(int nWI, int *wiNum, bool soweredInput)
 {
   int i;
   int numnodes = dsa->numNodes();
@@ -722,29 +723,31 @@ BaseSub::markWetInterface(int nWI, int *wiNum)
 
   for(i = 0; i < nWI; ++i) {
     DofSet interestingDofs;
-    domain->getInterestingDofs(interestingDofs, wiNum[i]);
-    int thisNode = glToLocalNode[wiNum[i]]; 
+    int thisNode = glToLocalNode[wiNum[i]];
+    if(soweredInput) getInterestingDofs(interestingDofs, thisNode);
+    else domain->getInterestingDofs(interestingDofs, wiNum[i]);
     if ((*c_dsa)[thisNode].contains(interestingDofs.list())) {
       wetInterfaceMark[thisNode] = true;
       // both fluid and structure wet interface corners 
       if (solInfo().isCoupled && (solInfo().solvercntl->fetiInfo.fsi_corner == 2) && 
-          (nodeToSub->num(wiNum[i]) > CornerWeightOne)) wetInterfaceCornerMark[thisNode] = true;
+          ((soweredInput && nodeToSub_sparse->num(wiNum[i]) > CornerWeightOne) ||
+          (!soweredInput && nodeToSub->num(wiNum[i]) > CornerWeightOne))) wetInterfaceCornerMark[thisNode] = true;
       // only fluid wet interface corners 
       if (solInfo().isCoupled && (solInfo().solvercntl->fetiInfo.fsi_corner == 1) &&
           (*c_dsa)[thisNode].contains(DofSet::Helm)) 
-        if (nodeToSub->num(wiNum[i]) > CornerWeightOne) { 
+        if ((soweredInput && nodeToSub_sparse->num(wiNum[i]) > CornerWeightOne) || (!soweredInput && nodeToSub->num(wiNum[i]) > CornerWeightOne)) { 
           wetInterfaceCornerMark[thisNode] = true;
           wetInterfaceFluidMark[thisNode] = true;
         }
       // fluid and a few structure wet interface corners 
       if (solInfo().isCoupled && (solInfo().solvercntl->fetiInfo.fsi_corner == 3)) { 
         if ((*c_dsa)[thisNode].contains(DofSet::Helm))  
-          if (nodeToSub->num(wiNum[i]) > CornerWeightOne) { 
+          if ((soweredInput && nodeToSub_sparse->num(wiNum[i]) > CornerWeightOne) || (!soweredInput && nodeToSub->num(wiNum[i]) > CornerWeightOne)) { 
             wetInterfaceCornerMark[thisNode] = true;
             wetInterfaceFluidMark[thisNode] = true;
           } 
         if ((*c_dsa)[thisNode].contains(DofSet::XYZdisp) || (*c_dsa)[thisNode].contains(DofSet::XYZrot))  
-          if (nodeToSub->num(wiNum[i]) > CornerWeightTwo) {
+          if ((soweredInput && nodeToSub_sparse->num(wiNum[i]) > CornerWeightTwo) || (!soweredInput && nodeToSub->num(wiNum[i]) > CornerWeightTwo)) {
             wetInterfaceCornerMark[thisNode] = true;
             wetInterfaceStructureMark[thisNode] = true;
           } 
@@ -764,7 +767,7 @@ BaseSub::markWetInterface(int nWI, int *wiNum)
 //as really wet dofs. The other dofs of the wet nodes that are not used in the fsi will then be r-dofs
 //(this can make a substancial difference for shell problems ...)
 void
-BaseSub::setWetInterface(int nWI, int *wiNum)
+BaseSub::setWetInterface(int nWI, int *wiNum, bool soweredInput)
 {
   int i;
   numWIdof   = 0;  // number of unconstrained degrees of freedom associated with wet interface
@@ -782,7 +785,8 @@ BaseSub::setWetInterface(int nWI, int *wiNum)
     int thisNode = glToLocalNode[wiNum[i]];
     if(solInfo().isCoupled && solInfo().solvercntl->fetiInfo.fsi_corner == 0) {
       DofSet interestingDofs;
-      domain->getInterestingDofs(interestingDofs, wiNum[i]); // COUPLED DEBUG
+      if(soweredInput) getInterestingDofs(interestingDofs, thisNode);
+      else domain->getInterestingDofs(interestingDofs, wiNum[i]); // COUPLED DEBUG
       if((*c_dsa)[thisNode].contains(interestingDofs.list())!=0)
         myWetInterfaceNodes[numWInodes++] = thisNode;
     }
@@ -1163,6 +1167,7 @@ BaseSub::~BaseSub()
   if(neighbSspe) { delete [] neighbSspe; neighbSspe = 0; }
 
   if(localToGlobalMPC) { delete [] localToGlobalMPC; localToGlobalMPC = 0; }
+  if(localToGlobalFSI) { delete [] localToGlobalFSI; localToGlobalFSI = 0; }
   if(localToGroupMPC) { delete [] localToGroupMPC; localToGroupMPC = 0; }
   if(mpcToDof) { delete mpcToDof; mpcToDof = 0; }
   if(localMpcToMpc) { delete localMpcToMpc; localMpcToMpc = 0; }
@@ -1496,6 +1501,41 @@ BaseSub::setArb(list<SommerElement *> *_list)
     numele++;
     (*it)->dom = this;
   }
+}
+
+void
+BaseSub::setWet(list<SommerElement *> *_list)
+{
+  numWet = 0;
+  for(list<SommerElement *>::iterator it = _list->begin(); it != _list->end(); ++it) {
+    addWet((*it));
+  }
+}
+
+void
+BaseSub::addFsiElements()
+{
+  localToGlobalFSI = new int[numFSI];
+  for(int i = 0; i < numFSI; ++i) {
+    int fluidNode = fsi[i]->lmpcnum;
+    localToGlobalFSI[i] = glNums[fluidNode];
+    for(int j = 0; j < fsi[i]->nterms; j++) {
+      LMPCons *thisFsi = new LMPCons(fluidNode, 0.0);
+      LMPCTerm thisLmpcTerm(fsi[i]->terms[j], 1.0);
+      thisFsi->addterm(&(thisLmpcTerm));
+      addSingleFsi(thisFsi);
+    }
+  }
+}
+
+void
+BaseSub::addSingleFsi(LMPCons *localFsi)
+{
+#ifndef SALINAS
+  int nEle = packedEset.last();
+  packedEset.fsielemadd(nEle, localFsi);
+  numele = packedEset.last();
+#endif
 }
 
 int

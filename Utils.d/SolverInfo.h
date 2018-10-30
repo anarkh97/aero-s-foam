@@ -340,6 +340,8 @@ public:
    bool tdenforceFlag;
    int tdenforceMaxItr;
    double tdenforceTolAbs;
+   double tdenforceInitia;
+   double tdenforceFinal;
 
    bool lagrangeMult;
    double penalty;
@@ -677,6 +679,8 @@ public:
                   tdenforceFlag = true;
                   tdenforceMaxItr = 1;
                   tdenforceTolAbs = 1e-10;
+                  tdenforceInitia = 0;
+                  tdenforceFinal = std::numeric_limits<double>::max();
 
                   lagrangeMult = true;
                   penalty = 0;

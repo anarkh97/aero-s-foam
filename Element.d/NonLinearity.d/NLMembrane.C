@@ -16,7 +16,7 @@
 #include <Element.d/FelippaShell.d/NoBendingTriangle.hpp>
 #include <Element.d/FelippaShell.d/EffMembraneTriangle.hpp>
 #ifdef USE_EIGEN3
-#include <Eigen/Core>
+#include <Eigen/Dense>
 #endif
 #include <cmath>
 #include "ElaLinIsoMat.h"
@@ -76,7 +76,7 @@ void
 GLStrain2D<n>::getE(typename TwoDTensorTypes<n>::StrainTensor &e,
                     typename TwoDTensorTypes<n>::GradUTensor &gradU)
 {
-  // 1/2*((I_32+gradU)^T(I+gradU)-I_32)
+  // 1/2*((I+gradU)^T(I+gradU)-I)
   e[0] = gradU[0][0] +
          0.5*(gradU[0][0]*gradU[0][0]+gradU[0][1]*gradU[0][1]+gradU[0][2]*gradU[0][2]);
   e[1] = gradU[1][1] +
@@ -92,13 +92,14 @@ GLStrain2D<n>::getEandB(typename TwoDTensorTypes<n>::StrainTensor &e,
                         typename TwoDTensorTypes<n>::GradUTensor &gradU, 
                         typename TwoDTensorTypes<n>::GradUDerivTensor &dgradUdqk)
 {
-  // 1/2*(I+gradU)^T(I+gradU)-I
+  // 1/2*((I+gradU)^T(I+gradU)-I)
   e[0] = gradU[0][0] +
          0.5*(gradU[0][0]*gradU[0][0]+gradU[0][1]*gradU[0][1]+gradU[0][2]*gradU[0][2]);
   e[1] = gradU[1][1] +
          0.5*(gradU[1][0]*gradU[1][0]+gradU[1][1]*gradU[1][1]+gradU[1][2]*gradU[1][2]);
   e[2] = 0.5*(gradU[0][1]+gradU[1][0] +
            gradU[1][0]*gradU[0][0]+gradU[1][1]*gradU[0][1]+gradU[1][2]*gradU[0][2]);
+
   int k;
   for(k = 0; k < n; ++k) {
     B[k][0] = dgradUdqk[k][0][0]
@@ -128,13 +129,14 @@ GLStrain2D<n>::getEBandDB(typename TwoDTensorTypes<n>::StrainTensor &e,
 			  typename TwoDTensorTypes<n>::GradUTensor &gradU, 
 			  typename TwoDTensorTypes<n>::GradUDerivTensor &dgradUdqk)
 {
-  // 1/2*(I+gradU)^T(I+gradU)-I
+  // 1/2*((I+gradU)^T(I+gradU)-I)
   e[0] = gradU[0][0] +
          0.5*(gradU[0][0]*gradU[0][0]+gradU[0][1]*gradU[0][1]+gradU[0][2]*gradU[0][2]);
   e[1] = gradU[1][1] +
          0.5*(gradU[1][0]*gradU[1][0]+gradU[1][1]*gradU[1][1]+gradU[1][2]*gradU[1][2]);
   e[2] = 0.5*(gradU[0][1]+gradU[1][0] +
            gradU[1][0]*gradU[0][0]+gradU[1][1]*gradU[0][1]+gradU[1][2]*gradU[0][2]);
+
   int k;
   for(k = 0; k < n; ++k) {
     B[k][0] = dgradUdqk[k][0][0]
@@ -202,8 +204,16 @@ TriMembraneShapeFunct::getGlobalGrads(Grad2D &gradU, Grad2DDeriv9 &dGradUdqk,
   X[1][0] = X[2][1]*X[0][2] - X[2][2]*X[0][1];
   X[1][1] = X[2][2]*X[0][0] - X[2][0]*X[0][2];
   X[1][2] = X[2][0]*X[0][1] - X[2][1]*X[0][0];
- 
-  // This is dX_i/dxi_j
+
+  // coordinates of point P in global frame M = (1-ξ-η)*nodes[0] + ξ*nodes[1] + η*nodes[2]
+  // ∂M/∂ξ = nodes[1]-nodes[0] = d[0]
+  // ∂M/∂η = nodes[2]-nodes[0] = d[1]
+  // coordinates of point P in element frame M' = X*M
+  // ∂M'/∂ξ = X*d[0]
+  // ∂M'/∂η = X*d[1]
+
+  // This is: [ ∂M'₀/∂ξ  ∂M'₁/∂ξ ]
+  //          [ ∂M'₀/∂η  ∂M'₁/∂η ]
   double dXdxi[2][2] = { { d[0][0]*X[0][0]+d[0][1]*X[0][1]+d[0][2]*X[0][2],
                            d[0][0]*X[1][0]+d[0][1]*X[1][1]+d[0][2]*X[1][2] },
                          { d[1][0]*X[0][0]+d[1][1]*X[0][1]+d[1][2]*X[0][2],
@@ -212,8 +222,10 @@ TriMembraneShapeFunct::getGlobalGrads(Grad2D &gradU, Grad2DDeriv9 &dGradUdqk,
   double &jac = *_jac;
   jac = dXdxi[0][0]*dXdxi[1][1]-dXdxi[0][1]*dXdxi[1][0];
   double jacInv = 1.0/jac;
-  double dxidX[2][2] = { { jacInv*dXdxi[0][0], -jacInv*dXdxi[1][0] },
-                         { -jacInv*dXdxi[0][1], jacInv*dXdxi[1][1] }
+  // This is the transpose of the inverse of dXdxi, i.e: [ ∂ξ/∂M'₀ ∂ξ/∂M'₁ ]  
+  //                                                     [ ∂η/∂M'₀ ∂η/∂M'₁ ]
+  double dxidX[2][2] = { { jacInv*dXdxi[1][1], -jacInv*dXdxi[1][0] },
+                         { -jacInv*dXdxi[0][1], jacInv*dXdxi[0][0] }
                        };
   // Create the local displacement vectors.
   double Utilde[3][3] = 
@@ -230,6 +242,19 @@ TriMembraneShapeFunct::getGlobalGrads(Grad2D &gradU, Grad2DDeriv9 &dGradUdqk,
 	X[2][0]*disp[6] + X[2][1]*disp[7] + X[2][2]*disp[8]
       } };
   // Derivatives of the scalar shape functions:
+  // N = [ N₀ ] = [ 1-ξ-η ]
+  //     [ N₁ ]   [   ξ   ]
+  //     [ N₂ ]   [   η   ]
+  // dNdx = [ ∂N₀/∂ξ  ∂N₀/∂η ] = [ -1 -1 ]
+  //        [ ∂N₁/∂ξ  ∂N₁/∂η ]   [  1  0 ]
+  //        [ ∂N₂/∂ξ  ∂N₂/∂η ]   [  0  1 ]
+  // dNdX = dNdxi*dxidX
+  //      = [ ∂N₀/∂ξ  ∂N₀/∂η ] * [ ∂ξ/∂M'₀ ∂ξ/∂M'₁ ]
+  //        [ ∂N₁/∂ξ  ∂N₁/∂η ]   [ ∂η/∂M'₀ ∂η/∂M'₁ ]
+  //        [ ∂N₂/∂ξ  ∂N₂/∂η ]
+  //      = [ -1 -1 ]   [ dxidX_00 dxidX_01 ]
+  //        [  1  0 ] * [ dxidX_10 dxidX_11 ]
+  //        [  0  1 ]
   double dNdX[3][2] = {  { -(dxidX[0][0] + dxidX[1][0]), 
                            -(dxidX[0][1] + dxidX[1][1]) },
                          { dxidX[0][0], dxidX[0][1] },
@@ -287,7 +312,6 @@ TriMembraneShapeFunct::getGradU(Grad2D &gradU, Node *nodes, double xi[3], Vector
   X[1][1] = X[2][2]*X[0][0] - X[2][0]*X[0][2];
   X[1][2] = X[2][0]*X[0][1] - X[2][1]*X[0][0];
  
-  // This is dX_i/dxi_j
   double dXdxi[2][2] = { { d[0][0]*X[0][0]+d[0][1]*X[0][1]+d[0][2]*X[0][2],
                            d[0][0]*X[1][0]+d[0][1]*X[1][1]+d[0][2]*X[1][2] },
                          { d[1][0]*X[0][0]+d[1][1]*X[0][1]+d[1][2]*X[0][2],
@@ -296,8 +320,8 @@ TriMembraneShapeFunct::getGradU(Grad2D &gradU, Node *nodes, double xi[3], Vector
   double jac;
   jac = dXdxi[0][0]*dXdxi[1][1]-dXdxi[0][1]*dXdxi[1][0];
   double jacInv = 1.0/jac;
-  double dxidX[2][2] = { { jacInv*dXdxi[0][0], -jacInv*dXdxi[1][0] },
-                         { -jacInv*dXdxi[0][1], jacInv*dXdxi[1][1] }
+  double dxidX[2][2] = { { jacInv*dXdxi[1][1], -jacInv*dXdxi[1][0] },
+                         { -jacInv*dXdxi[0][1], jacInv*dXdxi[0][0] }
                        };
   // Create the local displacement vectors.
   double Utilde[3][3] = 
@@ -335,7 +359,7 @@ TriMembraneShapeFunct::getGradU(Grad2D &gradU, Node *nodes, double xi[3], Vector
 double
 TriMembraneShapeFunct::interpolateScalar(double *q, double xi[3])
 {
-  return xi[0]*q[0] + xi[1]*q[1] + (1-xi[0]-xi[1])*q[2];
+  return xi[0]*q[1] + xi[1]*q[2] + (1-xi[0]-xi[1])*q[0];
 }
 
 static TriMembraneShapeFunct shpFct;
@@ -384,6 +408,25 @@ NLMembrane::getGaussPointAndWeight(int n, double *point, double &weight) const
   point[2] = 0.0;
   weight = w_save[n];
 */
+}
+
+void
+NLMembrane::getLocalNodalCoords(int n, double *point)
+{
+  switch(n) {
+    case 0: {
+      point[0] = 0;
+      point[1] = 0;
+    } break;
+    case 1: {
+      point[0] = 1;
+      point[1] = 0;
+    } break;
+    case 2: {
+      point[0] = 0;
+      point[1] = 1;
+    } break;
+  }
 }
 
 void
@@ -463,45 +506,36 @@ NLMembrane::setProp(StructProp *p, bool _myProp)
 }
 
 void
-NLMembrane::rotateCFrame(const CoordSet &cs, double *_T) const
-{
+NLMembrane::buildFrame(CoordSet &cs) {
 #ifdef USE_EIGEN3
   int elm = glNum+1;
-  auto &nd1 = cs.getNode(n[0]);
-  auto &nd2 = cs.getNode(n[1]);
-  auto &nd3 = cs.getNode(n[2]);
+  Node &nd1 = cs.getNode(n[0]);
+  Node &nd2 = cs.getNode(n[1]);
+  Node &nd3 = cs.getNode(n[2]);
   double x[3], y[3], z[3];
   x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
   x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
   x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
-  Eigen::Matrix3d eframe;
+  if(!eframe) eframe = new double[9];
   double xlp[3], ylp[3], zlp[3];
   double area;
 
   typedef ShellElementTemplate<double,EffMembraneTriangle,NoBendingTriangle> Impl;
-  Impl::andescrd(elm, x, y, z, eframe.data(), xlp, ylp, zlp, area);
-  Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor>> T(_T);
-  T = ShellMaterial<double>::andesinvt(eframe.data(), cFrame, 0.).transpose();
-#else
-  std::cerr << " *** ERROR: NLMembrane::rotateCFrame requires AERO-S to be configured with the Eigen library. Exiting...\n";
-  exit(-1);
+  Impl::andescrd(elm, x, y, z, eframe, xlp, ylp, zlp, area);
 #endif
 }
 
 void
-NLMembrane::rotateConstitutiveMatrix2(const CoordSet &cs, double C[6][6], double alpha[6])
+NLMembrane::rotateCFrame(const CoordSet &cs, double *_T, double *_Tinv) const
 {
-#ifdef ROTATE_CCOEFS
-  double T[9];
-  rotateCFrame(cs, T);
+#ifdef USE_EIGEN3
+  Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor>> T(_T), Tinv(_Tinv);
+  Tinv = ShellMaterial<double>::andesinvt(eframe, cFrame, 0.);
+  T = Tinv.inverse();
 #else
-  double T[9] = { 1,0,0,0,1,0,0,0,1 };
+  std::cerr << " *** ERROR: NLMembrane::rotateCFrame requires AERO-S to be configured with the Eigen library. Exiting...\n";
+  exit(-1);
 #endif
-
-  // transform constitutive matrix to element frame
-  rotateConstitutiveMatrix(cCoefs, T, C);
-  // transform coefficients of thermal expansion to element frame
-  rotateVector(cCoefs+36, T, alpha);
 }
 
 void
@@ -656,20 +690,14 @@ NLMembrane::getCorotator(CoordSet &cs, double *, int , int)
         material = new StVenantKirchhoffMat2D(prop);
     }
     if(cCoefs) {
-      double C[6][6], alpha[6];
-      // transform constitutive matrix and coefficients of thermal expansion to element frame
-      rotateConstitutiveMatrix2(cs, C, alpha);
-      material->setTangentMaterial(C);
-      material->setThermalExpansionCoef(alpha);
+      material->setTangentMaterial(reinterpret_cast<double(*)[6]>(cCoefs));
+      material->setThermalExpansionCoef(cCoefs+36);
     }
     material->setTDProps(prop->ymtt, prop->ctett);
-#ifdef ROTATE_CCOEFS
-    if(cFrame && !cCoefs) {
-#else
-    if(cFrame) {
-#endif
+    if(cFrame && (this->tframe == NULL)) {
       this->tframe = new double[9];
-      rotateCFrame(cs, this->tframe);
+      this->tframe_inv = new double[9];
+      rotateCFrame(cs, this->tframe, this->tframe_inv);
     }
     return new MatNLCorotator(this, false);
   }
@@ -694,13 +722,16 @@ NLMembrane::stiffness(const CoordSet& cs, double *k, int flg) const
 				nConstThis->linearMaterial = new ElaLinIsoMat2D(prop);
 		}
 		if(cCoefs) {
-			double C[6][6], alpha[6];
-			// transform constitutive matrix and coefficients of thermal expansion to element frame
-			nConstThis->rotateConstitutiveMatrix2(cs, C, alpha);
-			linearMaterial->setTangentMaterial(C);
-			linearMaterial->setThermalExpansionCoef(alpha);
+      linearMaterial->setTangentMaterial(reinterpret_cast<double(*)[6]>(cCoefs));
+      linearMaterial->setThermalExpansionCoef(cCoefs+36);
 		}
 		linearMaterial->setTDProps(prop->ymtt, prop->ctett);
+    if(cFrame && (this->tframe == NULL)) {
+      // TODO Get rid of this mutablility!
+      this->tframe = new double[9];
+      this->tframe_inv = new double[9];
+      rotateCFrame(cs, this->tframe, this->tframe_inv);
+    }
 		return GenGaussIntgElement<TwoDTensorTypes<9> >::stiffness(cs,k,flg);
 	}
 }

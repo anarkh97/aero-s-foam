@@ -3292,7 +3292,7 @@ int GeoSource::getCPUMap(FILE *f, Connectivity *subToSub, int glNumSub, int numC
 	  if(subToSub) {
 	if(verboseFlag) filePrint(stderr, " ... Making CPU Map using SCOTCH, numCPU = %d ...\n", numCPU);
 	Connectivity *graph = subToSub->modifyAlt(); // scotch doesn't allow loops
-	cpuToSub = graph->SCOTCH_graphPart(numCPU);
+	cpuToSub = std::shared_ptr<Connectivity>(graph->SCOTCH_graphPart(numCPU));
 	delete graph;
 	  } else
 #endif
@@ -4231,18 +4231,16 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
 	 }
    }
 
-   Connectivity elemToNode(&packedEset);
-   Connectivity *nodeToElem = elemToNode.reverse();
-   Connectivity *elemToElem = elemToNode.transcon(nodeToElem);
-   Connectivity *graph = elemToElem->modifyAlt(); // scotch doesn't allow loops
+   Connectivity elemToNode(packedEset.asSet());
+   Connectivity nodeToElem = elemToNode.reverse();
+   Connectivity elemToElem = elemToNode.transcon(nodeToElem);
+   Connectivity *graph = elemToElem.modifyAlt(); // scotch doesn't allow loops
    Connectivity *subToElem = graph->SCOTCH_graphPart(numSubdomains);
    subToElem->renumberTargets(pckToGlElems);
    optDec = new Decomposition(numSubdomains, subToElem->getPointer(), subToElem->getTarget());
-   subToElem->setRemoveable(0);
-   delete subToElem; 
+   //subToElem->setRemoveable(0);
+   //delete subToElem; 
    delete graph; 
-   delete elemToElem;
-   delete nodeToElem;
 
    if(verboseFlag)
 	 filePrint(stderr, " ... %d Elements Have Been Arranged in %d Subdomains ...\n",

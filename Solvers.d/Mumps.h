@@ -50,7 +50,7 @@ class MumpsId<complex<double> > {
 template<class Scalar>
 class GenMumpsSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar>, public SparseData, public MultiDomainSolver<Scalar> 
 {
-   SolverCntl& scntl;
+   const SolverCntl& scntl;
    int 	neq;        // number of equations = id.n for Mumps
    Scalar *unonz;   // matrix of elements = id.a for mumps
    int nNonZero;    // number of non zero entries = id.nz for Mumps	
@@ -68,12 +68,12 @@ class GenMumpsSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar>,
    Communicator *groupcomm; // JAT 072616
 
 public:
-	GenMumpsSolver(Connectivity *nToN, EqNumberer *dsa, SolverCntl& _scntl, int *map=0, FSCommunicator *_mpicomm = 0);
-	GenMumpsSolver(Connectivity *nToN, DofSetArray *dsa, ConstrainedDSA *c_dsa, SolverCntl& _scntl,
+	GenMumpsSolver(const Connectivity *nToN, const EqNumberer *dsa, const SolverCntl& _scntl, int *map=0, FSCommunicator *_mpicomm = 0);
+	GenMumpsSolver(const Connectivity *nToN, const DofSetArray *dsa, const ConstrainedDSA *c_dsa, const SolverCntl& _scntl,
 	               FSCommunicator *_mpicomm = 0);
-	GenMumpsSolver(Connectivity *nToN, DofSetArray *dsa, ConstrainedDSA *c_dsa, int nsub,
+	GenMumpsSolver(const Connectivity *nToN, const DofSetArray *dsa, const ConstrainedDSA *c_dsa, int nsub,
 	               gsl::span<GenSubDomain<Scalar> *> sd,
-	               SolverCntl& _scntl, FSCommunicator *_mpicomm = 0);
+	               const SolverCntl& _scntl, FSCommunicator *_mpicomm = 0);
 
    virtual ~GenMumpsSolver();
 

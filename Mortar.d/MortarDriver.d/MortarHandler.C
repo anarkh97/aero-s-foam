@@ -1401,7 +1401,7 @@ MortarHandler::build_search(bool tdenforceFlag, int numSub, SubDomain **sd)
     nSlaveNodes     = (structCom->myID() == 0) ? PtrSlaveEntity->GetnVertices() : 0; 
   }
   else if(DIST_ACME == 2) {
-    Connectivity *masterFaceElemToNode = new Connectivity(MasterFaceElemSet);
+    Connectivity *masterFaceElemToNode = new Connectivity(SetAccess<FaceElemSet>{*MasterFaceElemSet});
     SurfaceEntity *PtrLocalMasterEntity = new SurfaceEntity(-1);
     int num = 0;
     for(int i=0; i<masterFaceElemToNode->csize(); ++i) { 
@@ -1422,7 +1422,7 @@ MortarHandler::build_search(bool tdenforceFlag, int numSub, SubDomain **sd)
     nMasterFaceElem = PtrLocalMasterEntity->GetPtrFaceElemSet()->nElems();
     nMasterNodes = PtrLocalMasterEntity->GetnVertices();
 
-    Connectivity *slaveFaceElemToNode = new Connectivity(SlaveFaceElemSet);
+    Connectivity *slaveFaceElemToNode = new Connectivity(SetAccess<FaceElemSet>{*SlaveFaceElemSet});
     SurfaceEntity *PtrLocalSlaveEntity = new SurfaceEntity(-2);
     num = 0;
     for(int i=0; i<slaveFaceElemToNode->csize(); ++i) {
@@ -1463,7 +1463,7 @@ MortarHandler::build_search(bool tdenforceFlag, int numSub, SubDomain **sd)
       tgt[ptr[structCom->myID()]+nMasterNodes+i] = PtrLocalSlaveEntity->GetGlVertexId(i);
     structCom->globalSum(ptr[structCom->numCPUs()],tgt);
     Connectivity *cpuToNode = new Connectivity(structCom->numCPUs(), ptr, tgt);
-    nodeToCpu = cpuToNode->reverse();
+    nodeToCpu = cpuToNode->alloc_reverse();
     Connectivity *cpuToCpu = cpuToNode->transcon(nodeToCpu);
   
     // now make the interface lists

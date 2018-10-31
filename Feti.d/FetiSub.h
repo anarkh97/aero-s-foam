@@ -43,7 +43,7 @@ class CoordSet;
 class DofSet;
 class FetiInfo;
 
-#if (__GNUC__ < 7)
+#if (__GNUC__ < 8)
 using vec_const_int = std::vector<int>;
 #else
 using vec_const_int = std::vector<const int>;

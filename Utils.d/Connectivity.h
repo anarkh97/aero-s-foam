@@ -127,6 +127,7 @@ public:
 	int getNumTarget() const {return target.size(); }
 	int * getTarget() {return target.data(); }
 	const int * getTarget() const {return target.data(); }
+        int * getPointer() {return pointer.data(); }
 	const int * getPointer() const {return pointer.data(); }
 
 	/** \brief Factory static method.

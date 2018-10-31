@@ -658,7 +658,19 @@ GenFullM<Scalar>::symmetrize_from_uptriag()
      (*this)[i][j] = (*this)[j][i];
 }
 
-
+template<>
+inline void
+GenFullM<std::complex<double>>::print(const char *msg, const char *msg2,FILE *f)
+{
+ if(*msg) fprintf(f,"%s\n",msg);
+ int i,j;
+ for(i = 0 ; i < nrow ; ++i) {
+   for(j=0; j < ncolumn ; ++j) {
+     fprintf(f,"%s(%d,%d) = %16.11e,%16.11e;",msg2,i+1,j+1,std::real((*this)[i][j]), std::imag((*this)[i][j]));
+     fprintf(f,"\n") ;
+   }
+ }
+}
 
 template<class Scalar> 
 void

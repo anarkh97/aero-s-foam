@@ -1,7 +1,9 @@
 //
 // Created by Michel Lesoinne on 2/13/18.
 //
+#ifdef USE_MPI
 #include <mpi.h>
+#endif
 #include <iostream>
 #include <array>
 #include <vector>
@@ -93,6 +95,7 @@ std::map<int, std::vector<long> > SubD::getNodeSharing(const BaseCommunicator &c
 
 	std::map<int, std::vector<long>> canonicNodePosition = getCanonicalOwners(totalNumNodes,
 	                                                                          nodeIndices, communicator.commSize());
+#ifdef USE_MPI
 	long info[2] = {0,0};
 	auto window = communicator.window(info, 2);
 	window.open();
@@ -100,6 +103,7 @@ std::map<int, std::vector<long> > SubD::getNodeSharing(const BaseCommunicator &c
 	for(auto &info : canonicNodePosition)
 		window.accumulate(SumHandle, &one, 1, info.first, 0);
 	window.close();
+#endif
 
 	return std::map<int, std::vector<long>>();
 }
@@ -131,6 +135,7 @@ void testGlobals(const BaseCommunicator &communicator) {
 
 
 int main(int argc, char *argv[]) {
+#ifdef USE_MPI
 	int required = MPI_THREAD_MULTIPLE, provided;
 	MPI_Init_thread(&argc, &argv, required, &provided);
 	BaseCommunicator comm(MPI_COMM_WORLD);
@@ -208,4 +213,5 @@ int main(int argc, char *argv[]) {
 		          << timerData.maxTime.load()*1e-3 << "µs maximum."
 				<< (timerData.totalTime-timerData.maxTime)/(timerData.count-1)*1e-3 << "µs average with max rejection." << std::endl;
 	MPI_Finalize();
+#endif
 }

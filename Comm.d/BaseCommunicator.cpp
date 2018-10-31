@@ -6,6 +6,7 @@
 #include <mpi.h>
 #endif
 #include <stdexcept>
+#include <cstring>
 #include "BaseCommunicator.h"
 #include "MPICompatTraits.h"
 

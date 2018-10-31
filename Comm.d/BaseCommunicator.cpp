@@ -170,7 +170,7 @@ void _fetchAndOp(WinHandle handle, OpHandle op, const void *sourceData, TypeHand
                    void *resData, int remoteRank, int remoteOffset) {
 #ifdef USE_MPI
 	check(
-			MPI_Fetch_and_op(sourceData, resData, dataType, remoteRank, remoteOffset, op, handle)
+			MPI_Fetch_and_op(const_cast<void*>(sourceData), resData, dataType, remoteRank, remoteOffset, op, handle)
 	);
 #else
 	// Get the Window data details

@@ -322,7 +322,7 @@ GenFullSquareMatrix<Scalar>::printDiagonals()
 {
   int i;
   for(i=0; i<size; ++i)
-    fprintf(stderr,"% e\n",(*this)[i][i]);
+    fprintf(stderr,"% e\n",std::real((*this)[i][i]));
 }
 
 

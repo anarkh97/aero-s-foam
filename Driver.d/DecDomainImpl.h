@@ -2011,7 +2011,7 @@ GenDecDomain<Scalar>::outputPrimal(GenDistrVector<Scalar> &primal, int iter)
 
  // print primal error at each node
  for(i=0; i<numNode; ++i)
-   filePrint(primalFile,"%e\n",error[i]);
+   filePrint(primalFile,"%e\n",std::real(error[i]));
 }
 
 // -----------------------------

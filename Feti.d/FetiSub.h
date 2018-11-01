@@ -43,11 +43,11 @@ class CoordSet;
 class DofSet;
 class FetiInfo;
 
-#if (__GNUC__ < 8)
+//#if (__GNUC__ < 7)
 using vec_const_int = std::vector<int>;
-#else
-using vec_const_int = std::vector<const int>;
-#endif
+//#else
+//using vec_const_int = std::vector<const int>;
+//#endif
 
 /** \brief Pure Interface of what the notion of Subdomain provides for FETI solver. */
 class FetiBaseSub {

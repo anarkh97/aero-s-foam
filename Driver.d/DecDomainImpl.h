@@ -530,7 +530,9 @@ GenDecDomain<Scalar>::makeSubDomains()
       for(int iSub = 0; iSub < numSub; ++iSub) subDomain[iSub]->setnodeToSubConnectivity(nodeToSub.get());
       addFsiElements();
     }
-    paralApply(subDomain, &GenSubDomain<Scalar>::renumberElements);
+	  threadManager->callParal(subDomain.size(), [this](int iSub) {
+	  	subDomain[iSub]->renumberElements();
+	  });
   }
 
   paralApply(subDomain, &BaseSub::makeDSA);
@@ -2522,31 +2524,22 @@ GenDecDomain<Scalar>::constructSubDomains(int iSub)
     createSubDomain(*domain, iSub, *subToElem, *subToNode, localSubToGl[iSub]);
 }
 
-
-template<class Scalar>
-void
-GenDecDomain<Scalar>::renumberElements(int iSub)
-{
-  subDomain[iSub]->renumberElements();
-}
-
 template<class Scalar>
 void
 GenDecDomain<Scalar>::getSharedDOFs()
 {
   startTimerMemory(mt.makeInterface, mt.memoryInterface);
 
-  FSCommPattern<int> *nodeIntPat = new FSCommPattern<int>(communicator, cpuToSub.get(), myCPU, FSCommPattern<int>::CopyOnSend);
-  for(int i=0; i<numSub; ++i) subDomain[i]->setNodeCommSize(nodeIntPat);
-  nodeIntPat->finalize();
+  FSCommPattern<int> nodeIntPat(communicator, cpuToSub.get(), myCPU, FSCommPattern<int>::CopyOnSend);
+  for(int i=0; i<numSub; ++i) subDomain[i]->setNodeCommSize(&nodeIntPat);
+  nodeIntPat.finalize();
 
-  paralApplyToAll(numSub, subDomain, &GenSubDomain<Scalar>::sendDOFList, nodeIntPat);
-  nodeIntPat->exchange();
-  paralApply(subDomain, &FetiSub<Scalar>::gatherDOFList, nodeIntPat);
-  paralApply(subDomain, &GenSubDomain<Scalar>::gatherDOFListPlus, nodeIntPat);
+  paralApplyToAll(numSub, subDomain, &GenSubDomain<Scalar>::sendDOFList, &nodeIntPat);
+  nodeIntPat.exchange();
+  paralApply(subDomain, &FetiSub<Scalar>::gatherDOFList, &nodeIntPat);
+  paralApply(subDomain, &GenSubDomain<Scalar>::gatherDOFListPlus, &nodeIntPat);
 
-  delete nodeIntPat;
-  
+
   stopTimerMemory(mt.makeInterface, mt.memoryInterface);
 }
 

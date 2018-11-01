@@ -175,7 +175,6 @@ protected:
 	 * If there is FSI, build additional connectivities.
 	 */
 	void makeSubDomains();
-	void renumberElements(int iSub);
 	void createElemToNode();
 	/** \brief Build the SComm for each subdomain, based on the input connectivities.
 	 *

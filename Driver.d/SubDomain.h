@@ -156,7 +156,7 @@ public:
 	void addNodeXYZ(double *centroid, double* nNodes);
 
 public:
-	void setCorners(int nCorners, int *crnList);
+	void setCorners(gsl::span<const int> crnList);
 
 	const bool* getInternalMasterFlag();
 

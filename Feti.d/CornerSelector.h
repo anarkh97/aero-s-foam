@@ -7,6 +7,7 @@
 
 
 #include <vector>
+#include <gsl/span>
 #include "FetiSub.h"
 
 class FetiSubCornerHandler;
@@ -65,7 +66,7 @@ public:
 	                     const std::vector<gl_sub_idx> &nsb,
 	                     const ConstrainedDSA *c_dsa, FetiBaseSub *_subPre);
 	FetiSubCornerHandler(FetiBaseSub *sub);
-	~FetiSubCornerHandler();
+	~FetiSubCornerHandler() = default;
 	void markMultiDegNodes();
 	void dispatchSafeNodes(FSCommPattern<int> *);
 	void markSafeNodes(FSCommPattern<int> *);
@@ -86,16 +87,16 @@ public:
 	void resendNumbers(FSCommPattern<int> *pat);
 	void checkNumbers(FSCommPattern<int> *pat);
 
-	int *getCorners() { return crnList; }
+	gsl::span<const int> getCorners() const { return crnList; }
 	int getNumCorners() { return totNC; }
 
 protected:
 	int glSubNum;
 	int nnodes;
-	int *deg;
-	int *crnList;
+	std::vector<int> deg;
+	std::vector<int> crnList;
 	int totNC;
-	int *weight;
+	std::vector<int> weight;
 	std::vector<bool> isCorner;
 	std::vector<bool> isSafe;
 	std::vector<bool> glSafe;

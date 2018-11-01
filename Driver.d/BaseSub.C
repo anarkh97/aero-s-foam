@@ -521,7 +521,7 @@ BaseSub::checkForColinearCrossPoints(int numCornerPoints,
 }
 
 void
-BaseSub::setCorners(int nCrn, int *cNum) 
+BaseSub::setCorners(gsl::span<const int> cNum)
 {
   int i;
 
@@ -532,9 +532,7 @@ BaseSub::setCorners(int nCrn, int *cNum)
   crnDofSize    = 0;
 
   int numdofs = dsa->size();
-  cornerMap = new int[numdofs];
-  for(i = 0; i < numdofs; ++i)
-    cornerMap[i] = -1;
+  cornerMap.assign(numdofs, -1);
 
   DofSet interestingDofs;
   if(solInfo().getFetiInfo().corners == FetiInfo::allCorners3 ||
@@ -553,9 +551,8 @@ BaseSub::setCorners(int nCrn, int *cNum)
   int nFluidInterest = fluidDofs.count();
   int nStructureInterest = structureDofs.count();
 
-  for(i = 0; i < nCrn; ++i) { // JLchange
-    int thisNode = cNum[i];
-  
+  for (auto thisNode: cNum) {
+
     if(solInfo().isCoupled && (solInfo().solvercntl->fetiInfo.fsi_corner == 0))
       if(wetInterfaceNodeMap[thisNode] != -1) continue; // skip wet interface nodes
 
@@ -643,8 +640,7 @@ BaseSub::setCorners(int nCrn, int *cNum)
 	isCornerNode.assign(numnodes, false);
 
   numCRN = 0;
-  for(i = 0; i < nCrn; ++i) {
-    int thisNode = cNum[i];
+  for (auto thisNode: cNum) {
     if(solInfo().isCoupled)
       if(wetInterfaceNodeMap[thisNode] != -1) continue; // skip wet interface nodes
     if((*c_dsa)[thisNode].contains(interestingDofs.list())!=0) {
@@ -1146,7 +1142,6 @@ BaseSub::globalNumNodes()
 BaseSub::~BaseSub()
 {
   if(crnPerNeighb) { delete [] crnPerNeighb; crnPerNeighb = 0; }
-  if(cornerMap) { delete [] cornerMap; cornerMap = 0; }
 
   if(dualToBoundary) { delete [] dualToBoundary; dualToBoundary = 0; }
   if(neighbNumGRBMs) { delete [] neighbNumGRBMs; neighbNumGRBMs = 0; }

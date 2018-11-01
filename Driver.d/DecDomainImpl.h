@@ -2618,7 +2618,7 @@ template<class Scalar>
 void
 GenDecDomain<Scalar>::setLocalCorners(int iSub, FetiSubCornerHandler **cornerHandler)
 {
-  subDomain[iSub]->setCorners(cornerHandler[iSub]->getNumCorners(), cornerHandler[iSub]->getCorners());
+  subDomain[iSub]->setCorners(cornerHandler[iSub]->getCorners());
 }
 
 template<class Scalar>
@@ -2628,20 +2628,11 @@ void GenDecDomain<Scalar>::distributeBCs()
 
   int i, iSub, subI;
 
-  int *nDirichletPerSub = new int[numSub];
-  int *nNeumannPerSub   = new int[numSub];
-  int *nIDisPerSub      = new int[numSub];
-  int *nIDis6PerSub     = new int[numSub];
-  int *nIVelPerSub      = new int[numSub];
-
-  // zero all bc counters
-  for(iSub = 0; iSub < numSub; ++iSub)  {
-    nIDisPerSub[iSub] = 0;
-    nIDis6PerSub[iSub] = 0;
-    nIVelPerSub[iSub] = 0;
-    nDirichletPerSub[iSub] = 0;
-    nNeumannPerSub[iSub] = 0;
-  }
+  std::vector<int> nDirichletPerSub (numSub, 0);
+  std::vector<int> nNeumannPerSub   (numSub, 0);
+  std::vector<int> nIDisPerSub      (numSub, 0);
+  std::vector<int> nIDis6PerSub     (numSub, 0);
+  std::vector<int> nIVelPerSub      (numSub, 0);
  
   // get bc's from domain
   BCond* dbc = 0;
@@ -2776,19 +2767,13 @@ void GenDecDomain<Scalar>::distributeBCs()
   for(iSub = 0; iSub < numSub; ++iSub) {
     subDomain[iSub]->setIDis6(nIDis6PerSub[iSub], subBC[iSub]);
   }
-
-  delete [] nDirichletPerSub;
-  delete [] nNeumannPerSub;
-  delete [] nIDisPerSub;
-  delete [] nIDis6PerSub;
-  delete [] nIVelPerSub;
   delete [] subBC;
 
   if(domain->numSSN() > 0) {
 
     int totEle = (domain->getEset())->last();
-    int *eleTouch = new int[totEle];
-    int *eleCount = new int[totEle];
+    std::vector<int> eleTouch(totEle);
+    std::vector<int> eleCount(totEle);
 
     // Sommerfeld
     for (i=0;i<totEle;i++) eleTouch[i] = -1;
@@ -2796,7 +2781,7 @@ void GenDecDomain<Scalar>::distributeBCs()
     for (i=0;i<domain->numSommer;i++) somToSub[i] = -1;
     for(int iSommEle =0; iSommEle < domain->numSommer; ++iSommEle) {
       int iele = domain->sommer[iSommEle]->findEle(domain->nodeToElem,
-                                                   eleTouch, eleCount, iSommEle,
+                                                   eleTouch.data(), eleCount.data(), iSommEle,
                                                    &domain->getElementSet());
       if(iele < 0) {
         fprintf (stderr, "Error in the Sommerfeld b.c.'s - aborting\n");
@@ -2820,7 +2805,7 @@ void GenDecDomain<Scalar>::distributeBCs()
         sBoundFlag[ndNum] = 1;
       }
       int iele = domain->scatter[iScatter]->findEle(domain->nodeToElem,
-                                                    eleTouch, eleCount, iScatter,
+                                                    eleTouch.data(), eleCount.data(), iScatter,
                                                     &domain->getElementSet(),1);
       if(iele < 0) {
         fprintf (stderr, "Error in the scatterer b.c.'s - aborting %d \n",iScatter+1);
@@ -2839,8 +2824,8 @@ void GenDecDomain<Scalar>::distributeBCs()
    int iWetEle;
    for(iWetEle =0; iWetEle < domain->numWet; ++iWetEle) {
      int iele[2];
-     domain->wet[iWetEle]->findBothEle(domain->nodeToElem, eleTouch,
-        eleCount, iWetEle, &domain->getElementSet(),iele);
+     domain->wet[iWetEle]->findBothEle(domain->nodeToElem, eleTouch.data(),
+        eleCount.data(), iWetEle, &domain->getElementSet(),iele);
      if(iele[0]<0 || iele[1]<0) {
        fprintf (stderr, "Error in the wet b.c.'s - aborting\n");
        exit(0);
@@ -2859,7 +2844,7 @@ void GenDecDomain<Scalar>::distributeBCs()
     for (i=0;i<domain->numNeum;i++) neumToSub[i] = -1;
     for(int iNeum=0; iNeum < domain->numNeum; ++iNeum) {
       int iele = domain->neum[iNeum]->findEle(domain->nodeToElem,
-                                              eleTouch, eleCount, iNeum);
+                                              eleTouch.data(), eleCount.data(), iNeum);
       if(iele < 0) {
         fprintf (stderr, "Error in the Neumann b.c.'s - aborting\n");
         exit(0);
@@ -2878,8 +2863,6 @@ void GenDecDomain<Scalar>::distributeBCs()
     delete[] wetToSub;
     delete[] scaToSub;
     delete[] neumToSub;
-    delete[] eleTouch;
-    delete[] eleCount;
   }
 
   // complex nodal boundary conditions 

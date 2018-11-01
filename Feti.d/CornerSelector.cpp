@@ -68,12 +68,10 @@ FetiSubCornerHandler::FetiSubCornerHandler(gl_sub_idx _glSubNum, int _nnodes, co
 	glSubNum = _glSubNum;
 	nnodes = _nnodes;
 	subPre = _subPre;
-	deg = new int[2*nnodes];
-	weight = deg + nnodes;
+	deg.resize(nnodes);
+	weight.resize(nnodes);
 	for(int iNode = 0; iNode < nnodes; ++iNode) isCorner[iNode] = false;
 	nNeighb = sharedNodes.csize();
-
-	crnList = 0;
 
 	// dimension
 	DofSet dofs = DofSet();
@@ -117,12 +115,6 @@ FetiSubCornerHandler::FetiSubCornerHandler(FetiBaseSub *sub) :
 	                     sub)
 {
 
-}
-
-FetiSubCornerHandler::~FetiSubCornerHandler()
-{
-	if(deg) delete [] deg;
-	if(crnList) delete [] crnList;
 }
 
 void
@@ -807,34 +799,25 @@ FetiSubCornerHandler::recNumbering(FSCommPattern<int> *pat, int *fMaster)
 		for(iNode = 0; iNode < nnodes; ++iNode)
 			if(deg[iNode] >= 0)
 				totNC++;
-		crnList = new int[totNC];
-		totNC = 0;
+		crnList.reserve(totNC);
 		for(iNode = 0; iNode < nnodes; ++iNode) {
-			if(deg[iNode] >= 0) {
-				crnList[totNC] = iNode;
-				totNC++;
-			}
+			if(deg[iNode] >= 0)
+				crnList.push_back(iNode);
 		}
 	}
 	else {
 		totNC = 0;
 		for(iNode = 0; iNode < nnodes; ++iNode) {
-			if((deg[iNode] >= 0) && !(subPre->onWetInterface(iNode)))
-				totNC++;
-			if(subPre->isWetInterfaceCorner(iNode))
+			if ((deg[iNode] >= 0) && !(subPre->onWetInterface(iNode))
+			    || subPre->isWetInterfaceCorner(iNode))
 				totNC++;
 		}
-		crnList = new int[totNC];
-		totNC = 0;
+		crnList.reserve(totNC);
 		for(iNode = 0; iNode < nnodes; ++iNode) {
-			if((deg[iNode] >= 0) && !(subPre->onWetInterface(iNode))) {
-				crnList[totNC] = iNode;
-				totNC++;
-			}
-			if(subPre->isWetInterfaceCorner(iNode)) {
-				crnList[totNC] = iNode;
-				totNC++;
-			}
+			if( (deg[iNode] >= 0) && !(subPre->onWetInterface(iNode))
+			    || subPre->isWetInterfaceCorner(iNode))
+				crnList.push_back(iNode);
+
 		}
 	}
 }

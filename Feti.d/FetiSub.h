@@ -275,7 +275,7 @@ public:
 	GlobalToLocalMap globalToLocalMPC_primal;
 	///@}
 
-	int *cornerMap = nullptr;
+	std::vector<int> cornerMap;
 
 	void sendNumNeighbGrbm(FSCommPattern<int> *pat);
 	void recvNumNeighbGrbm(FSCommPattern<int> *pat);

@@ -1979,41 +1979,6 @@ GenDecDomain<Scalar>::getPrincipalStress(GenDistrVector<Scalar> &u, int fileNumb
   if(globalPDir) delete [] globalPDir;
 }
 
-// to output primal error
-template<class Scalar>
-void
-GenDecDomain<Scalar>::outputPrimal(GenDistrVector<Scalar> &primal, int iter)
-{
- int numNode = domain->numnodes;
-
- // Open primal error file
- if(primalFile == 0) {
-   if((primalFile=fopen("primalError","w"))==(FILE *) 0 )
-     filePrint(stderr," *** ERROR: Cannot open %s ...\n", "primalError");
-   fflush(primalFile);
-
-   filePrint(primalFile,"Scalar PRIMAL under FETI for %s\n%d\n",
-             geoSource->getCheckFileInfo()->nodeSetName, numNode);
- }
-
- Scalar *error = (Scalar*) dbg_alloca(numNode*sizeof(Scalar));
- int i;
- for(i=0; i<numNode; ++i)
-   error[i] = 0.0;
-
- int isub;
- for(isub=0; isub<numSub; ++isub) {
-   subDomain[isub]->mergePrimalError(error, primal.subData(isub));
- }
-
- // print iteration number
- filePrint(primalFile,"%d\n",iter);
-
- // print primal error at each node
- for(i=0; i<numNode; ++i)
-   filePrint(primalFile,"%e\n",error[i]);
-}
-
 // -----------------------------
 // Nonlinear DecDomain functions
 // -----------------------------
@@ -2980,31 +2945,6 @@ GenDecDomain<Scalar>::distribBC(int iSub, gsl::span<GenSubDomain<Scalar> *> sd, 
  sd[iSub]->subScaToSca = new int[sd[iSub]->numScatter];
  for(iS=0;iS<domain->numScatter;iS++)
    if (scaToSub[iS] == iSub) sd[iSub]->subScaToSca[c++] = iS;
-}
-
-
-template<class Scalar>
-void GenDecDomain<Scalar>::renumberBC() 
-{
-  // allocate memory for cluster to local node map
-  int *clNodeToLoc = new int[nodeToSub->csize()];
-
-  for(int iSub = 0; iSub < numSub; iSub++)  {
-    // initialize node map
-    for(int k = 0; k < subDomain[iSub]->numNode(); k++)
-      clNodeToLoc[k] = -1;
-
-    // create cluster to local node map
-    for(int iNode = 0; iNode < subToNode->num(iSub); iNode++)
-      clNodeToLoc[(*subToNode)[iSub][iNode]] = iNode;
-
-    int error = subDomain[iSub]->renumberBC(clNodeToLoc);
-    if (error < 0)  {
-      fprintf(stderr,"no mapping for subdomain %d\n", iSub);
-      exit (-1);
-    }
-  }
-  delete [] clNodeToLoc;
 }
 
 template<class Scalar>
@@ -3995,15 +3935,6 @@ GenDecDomain<Scalar>::subRebuildOps(int iSub, GenMDDynamMat<Scalar> &res, double
   }
 
   if(geoSource->isShifted() && domain->solInfo().getFetiInfo().prectype == FetiInfo::nonshifted) delete allOps.K;
-}
-
-template<class Scalar>
-void
-GenDecDomain<Scalar>::getWError(int iSub, GenDistrVector<Scalar> *u,
-                                double *l2err, double *h1err, double *l2, double *h1)
-{
- // subDomain[iSub]->wError( (BaseSub *) subDomain[iSub], l2err+iSub, h1err+iSub,
- //                         l2+iSub, h1+iSub, u->subData(iSub));
 }
 
 template<>

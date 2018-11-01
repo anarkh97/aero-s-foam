@@ -193,7 +193,6 @@ protected:
 	void distributeBCs();
 	void distributeControlLawData();
 	void distributeDiscreteMass();
-	void renumberBC();
 	void getSharedDOFs();
 	void getSharedMPCs();
 	void makeCorners();
@@ -208,7 +207,7 @@ protected:
 	void makeMpcToMpc();
 	void makeGlobalMpcToMpc(Connectivity *procMpcToMpc);
 	void makeMpcToSub();
-  Connectivity * makeFsiToSub();
+	Connectivity * makeFsiToSub();
 	void buildFFP(GenDistrVector<Scalar> &u, FILE *fffp, bool direction);
 	void makeCornerHandler(int iSub, FetiSubCornerHandler **cornerHandler);
 	void setLocalCorners(int iSub, FetiSubCornerHandler **cornerHandler);
@@ -261,7 +260,6 @@ private:
 	void computeSubdElemStress_NL(int iSub, Scalar *glElemStress,
 	                              DistrGeomState *u, Corotator ***allCorot,
 	                              int fileNumber, int Findex, DistrGeomState *refState) const;
-	void outputPrimal(GenDistrVector<Scalar>& primal, int iter);
 	void getPrimalVector(int fileNumber, Scalar (*xyz)[11], int numNodes,
 	                     int ndof, double time);//DofSet::max_known_nonL_dof
 	void getPrimalScalar(int fileNumber, Scalar (*xyz)[11], int numNodes,
@@ -285,8 +283,6 @@ private:
 	               int *sBoundFlag);
 	void buildLocalFFP(int iSub, GenDistrVector<Scalar> *u,
 	                   Scalar **ffp, int *numSample, double (*dir)[3], bool direction);
-	void getWError(int iSub, GenDistrVector<Scalar> *u,
-	               double *l2err, double *h1err, double *l2, double *h1);
 	// coupled_dph functions
 	void preProcessFSIs();
 	void distributeWetInterfaceNodes();

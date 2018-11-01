@@ -101,14 +101,12 @@ void FetiBaseSub::setLocalMpcToBlock(const Connectivity *mpcToBlock, const Conne
 	if(numMPC > 0) {
 		int i, j;
 
-		int *ptr = new int[numMPC+1]; for(i=0; i<=numMPC; ++i) ptr[i] = i;
-		int *tgt = new int[numMPC]; for(i=0; i<numMPC; ++i) tgt[i] = localToGlobalMPC[i];
-		Connectivity *localToGlobalMpc = new Connectivity(numMPC, ptr, tgt);
-		localMpcToBlock = localToGlobalMpc->transcon(mpcToBlock);
-		delete localToGlobalMpc;
+		std::vector<int> ptr(numMPC+1); for(i=0; i<=numMPC; ++i) ptr[i] = i;
+		std::vector<int> tgt(numMPC); for(i=0; i<numMPC; ++i) tgt[i] = localToGlobalMPC[i];
+		localMpcToBlock = Connectivity(numMPC, std::move(ptr), std::move(tgt)).transcon(mpcToBlock);
 
-		int *target = new int[localMpcToBlock->numConnect()];
-		int *pointer = new int[numMPC+1];
+		std::vector<int> target(localMpcToBlock->numConnect());
+		std::vector<int> pointer(numMPC+1);
 		int count = 0;
 		for(i=0; i<numMPC; ++i) {
 			pointer[i] = count;
@@ -119,7 +117,7 @@ void FetiBaseSub::setLocalMpcToBlock(const Connectivity *mpcToBlock, const Conne
 			}
 		}
 		pointer[numMPC] = count;
-		localMpcToBlockMpc = new Connectivity(numMPC, pointer, target);
+		localMpcToBlockMpc = new Connectivity(numMPC, std::move(pointer), std::move(target));
 
 		// HB & PJSA: for assembleBlockCCtsolver & extractBlockMpcResidual
 		blockToLocalMpc = localMpcToBlock->alloc_reverse();
@@ -142,27 +140,26 @@ void FetiBaseSub::setLocalMpcToBlock(const Connectivity *mpcToBlock, const Conne
 		}
 
 		int size = totalInterfSize;
-		int *point = new int[size + 1];
-		ResizeArray<int> *targ = new ResizeArray<int>(0, numMPC);
+		std::vector<int> point(size + 1);
+		std::vector<int> targ;
+		targ.reserve(numMPC);
 		count = 0;
 		for(i=0; i<size; ++i) {
 			point[i] = count;
 			if(boundDofFlag[i] == 2) {
 				int li = -1 - scomm->boundDofT(SComm::all,i);
-				(*targ)[count++] = li;
+				targ.push_back(li);
 			}
 		}
 		point[size] = count;
-		Connectivity *boundDofToMpc = new Connectivity(size, point, targ->data(false));
-		mpcToBoundDof = boundDofToMpc->alloc_reverse();
-		delete boundDofToMpc;
-		delete targ;
+		Connectivity boundDofToMpc(size, std::move(point), std::move(targ));
+		mpcToBoundDof = boundDofToMpc.alloc_reverse();
 	}
 	else {
-		localMpcToBlock    = 0;
-		localMpcToBlockMpc = 0;
-		mpcToBoundDof      = 0;
-		blockToLocalMpc    = 0;
+		localMpcToBlock    = nullptr;
+		localMpcToBlockMpc = nullptr;
+		mpcToBoundDof      = nullptr;
+		blockToLocalMpc    = nullptr;
 		blockToBlockMpc.reset();
 	}
 }

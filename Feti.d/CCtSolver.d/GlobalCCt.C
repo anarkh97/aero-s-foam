@@ -9,7 +9,7 @@ extern Connectivity * procMpcToMpc;
 extern int verboseFlag;
 
 template<class Scalar>
-GlobalCCtSolver<Scalar>::GlobalCCtSolver(Connectivity *mpcToMpc, Connectivity *_mpcToCpu, int _numSubsWithMpcs,
+GlobalCCtSolver<Scalar>::GlobalCCtSolver(Connectivity *mpcToMpc, const Connectivity *_mpcToCpu, int _numSubsWithMpcs,
                                          std::vector<FetiSub<Scalar> *> subsWithMpcs,
                                          FetiInfo *finfo, FSCommunicator *_fetiCom) :
 		CCtSolver<Scalar>(std::move(subsWithMpcs))

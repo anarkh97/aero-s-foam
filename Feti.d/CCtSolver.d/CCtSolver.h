@@ -22,7 +22,7 @@ class CCtSolver
     virtual ~CCtSolver() { };
   protected:
     FSCommunicator *fetiCom;
-    Connectivity *mpcToCpu;
+    const Connectivity *mpcToCpu;
     int numSubsWithMpcs;
     std::vector<FetiSub<Scalar>*> subsWithMpcs;
     int glNumMpc;

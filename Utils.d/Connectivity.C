@@ -207,7 +207,7 @@ Connectivity::Connectivity(BinFileHandler& f, bool oldSower)
 	}
 }
 
-size_t Connectivity::write(BinFileHandler& f)
+size_t Connectivity::write(BinFileHandler& f) const
 {
 	int _size = size+1;
 	f.write(&_size,1);
@@ -218,7 +218,7 @@ size_t Connectivity::write(BinFileHandler& f)
 	return 0;
 }
 
-size_t Connectivity::write(FILE *f)
+size_t Connectivity::write(FILE *f) const
 {
   fprintf(f, "%d\n", csize());
   for(int i = 0; i < csize(); ++i) {
@@ -230,7 +230,7 @@ size_t Connectivity::write(FILE *f)
   return 0;
 }
 
-size_t Connectivity::writeg(BinFileHandler& f)
+size_t Connectivity::writeg(BinFileHandler& f) const
 {
 	int _size = size+1;
 	f.write(&_size,1);
@@ -292,7 +292,7 @@ Connectivity::cOffset(int i, int j) const
 }
 
 Connectivity*
-Connectivity::transconOne( Connectivity* tc)
+Connectivity::transconOne( const Connectivity* tc) const
 // D. Rixen :for every pointer
 // of tc only one entry in target of tc is considered
 // (used to associate a mpc term for a interface node
@@ -400,7 +400,7 @@ Connectivity::num(int nd, int *mask) const
 
 
 void
-Connectivity::findPseudoDiam(int *s, int *e, int *mask)
+Connectivity::findPseudoDiam(int *s, int *e, int *mask) const
 {
 	int i,k,nw;
 	// Select the node with the lowest connectivity
@@ -457,7 +457,7 @@ Connectivity::findPseudoDiam(int *s, int *e, int *mask)
 }
 
 int
-Connectivity::rootLS(int root, int *xls, int *ls, int &w, int *mask)
+Connectivity::rootLS(int root, int *xls, int *ls, int &w, int *mask) const
 {
 	int i, j;
 	w = 0;
@@ -500,7 +500,7 @@ Connectivity::rootLS(int root, int *xls, int *ls, int &w, int *mask)
 }
 
 compStruct
-Connectivity::renumByComponent(int renumAlg)
+Connectivity::renumByComponent(int renumAlg) const
 {
 	// size = total number of nodes
 	int *globalRenum = new int[size];
@@ -608,7 +608,7 @@ Connectivity::renumByComponent(int renumAlg)
 }
 
 int *
-Connectivity::renumRCM(int *mask, int &nextNum, int *renum)
+Connectivity::renumRCM(int *mask, int &nextNum, int *renum) const
 {
 	int i,j,k;
 	if(mask == 0)
@@ -665,7 +665,7 @@ Connectivity::renumRCM(int *mask, int &nextNum, int *renum)
 
 
 int *
-Connectivity::renumSloan(int *mask, int &nextNum, int *renum)
+Connectivity::renumSloan(int *mask, int &nextNum, int *renum) const
 {
 	int i,j,k;
 	int s_node, e_node;
@@ -862,14 +862,14 @@ Connectivity::findProfileSize(EqNumberer *eqn, int unroll) const
 
 }
 
-Connectivity*
-Connectivity::alloc_append(Connectivity *con2) const
+Connectivity
+Connectivity::append(const Connectivity &con2) const
 {
 	int size1 = csize();
-	int size2 = con2->csize();
+	int size2 = con2.csize();
 
 	int i;
-	int *cp = new int[size1 + size2+1];
+	std::vector<int> cp(size1 + size2+1);
 	int fp = 0;
 	for(i = 0; i < size1; ++i) {
 		cp[i] = fp;
@@ -877,11 +877,11 @@ Connectivity::alloc_append(Connectivity *con2) const
 	}
 	for(i = 0; i < size2; ++i) {
 		cp[i+size1] = fp;
-		fp += con2->num(i);
+		fp += con2.num(i);
 	}
 	cp[size1 + size2] = fp;
 
-	int *ct = new int[fp];
+	std::vector<int> ct (fp);
 	fp = 0;
 	for(i=0; i<size1; ++i) {
 		int j;
@@ -890,11 +890,11 @@ Connectivity::alloc_append(Connectivity *con2) const
 	}
 	for(i = 0; i < size2; ++i) {
 		int j;
-		for(j =0; j < con2->num(i); ++j)
-			ct[fp++] = (*con2)[i][j];
+		for(j =0; j < con2.num(i); ++j)
+			ct[fp++] = con2[i][j];
 	}
 
-	return new Connectivity(size1+size2, cp, ct);
+	return { size1+size2, std::move(cp), std::move(ct) };
 }
 
 void
@@ -971,60 +971,31 @@ Connectivity::numNonZeroP() const
 	return count;
 }
 
-// Collapse creates a connecivity that represents the grouping
-// of a reflexive connectivity into subconnected groups 
-Connectivity *
-Connectivity::collapse() {
-	int i,j;
-	int count = 0;
-	bool *flag = new bool[size];
-	int grIndex;
-	int *group = new int[size];
-	for(i=0; i < size; ++i)
-		flag[i] = false;
-	grIndex = 0;
-	for(i = 0; i < size; ++i)
-		if(flag[i] == false) {
-			count++;
-			int follow = grIndex;
-			flag[i] = true;
-			group[grIndex++] = i;
-			while(follow < grIndex) {
+Connectivity
+Connectivity::connexGroups() {
+	std::vector<bool> seen(size, false);
+	std::vector<int> group;
+	group.reserve(size);
+	std::vector<int> ptr;
+	ptr.reserve(2); // The most common case.
+	for(int i = 0; i < size; ++i)
+		if(seen[i] == false) {
+			ptr.push_back(group.size());
+			int follow = group.size();
+			seen[i] = true;
+			group.push_back(i);
+			while(follow < group.size()) {
 				int s = group[follow];
-				for(j = 0; j < num(s); ++j)
-					if((*this)[s][j] >= 0 && flag[ (*this)[s][j] ] == false) {
-						flag[ (*this)[s][j] ] = true;
-						group[grIndex++] = (*this)[s][j];
+				for(auto tg : (*this)[s])
+					if(tg >= 0 && seen[ tg ] == false) {
+						seen[ tg ] = true;
+						group.push_back(tg);
 					}
 				follow++;
 			}
 		}
-	int *ptr = new int[count+1];
-	count = 0;
-	grIndex = 0;
-	for(i=0; i < size; ++i)
-		flag[i] = false;
-	for(i = 0; i < size; ++i)
-		if(flag[i] == false) {
-			ptr[count++] = grIndex;
-			int follow = grIndex;
-			flag[i] = true;
-			group[grIndex++] = i;
-			while(follow < grIndex) {
-				int s = group[follow];
-				for(j = 0; j < num(s); ++j)
-					if((*this)[s][j] >= 0 && (*this)[s][j] <size && flag[ (*this)[s][j] ] == false) {
-						flag[ (*this)[s][j] ] = true;
-						group[grIndex++] = (*this)[s][j];
-					}
-					else if((*this)[s][j] >= size)
-						fprintf(stderr, "error connectivity is not reflexive\n");
-				follow++;
-			}
-		}
-	ptr[count] = grIndex;
-	delete [] flag;
-	return new Connectivity(count, ptr, group);
+	ptr.push_back(group.size());
+	return { static_cast<int>(ptr.size()-1), std::move(ptr), std::move(group) };
 }
 
 // Trim a connectivity to remove targets that have only one corresponding
@@ -1285,7 +1256,8 @@ Connectivity::Connectivity(int ns)
 //----------------------------------------------------------------------
 // WARNING: ASSUME 1 DOF PER NODE !!!
 double
-Connectivity::estimateComponentCost(EqNumberer *eqn, compStruct &cs, double *cost, double *bandwidth, double coef, int unroll)
+Connectivity::estimateComponentCost(EqNumberer *eqn,
+	compStruct &cs, double *cost, double *bandwidth, double coef, int unroll) const
 {
 	//fprintf(stderr," Enter Connectivity::estimateCompCost\n");
 	int nComp = cs.numComp;
@@ -1331,7 +1303,7 @@ Connectivity::estimateComponentCost(EqNumberer *eqn, compStruct &cs, double *cos
 }
 
 double
-Connectivity::estimateCost(EqNumberer *eqn, double &cost, double &bandwidth, double coef, int unroll)
+Connectivity::estimateCost(EqNumberer *eqn, double &cost, double &bandwidth, double coef, int unroll) const
 {
 	//fprintf(stderr," Enter Connectivity::estimateCost\n");
 	int i,j;

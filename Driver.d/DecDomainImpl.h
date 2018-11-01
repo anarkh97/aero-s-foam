@@ -93,7 +93,6 @@ GenDecDomain<Scalar>::~GenDecDomain()
 	if(weight) { delete weight; weight = 0; }
 	if(globalStress) { delete [] globalStress; globalStress = 0;}
 	if(globalWeight) {delete [] globalWeight; globalWeight = 0;}
-	if(grToSub) { delete grToSub; grToSub = 0; }
 
 	if(wetInterfaceNodes) { delete [] wetInterfaceNodes; }
 	if(communicator) { delete communicator; communicator = 0; }
@@ -574,7 +573,7 @@ GenDecDomain<Scalar>::getFetiSolver(GenDomainGroupTask<Scalar> &dgt)
 		                                   mpcToSub_dual.get(),
 		                                   mpcToSub_primal,
 		                                   mpcToMpc.get(),
-		                                   mpcToCpu.get(), cpuToSub.get(), grToSub,
+		                                   mpcToCpu.get(), cpuToSub.get(), grToSub.get(),
 		                                   std::move(dynMats), dgt.spMats, dgt.rbms, rbmFlag, geometricRbms, verboseFlag);
 	}
 	else {
@@ -684,9 +683,10 @@ GenDecDomain<Scalar>::preProcess()
 
  preProcessFSIs();// FLuid-Structure Interaction
 
- if(soweredInput) buildSharedNodeComm(geoSource->nodeToSub_sparse, geoSource->subToNode_sparse); else
-
-	 buildSharedNodeComm(nodeToSub.get(), subToNode.get());
+	if(soweredInput)
+		buildSharedNodeComm(geoSource->nodeToSub_sparse, geoSource->subToNode_sparse);
+	else
+		buildSharedNodeComm(nodeToSub.get(), subToNode.get());
 
  makeCorners();// Corners for FETI-DP
 
@@ -2601,7 +2601,7 @@ GenDecDomain<Scalar>::makeCorners()
   execParal(numSub, this, &GenDecDomain<Scalar>::makeCornerHandler, cornerHandler.data());
   CornerSelector cornerSelector(globalNumSub, numSub, std::move(cornerHandler), &cpat, communicator);
   cornerSelector.makeCorners();
-  grToSub = cornerSelector.getGrToSub();
+  grToSub = cornerSelector.yieldGrToSub();
   execParal(numSub, this, &GenDecDomain<Scalar>::setLocalCorners, cornerSelector.handlers().data());
 
   paralApply(subDomain, &BaseSub::makeCCDSA);

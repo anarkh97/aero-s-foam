@@ -96,7 +96,7 @@ FetiBaseSub::setSComm(SComm *sc)
 }
 
 
-void FetiBaseSub::setLocalMpcToBlock(Connectivity *mpcToBlock, Connectivity *blockToMpc)
+void FetiBaseSub::setLocalMpcToBlock(const Connectivity *mpcToBlock, const Connectivity *blockToMpc)
 {
 	if(numMPC > 0) {
 		int i, j;
@@ -175,7 +175,7 @@ int FetiBaseSub::getGlobalMPCIndex(int localMpcIndex) const {
 	return localToGlobalMPC[localMpcIndex];
 }
 
-void FetiBaseSub::makeLocalMpcToGlobalMpc(Connectivity *mpcToMpc)
+void FetiBaseSub::makeLocalMpcToGlobalMpc(const Connectivity *mpcToMpc)
 {
 	// PJSA: make a different localMpcToGlobalMpc that includes connections inside neighbors
 	int i, j;
@@ -4683,7 +4683,7 @@ FetiSub<Scalar>::setCCtCommSize(FSCommPattern<Scalar> *cctPat) {
 
 template<class Scalar>
 void
-FetiSub<Scalar>::sendNeighbCCtsolver(FSCommPattern<Scalar> *cctPat, Connectivity *mpcToSub) {
+FetiSub<Scalar>::sendNeighbCCtsolver(FSCommPattern<Scalar> *cctPat, const Connectivity *mpcToSub) {
 	int i, j, k;
 	for (i = 0; i < scomm->numT(SComm::mpc); ++i) {
 		int neighb = scomm->neighbT(SComm::mpc, i);
@@ -4709,7 +4709,7 @@ FetiSub<Scalar>::sendNeighbCCtsolver(FSCommPattern<Scalar> *cctPat, Connectivity
 
 template<class Scalar>
 void
-FetiSub<Scalar>::recNeighbCCtsolver(FSCommPattern<Scalar> *cctPat, Connectivity *mpcToSub) {
+FetiSub<Scalar>::recNeighbCCtsolver(FSCommPattern<Scalar> *cctPat, const Connectivity *mpcToSub) {
 	int i, j, k;
 	for (i = 0; i < scomm->numT(SComm::mpc); ++i) {
 		int neighb = scomm->neighbT(SComm::mpc, i);
@@ -4836,8 +4836,10 @@ FetiSub<Scalar>::extractBlockMpcResidual(int block, Scalar *subv, GenVector<Scal
 
 template<class Scalar>
 void
-FetiSub<Scalar>::insertBlockMpcResidual(Scalar *subv, GenVector<Scalar> **mpcv, Connectivity *mpcToBlock,
-                                             SimpleNumberer **blockMpcEqNums) {
+FetiSub<Scalar>::insertBlockMpcResidual(Scalar *subv, GenVector<Scalar> **mpcv,
+                                        const Connectivity *mpcToBlock,
+                                        SimpleNumberer **blockMpcEqNums)
+{
 	// extracts the mpc residual components from mpcv and inserts them in the interface vector subv
 	int i, j, k;
 	for (i = 0; i < numMPC; ++i) {

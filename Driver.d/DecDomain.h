@@ -56,7 +56,7 @@ protected:
 	DistrInfo *nodeInfo;
 	DistrInfo *nodeVecInfo, *eleVecInfo, *bcVecInfo;
 	std::vector<DistrInfo*> vecInfoStore;
-	Connectivity *grToSub;
+	std::unique_ptr<const Connectivity> grToSub;
 	FILE *primalFile; // file to store primal residual
 
 	// only used if user requests stress outputs

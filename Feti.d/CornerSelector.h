@@ -22,7 +22,7 @@ class CornerSelector
 {
 	int glNumSub;
 	int nSub;
-	Connectivity *grToSub;
+	std::unique_ptr<const Connectivity> grToSub;
 	int *glSubGroup;
 	std::vector<FetiSubCornerHandler*> cornerHandler;
 	FSCommPattern<int> *cpat;
@@ -34,11 +34,12 @@ class CornerSelector
 	                   Connectivity &cNConnect, Connectivity &subToRotCrn,
 	                   int *glCrnGroup);
 public:
-	CornerSelector(int nGlobSub, int nLocSub, std::vector<FetiSubCornerHandler *> handlers,
+	CornerSelector(int nGlobSub, int nLocSub,
+	               std::vector<FetiSubCornerHandler *> handlers,
 	               FSCommPattern<int> *commPattern, FSCommunicator *communicator);
 	~CornerSelector();
 	int makeCorners();
-	Connectivity *getGrToSub() { return grToSub; }
+	std::unique_ptr<const Connectivity> yieldGrToSub() { return std::move(grToSub); }
 	auto &handlers() { return cornerHandler; }
 };
 

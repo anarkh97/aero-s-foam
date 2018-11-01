@@ -1095,7 +1095,7 @@ CornerSelector::chooseCorners(char *glCornerList, double (*crnXYZ)[3],
 	Connectivity *rotCrnToSub = subToRotCrn.alloc_reverse();
 	// fprintf(stderr, "We have %d rot corners\n", rotCrnToSub->csize());
 	Connectivity *rotSubToSub = subToRotCrn.transcon(rotCrnToSub);
-	grToSub = rotSubToSub->collapse();
+	grToSub = std::make_unique<Connectivity> ( rotSubToSub->connexGroups() );
 
 	double aamin = DBL_MAX, aamax = -DBL_MAX;
 
@@ -1342,18 +1342,15 @@ CornerSelector::chooseCorners(char *glCornerList, double (*crnXYZ)[3],
 		}
 		Connectivity *gr2Gr = new Connectivity(grToCrn->csize(), count, target);
 
-		// collapse it
-		Connectivity *grToPrevGr = gr2Gr->collapse();
+		// Find the disconnected parts as separate groups.
+		Connectivity grToPrevGr = gr2Gr->connexGroups();
 		// get the group To Sub graph
-		Connectivity *oldGrToSub = grToSub;
-		grToSub = grToPrevGr->transcon(grToSub);
+		grToSub = std::make_unique<Connectivity>(grToPrevGr.transcon(*grToSub));
 		delete [] finalFav;
 		delete [] tied;
 		delete [] choices;
 		delete [] fav;
 		delete [] bamax;
-		delete oldGrToSub;
-		delete grToPrevGr;
 		delete gr2Gr;
 
 		delete grToCrn;

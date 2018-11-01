@@ -32,7 +32,7 @@ GenDistBlockSky<Scalar>::~GenDistBlockSky()
 
 
 template<class Scalar>
-GenDistBlockSky<Scalar>::GenDistBlockSky(Connectivity *cn, EqNumberer *dsa, 
+GenDistBlockSky<Scalar>::GenDistBlockSky(const Connectivity *cn, EqNumberer *dsa,
                                          double trbm, int fRow, int nRow) :
  GenBlockSky<Scalar>(cn, dsa, trbm)
 {

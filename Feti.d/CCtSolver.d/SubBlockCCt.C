@@ -1,7 +1,7 @@
 template<class Scalar>
-SubBlockCCtSolver<Scalar>::SubBlockCCtSolver(Connectivity *mpcToMpc, Connectivity *_mpcToSub,
+SubBlockCCtSolver<Scalar>::SubBlockCCtSolver(const Connectivity *mpcToMpc, const Connectivity *_mpcToSub,
                                              int _numSubsWithMpcs, std::vector<FetiSub<Scalar> *> subsWithMpcs,
-                                             FSCommunicator *_fetiCom, Connectivity *_cpuToSub) :
+                                             FSCommunicator *_fetiCom, const Connectivity *_cpuToSub) :
 		CCtSolver<Scalar>(std::move(subsWithMpcs))
 {
   mpcToSub = _mpcToSub;

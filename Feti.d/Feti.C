@@ -2204,8 +2204,9 @@ GenFetiSolver<Scalar>::getNeighbFGs(int iSub)
 
 template<class Scalar>
 Connectivity *
-GenFetiSolver<Scalar>::makeSingleConnect(Connectivity *coarseConnect,
-                                         Connectivity *coarseToSub, Connectivity *subToCoarse,
+GenFetiSolver<Scalar>::makeSingleConnect(const Connectivity *coarseConnect,
+                                         const Connectivity *coarseToSub,
+                                         const Connectivity *subToCoarse,
                                          int gOffset)
 {
 	// This routine creates a modified connectivity in which the
@@ -2249,10 +2250,10 @@ GenFetiSolver<Scalar>::makeSingleConnect(Connectivity *coarseConnect,
 }
 
 template<class Scalar>
-Connectivity *
-GenFetiSolver<Scalar>::getCoarseToSubConnect()
+Connectivity
+GenFetiSolver<Scalar>::getCoarseToSubConnect() const
 {
-	return subToSub->alloc_append(subToSub->alloc_append(mpcToSub));
+	return subToSub->append(subToSub->append(*mpcToSub));
 }
 
 template<class Scalar>
@@ -2270,12 +2271,12 @@ GenFetiSolver<Scalar>::makeSingleCoarse()
 	int glNumSub = subToSub->csize();
 	int glNumMpc = (mpcToSub) ? mpcToSub->csize() : 0;
 
-	Connectivity *coarseToSub = getCoarseToSubConnect();
-	Connectivity *subToCoarse = coarseToSub->alloc_reverse();
+	Connectivity coarseToSub = getCoarseToSubConnect();
+	Connectivity subToCoarse = coarseToSub.reverse();
 
 	// GtFG is driving the renumbering both for the GtG system and the GtG
 	// off diagonal terms which are then inserted to interlay with GtFG
-	Connectivity *coarseFcoarseConnect = coarseToSub->transcon(subToCoarse);
+	Connectivity coarseFcoarseConnect = coarseToSub.transcon(subToCoarse);
 	Connectivity *gtFgConnect = subToSub->transcon(subToSub);
 
 	// We now renumber gtFgConnect on the assumption that it has no 'spurious'
@@ -2284,7 +2285,7 @@ GenFetiSolver<Scalar>::makeSingleCoarse()
 
 	// now revisit the numbering by inserting the GtG equations to follow their
 	// GtFG counterpart
-	int coarseSize  = coarseFcoarseConnect->csize();
+	int coarseSize  = coarseFcoarseConnect.csize();
 	int glRenumSize = glNumSub+coarseSize;
 	int *glRenum = new int[glRenumSize];
 
@@ -2401,8 +2402,8 @@ GenFetiSolver<Scalar>::makeSingleCoarse()
 	paralApplyToAll(nsub, fetiOps, &GenFetiOp<Scalar>::setAlphaOffsets, eqNums->allOffsets());
 
 	// create the combined connectivity
-	Connectivity *coarseConnect = makeSingleConnect(coarseFcoarseConnect,
-	                                                coarseToSub, subToCoarse, gOffset);
+	Connectivity *coarseConnect = makeSingleConnect(&coarseFcoarseConnect,
+	                                                &coarseToSub, &subToCoarse, gOffset);
 #ifdef DEBUG_MPC
 	eqNums->print();
    coarseConnect->print();

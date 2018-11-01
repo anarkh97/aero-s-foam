@@ -403,7 +403,7 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDPNew(const Connectivity &subToCorne
 	int numSub = subToCorner.csize();
 
 	// Get the decomposition of subdomains into super-subdomains.
-	Connectivity *decCoarse = this->cpuToSub;
+	const Connectivity *decCoarse = this->cpuToSub;
 	std::stringstream fn;
 	fn << "decomposition." << numSub;
 	FILE *f;

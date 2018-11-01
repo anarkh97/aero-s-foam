@@ -159,7 +159,7 @@ public:
 	int getLocalMPCIndex(int globalMpcIndex) const;
 	/// \copydoc
 	int getGlobalMPCIndex(int localMpcIndex) const;
-	void makeLocalMpcToGlobalMpc(Connectivity *mpcToMpc);
+	void makeLocalMpcToGlobalMpc(const Connectivity *mpcToMpc);
 
 	void addMPCsToGlobalZstar(FullM *globalZstar, int startRow, int startCol, int numCol);
 	void addSPCsToGlobalZstar(FullM *globalZstar, int &zRow, int zColOffset);
@@ -170,7 +170,7 @@ public:
 	bool isWetInterfaceDof(int d) const { return (wetInterfaceMap.size() > 0) ? (wetInterfaceMap[d] > -1) : false; }
 	void GramSchmidt(double *Q, bool *isUsed, DofSet desired, int nQPerNeighb, bool isPrimalAugmentation);
 
-	void setLocalMpcToBlock(Connectivity *mpcToBlock, Connectivity *blockToMpc);
+	void setLocalMpcToBlock(const Connectivity *mpcToBlock, const Connectivity *blockToMpc);
 	void findEdgeNeighbors();
 	void zeroEdgeDofSize();
 
@@ -252,7 +252,7 @@ protected:
 	std::vector<int> makeBMaps(const DofSetArray *dofsetarray=0);
 	std::vector<int> makeIMaps(const DofSetArray *dofsetarray=0);
 public:
-	void setGroup(Connectivity *subToGroup) { this->group = (*subToGroup)[subNum()][0]; }
+	void setGroup(const Connectivity *subToGroup) { this->group = (*subToGroup)[subNum()][0]; }
 	void setNumGroupRBM(int *ngrbmGr);
 	void getNumGroupRBM(int *ngrbmGr);
 	void makeLocalToGroupMPC(Connectivity *groupToMPC);
@@ -518,7 +518,7 @@ public:
 
 	void sendMpcStatus(FSCommPattern<int> *mpcPat, int flag);
 	void subtractMpcRhs(Scalar *interfvec);
-	void insertBlockMpcResidual(Scalar *subv, GenVector<Scalar> **mpcv, Connectivity *mpcToBlock,
+	void insertBlockMpcResidual(Scalar *subv, GenVector<Scalar> **mpcv, const Connectivity *mpcToBlock,
 	                            SimpleNumberer **blockMpcEqNums);
 	void extractBlockMpcResidual(int block, Scalar *subv, GenVector<Scalar> *mpcv,
 	                             SimpleNumberer *blockMpcEqNums);
@@ -568,8 +568,8 @@ public:
 	void assembleBlockCCtsolver(int iBlock, GenSolver<Scalar> *CCtsolver, SimpleNumberer *blockMpcEqNums);
 	void assembleLocalCCtsolver();
 	void setCCtCommSize(FSCommPattern<Scalar> *cctPat);
-	void sendNeighbCCtsolver(FSCommPattern<Scalar> *cctPat, Connectivity *mpcToSub);
-	void recNeighbCCtsolver(FSCommPattern<Scalar> *cctPat, Connectivity *mpcToSub);
+	void sendNeighbCCtsolver(FSCommPattern<Scalar> *cctPat, const Connectivity *mpcToSub);
+	void recNeighbCCtsolver(FSCommPattern<Scalar> *cctPat, const Connectivity *mpcToSub);
 	void factorLocalCCtsolver();
 	void zeroLocalCCtsolver();
 

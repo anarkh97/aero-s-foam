@@ -42,18 +42,22 @@ class DirectAccessT
 	typedef typename base_traits<A>::DataType  DataType;
 
 public :
-	static IndexType getNum(A* oc, IndexType i)
+	static IndexType getNum(const A* oc, IndexType i)
 	{return oc->num(i); }
-	static DataType * getData(A* oc, IndexType i)
+	static const DataType * getData(const A* oc, IndexType i)
 	{return (*oc)[i];}
-	static IndexType getNumTarget(A *oc)
+	static IndexType getNumTarget(const A *oc)
 	{return oc->getNumTarget();}
 	/*static IndexType * getTarget(A* oc)
 	  {return oc->getTarget();}*/
 	/*static IndexType * getPointer(A* oc)
 	  {return oc->getPointer();}*/
-	static IndexType getSize(A* oc)
+	static IndexType getSize(const A* oc)
 	{return oc->csize();}
+
+	static gsl::span<const DataType> at(const A *a, IndexType i) {
+		return { getData(a, i), getNum(a, i) };
+	}
 	// operator []
 	/* static IndexType * hook(A* oc, IndexType i)
 	   {return oc->operator[](i);}*/
@@ -77,7 +81,8 @@ class BaseConnectivityT
 public :
 	ConnectivityT<DataType,IndexType>* reverse(float *w = 0);
 	template <class B, class AB>
-	ConnectivityT<IndexType,typename base_traits<B>::DataType>* transcon(BaseConnectivityT<B,AB>* tc);
+	ConnectivityT<IndexType,typename base_traits<B>::DataType>*
+	transcon(const BaseConnectivityT<B,AB>* tc) const;
 /*
   ConnectivityT<DataType,IndexType>* altReverse(float *w = 0);
   template <class B, class AB>
@@ -87,12 +92,13 @@ public :
 */
 
 	/* following functions are used to make transcon accept a BaseConnectivityT as argument */
-	gsl::span<const DataType> operator[](IndexType i) const
+	auto operator[](IndexType i) const
 	    {
-		return { Accessor::getData(static_cast<A*>(this),i), num(i) };
+//		return { Accessor::getData(static_cast<A*>(this),i), num(i) };
+			return Accessor::at(static_cast<const A*>(this), i);
 	    }
-	IndexType csize() const {return(Accessor::getSize(static_cast<A*>(this)));}
-	IndexType num(IndexType i) const {return(Accessor::getNum(static_cast<A*>(this),i));}
+	IndexType csize() const {return(Accessor::getSize(static_cast<const A*>(this)));}
+	IndexType num(IndexType i) const {return(Accessor::getNum(static_cast<const A*>(this),i));}
 	IndexType getNumTarget() const {return(Accessor::getNumTarget(static_cast<A*>(this)));}
 	void print() const
 	{
@@ -141,7 +147,7 @@ public:
 	ConnectivityT(IndexType ns); //dec
 	ConnectivityT(FILE *f, IndexType nElem); // JAT 100614
 
-	size_t write(BinFileHandler& f);
+	size_t write(BinFileHandler& f) const;
 	size_t read(FILE* f);
 
 	void countlink(IndexType from, IndexType to); //DEC
@@ -160,8 +166,8 @@ public:
 	ConnectivityT<DataType,IndexType>* reverse(float *w = 0)
 	{ return(BaseConnectivityT<ConnectivityT>::reverse(w)); } // creates t->s from s->t
 	DataType getTargetValue(IndexType i) { return target[i]; }
-	auto &ptr() { return pointer; }
-	auto &tgt() { return target; }
+	auto &ptr() const { return pointer; }
+	auto &tgt() const { return target; }
 	bool isDiagonal(); // returns true if each target is only connected to itself
 
 #if 0
@@ -350,7 +356,8 @@ BaseConnectivityT<A,Accessor>::reverse(float * w)
 // an Implicit ConnectivityT!!!
 template<typename A, class Accessor>
 template<class B, class AB>
-ConnectivityT<typename base_traits<A>::IndexType,typename base_traits<B>::DataType>* BaseConnectivityT<A,Accessor>::transcon(BaseConnectivityT<B,AB>* tc)
+ConnectivityT<typename base_traits<A>::IndexType,typename base_traits<B>::DataType>*
+    BaseConnectivityT<A,Accessor>::transcon(const BaseConnectivityT<B,AB>* tc) const
 {
 	// First find the biggest target so we can size arrays correctly
 	typename B::DataType tgmax=-1;
@@ -362,21 +369,17 @@ ConnectivityT<typename base_traits<A>::IndexType,typename base_traits<B>::DataTy
 	tgmax++; // Important adjustment
 
 	// Now we can size the array that flags if a target has been visited
-	IndexType *flags = new IndexType[tgmax];
-	for(typename B::DataType i = 0; i < tgmax; ++i) flags[i] = -1;
+	std::vector<IndexType> flags(tgmax, -1);
 
 	// Compute the new pointers
-	IndexType *np = new IndexType[size+1];
+	std::vector<IndexType> np( IndexType[size+1] );
 	IndexType cp = 0;
 	for(IndexType i = 0; i < size; ++i) {
 		np[i] = cp;
-		IndexType nTg =  num(i); //Accessor<A>::getNum(static_cast<A*>(this), i);
-		DataType *tg = (*this)[i]; //Accessor<A>::getData(static_cast<A*>(this), i);
-		for(IndexType j = 0; j < nTg; ++j) {
-			DataType intermed = tg[j];
-			for(typename B::IndexType k = 0; k < tc->num(intermed); ++k)
-				if(flags[(*tc)[intermed][k]] != i) {
-					flags[(*tc)[intermed][k]] = i;
+		for (const auto &intermed : (this)[i]) {
+			for (const auto &target : (*tc)[intermed])
+				if(flags[ target ] != i) {
+					flags[ target ] = i;
 					cp++;
 				}
 		}
@@ -384,25 +387,21 @@ ConnectivityT<typename base_traits<A>::IndexType,typename base_traits<B>::DataTy
 	np[size] = cp;
 
 	// Now allocate and fill the new target
-	for(typename B::DataType i = 0; i < tgmax; ++i)
-		flags[i] = -1;
-	typename B::DataType *ntg = new typename B::DataType[cp];
+	flags.assign(tgmax, -1);
+	std::vector<typename B::DataType> ntg;
+	ntg.reserve(cp);
 	cp = 0;
 	for(IndexType i = 0; i < size; ++i) {
-		IndexType nTg = num(i); //Accessor<A>::getNum(static_cast<A*>(this), i);
-		DataType *tg = (*this)[i]; //Accessor<A>::getData(static_cast<A*>(this), i);
-		for(IndexType j = 0; j < nTg; ++j) {
-			DataType intermed = tg[j];
-			for (typename B::IndexType k = 0; k < tc->num(intermed); ++k)
-				if(flags[(*tc)[intermed][k]] != i) {
-					flags[(*tc)[intermed][k]] = i;
-					ntg[cp] = (*tc)[intermed][k];
-					cp++;
+		for(const auto &intermed : (this)[i]) {
+			for (const auto &target : (*tc)[intermed])
+				if(flags[ target ] != i) {
+					flags[ target ] = i;
+					ntg.push_back( target );
 				}
 		}
 	}
-	delete [] flags;
-	ConnectivityT<IndexType,typename B::DataType> *res = new ConnectivityT<IndexType,typename B::DataType>(size, np, ntg);
+	ConnectivityT<IndexType,typename B::DataType> *res =
+		new ConnectivityT<IndexType,typename B::DataType>(size, std::move(np), std::move(ntg));
 	return res;
 }
 
@@ -609,8 +608,6 @@ ConnectivityT<IndexType,DataType,Map>::ConnectivityT(SetAccessT<A> &sa)
 	}
 }
 
-#ifdef _TEMPLATE_FIX_
 #include <Utils.d/ConnectivityTImpl.h>
-#endif
 
 #endif

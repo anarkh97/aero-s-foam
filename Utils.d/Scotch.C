@@ -8,7 +8,7 @@
 using namespace std;
 
 Connectivity * 
-Connectivity::SCOTCH_graphPart(int partnbr)
+Connectivity::SCOTCH_graphPart(int partnbr) const
 {
   //cerr << "here in Connectivity::SCOTCH_graphPart, partnbr = " << partnbr << ", vertToVert = \n"; print();
 #ifdef USE_SCOTCH
@@ -16,7 +16,7 @@ Connectivity::SCOTCH_graphPart(int partnbr)
   int baseval = 0; // the graph base value for index arrays (typically 0 for structures
                    // built from C and 1 for structures built from Fortran).
   int vertnbr = size; // number of vertices
-  int * verttab = pointer; // the adjacency index array, of size (vertnbr + 1) if
+  const int *verttab = pointer.data(); // the adjacency index array, of size (vertnbr + 1) if
                     // the edge array is compact (that is, if vendtab equals verttab + 1 or NULL),
                     // or of size vertnbr else.
   int * vendtab = 0; // vendtab is the adjacency end index array, of size
@@ -24,7 +24,7 @@ Connectivity::SCOTCH_graphPart(int partnbr)
   int * velotab = 0; // the vertex load array, of size vertnbr if it exists.
   int * vlbltab = 0; // the vertex label array, of size vertnbr if it exists.
   int edgenbr = numtarget; // the number of arcs (that is, twice the number of edges).
-  int * edgetab = target; // the adjacency array, of size at least edgenbr (it can be more if the
+  const int * edgetab = target.data(); // the adjacency array, of size at least edgenbr (it can be more if the
                     // edge array is not compact).
   int * edlotab = 0; // the arc load array, of size edgenbr if it exists
   int ierr;

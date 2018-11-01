@@ -33,7 +33,7 @@ ConnectivityT<IndexType,DataType,Map>::ConnectivityT(BinFileHandler& f, bool old
 }
 
 template<typename IndexType, typename DataType, typename Map>
-size_t ConnectivityT<IndexType,DataType,Map>::write(BinFileHandler& f)
+size_t ConnectivityT<IndexType,DataType,Map>::write(BinFileHandler& f) const
 {
 	IndexType _size = pointer.size();
 	f.write(&_size,1);

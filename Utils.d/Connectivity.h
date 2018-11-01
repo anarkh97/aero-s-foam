@@ -142,6 +142,11 @@ public:
 	template <typename RangeT>
 	static Connectivity fromLinkRange(const RangeT &range);
 
+	// TODO Implement so that it replaces Connectivity(SommerElement  **, int, int maxn)
+	// as the range of nodes can be limited to maxn by the rangeOfRanges.
+	template <typename RangeOfRanges>
+	static Connectivity fromRangeOfRanges(const RangeOfRanges &rangeOfRanges);
+
 
 	Connectivity() { size = 0; }
 	/** \brief Constructor for any object that is equipped with the methods of a set.
@@ -181,7 +186,6 @@ public:
 	void countlink(int from, int to); //DEC
 	void addlink(int from, int to); //DEC
 
-//	Connectivity(SommerElement  **, int);
 	Connectivity(SommerElement  **, int, int);
 
 	virtual ~Connectivity();
@@ -250,7 +254,7 @@ public:
 	double estimateCost(EqNumberer *eqn, double &cost, double &bandwidth,
 	                    double coef=400, int unroll=1) const;
 
-	Connectivity * SCOTCH_graphPart(int partnbr);
+	Connectivity * SCOTCH_graphPart(int partnbr) const;
 };
 
 

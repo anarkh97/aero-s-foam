@@ -18,6 +18,7 @@
 #include <Driver.d/DecDomain.h>
 #include <FetiLib/Subdomain.h>
 #include <Types.h>
+#include "SetOfSubs.h"
 #include "CornerSelector.h"
 
 extern double t5;
@@ -364,7 +365,7 @@ std::vector<gl_num_t> subSuperNodes(const FetiBaseSub &sub,
 
 template <typename T>
 void
-selectCorners(std::vector<std::unique_ptr<T>> &subs, FSCommunicator *communicator, const Connectivity *cpuToSub,
+selectCorners(std::vector<std::unique_ptr<FetiSub<T>>> &subs, FSCommunicator *communicator, const Connectivity *cpuToSub,
               gl_sub_idx glNumSub) {
 	vector<unique_ptr<FetiSubCornerHandler>> cornerHandlers;
 	cornerHandlers.reserve(subs.size());
@@ -378,8 +379,6 @@ selectCorners(std::vector<std::unique_ptr<T>> &subs, FSCommunicator *communicato
 			);
 		fsh.emplace_back(cornerHandlers.back().get());
 	}
-	// CornerSelector(int nGlobSub, int nLocSub, std::vector<FetiSubCornerHandler *> handlers,
-	//	               FSCommPattern<int> *commPattern, FSCommunicator *communicator);
 	std::cout << "I am " << communicator->cpuNum() << "My cpuToSub is " << cpuToSub->csize() << " to " << cpuToSub->getNumTarget() << std::endl;
 	FSCommPattern<int> cpat(communicator, cpuToSub, communicator->cpuNum(), FSCommPattern<int>::CopyOnSend);
 	for(int i=0; i<subs.size(); ++i)

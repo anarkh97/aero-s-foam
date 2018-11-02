@@ -2534,7 +2534,7 @@ GenDecDomain<Scalar>::getSharedDOFs()
   for(int i=0; i<numSub; ++i) subDomain[i]->setNodeCommSize(&nodeIntPat);
   nodeIntPat.finalize();
 
-  paralApplyToAll(numSub, subDomain, &GenSubDomain<Scalar>::sendDOFList, &nodeIntPat);
+  paralApplyToAll(numSub, subDomain, &FetiBaseSub::sendDOFList, &nodeIntPat);
   nodeIntPat.exchange();
   paralApply(subDomain, &FetiSub<Scalar>::gatherDOFList, &nodeIntPat);
   paralApply(subDomain, &GenSubDomain<Scalar>::gatherDOFListPlus, &nodeIntPat);

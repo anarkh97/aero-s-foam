@@ -5202,12 +5202,12 @@ FetiSub<Scalar>::gatherDOFList(FSCommPattern<int> *pat) {
 		if (isbneighb) nbneighb++;
 	}
 
-	int *boundDofs = new int[nbdofs];
-	int *boundDofPointer = new int[nbneighb + 1];
+	std::vector<int> boundDofs(nbdofs);
+	std::vector<int> boundDofPointer(nbneighb + 1);
 	boundDofPointer[0] = 0;
 	std::vector<int> boundNeighbs(nbneighb);
-	int *wetDofs = new int[nwdofs];
-	int *wetDofPointer = new int[nwneighb + 1];
+	std::vector<int> wetDofs(nwdofs);
+	std::vector<int> wetDofPointer(nwneighb + 1);
 	wetDofPointer[0] = 0;
 	std::vector<int> wetNeighbs(nwneighb);
 	nbdofs = 0;
@@ -5234,7 +5234,7 @@ FetiSub<Scalar>::gatherDOFList(FSCommPattern<int> *pat) {
 			}
 			FetiBaseSub::boundaryDOFs[iSub][iNode] &= (*FetiBaseSub::getCCDSA())[sharedNodes[iSub][iNode]]; // ~> shared_rdofs
 			int bcount = FetiBaseSub::getCCDSA()->number(sharedNodes[iSub][iNode],
-			                                             FetiBaseSub::boundaryDOFs[iSub][iNode], boundDofs + nbdofs);
+			                                             FetiBaseSub::boundaryDOFs[iSub][iNode], boundDofs.data() + nbdofs);
 			nbdofs += bcount;
 			isbneighb = true; // make every "sharedNode" neighbor a "std sharedDOF neighb" also (simplifies augmentation)
 		}
@@ -5257,7 +5257,7 @@ FetiSub<Scalar>::gatherDOFList(FSCommPattern<int> *pat) {
 
 	if (!getFetiInfo().bmpc)
 		FetiBaseSub::scomm->setTypeSpecificList(SComm::std, std::move(boundNeighbs), std::move(stdSharedDOFs) );
-	auto wetSharedDOFs = std::make_unique<Connectivity>(nwneighb, wetDofPointer, wetDofs);
+	auto wetSharedDOFs = std::make_unique<Connectivity>(nwneighb, std::move(wetDofPointer), std::move(wetDofs));
 	FetiBaseSub::scomm->setTypeSpecificList(SComm::wet, wetNeighbs, std::move(wetSharedDOFs) );
 
 

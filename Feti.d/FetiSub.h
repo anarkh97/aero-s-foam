@@ -106,6 +106,10 @@ public:
 
 	int numWetInterfaceDofs() const { return numWIdof; }
 
+	/// \brief Send to neighbors the list of DOFs on the shared nodes
+	void sendDOFList(FSCommPattern<int> *pat) const;
+	void gatherDOFListPlus(FSCommPattern<int> *pat);
+
 	virtual const CoordSet& getNodeSet() const = 0;
 
 	bool isEdgeNeighbor(int neighb) const { return scomm->isEdgeNeighb[neighb]; }

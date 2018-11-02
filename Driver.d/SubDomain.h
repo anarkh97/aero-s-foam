@@ -332,8 +332,6 @@ public:
 	void deleteKcc();
 	void multQt(int glMPCnum, const Scalar *x, Scalar *result) const;
 
-	void gatherDOFListPlus(FSCommPattern<int> *pat);
-
 	friend class GenDistrDomain<Scalar>;
 	friend class GenDecDomain<Scalar>;
 	friend class GenFetiOp<Scalar>;

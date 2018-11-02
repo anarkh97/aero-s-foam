@@ -450,63 +450,6 @@ GenSubDomain<Scalar>::addDMass(int glNum, int dof, double v) {
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::sendDOFList(FSCommPattern<int> *pat) const {
-	Connectivity &sharedNodes = *(scomm->sharedNodes);
-	for (int iSub = 0; iSub < scomm->numNeighb; ++iSub) {
-		FSSubRecInfo<int> sInfo = pat->getSendBuffer(subNumber, scomm->subNums[iSub]);
-		for (int iNode = 0; iNode < sharedNodes.num(iSub); ++iNode) {
-			if ((solInfo().isCoupled && isWetInterfaceNode(sharedNodes[iSub][iNode])) &&
-			    (subNumber == scomm->subNums[iSub]) && (solInfo().solvercntl->fetiInfo.fsi_corner == 0))
-				sInfo.data[iNode] = wetInterfaceDofs[wetInterfaceNodeMap[sharedNodes[iSub][iNode]]].list();
-			else
-				sInfo.data[iNode] = (*c_dsa)[sharedNodes[iSub][iNode]].list();
-		}
-	}
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::gatherDOFListPlus(FSCommPattern<int> *pat) {
-	int iSub, iNode, i;
-	Connectivity &sharedNodes = *(scomm->sharedNodes);
-	std::vector<std::vector<DofSet>> boundaryDOFs(scomm->numNeighb); // needs to be a local variable
-	int nbdofs = 0;
-	for (iSub = 0; iSub < scomm->numNeighb; ++iSub) {
-		FSSubRecInfo<int> rInfo = pat->recData(scomm->subNums[iSub], subNumber);
-		boundaryDOFs[iSub].resize(sharedNodes.num(iSub));
-		for (iNode = 0; iNode < sharedNodes.num(iSub); ++iNode) {
-			boundaryDOFs[iSub][iNode] = DofSet(rInfo.data[iNode]); // temporarily store neighb c_dsa in boundaryDOFs
-			DofSet shared_bdofs = boundaryDOFs[iSub][iNode] & (*getCDSA())[sharedNodes[iSub][iNode]];
-			nbdofs += shared_bdofs.count();
-		}
-	}
-
-	std::vector<int> boundDofs(nbdofs);
-	std::vector<int> boundDofPointer(scomm->numNeighb + 1);
-	boundDofPointer[0] = 0;
-	nbdofs = 0;
-	for (iSub = 0; iSub < scomm->numNeighb; ++iSub) {
-		for (iNode = 0; iNode < sharedNodes.num(iSub); ++iNode) {
-			boundaryDOFs[iSub][iNode] &= (*getCDSA())[sharedNodes[iSub][iNode]]; // ~> shared_bdofs
-			int bcount = getCDSA()->number(sharedNodes[iSub][iNode],
-			                               boundaryDOFs[iSub][iNode], &boundDofs[nbdofs]);
-			nbdofs += bcount;
-		}
-		boundDofPointer[iSub + 1] = nbdofs;
-	}
-
-	scomm->sharedDOFsPlus = std::make_unique<Connectivity>(scomm->numNeighb,
-	                                                       std::move(boundDofPointer), std::move(boundDofs));
-
-	weightPlus.resize(c_dsa->size());
-	for (int i = 0; i < c_dsa->size(); ++i) weightPlus[i] = 1;
-	for (auto n : scomm->sharedDOFsPlus->allTargets())
-		weightPlus[n] += 1;
-
-}
-
-template<class Scalar>
-void
 GenSubDomain<Scalar>::applySplitting() {
 	// adjust discrete masses, forces and mpcs using subdomain multiplicity
 	applyDmassSplitting();

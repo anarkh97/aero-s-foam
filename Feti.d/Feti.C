@@ -2105,13 +2105,6 @@ GenFetiSolver<Scalar>::Ksolve(int iSub, GenStackDistVector<Scalar> &R)
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::getRBMs(GenDistrVectorSet<Scalar> &)
-{
-	std::cerr << "WARNING: GenFetiSolver<Scalar>::getRBMs(GenDistrVectorSet<Scalar> &) is not implemented \n";
-}
-
-template<class Scalar>
-void
 GenFetiSolver<Scalar>::clean_up()
 {
 	long m1=0;

@@ -51,7 +51,7 @@ void writePartialResultToBinaryOutputFile(BinFileHandler &binFile, const double 
 
   const BinFileHandler::OffType resultOffset = firstResultOffset + stateBytes * (resultRank - 1);
 
-  assert(doSerialPart == (dataOffset == 0));
+  //assert(doSerialPart == (dataOffset == 0));
   if (doSerialPart) { // Must be done only once
     // Update number of results
     const BinFileHandler::OffType resultCountOffset = headerNameBytes + 4 * sizeof(int);

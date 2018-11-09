@@ -77,9 +77,9 @@ protected:
 	int *crnPerNeighb = nullptr;
 #ifdef DISTRIBUTED
 	// for distributed output of single nodes
-    int numNodalOutput = 0;
-    int *outputNodes = nullptr;
-    int *outIndex = nullptr;
+	int numNodalOutput = 0;
+	int *outputNodes = nullptr;
+	int *outIndex = nullptr;
 #endif
 	int globalNMax;  // highest global node number of all the nodes in this subdomain
 	int globalEMax;  // highest global element number of all the elements in this subdomain
@@ -95,8 +95,7 @@ public:
 	virtual ~BaseSub();
 
 	const FetiInfo &getFetiInfo() const override { return solInfo().getFetiInfo(); }
-  int *localToGlobalFSI;  // local to global FSI numbering
-
+	int *localToGlobalFSI = nullptr;  // local to global FSI numbering
 
 	int crnDofLen() const  { return crnDofSize; }
 	IntFullM* getC(int &crnDofSize, FSCommPattern<int> *sPat);
@@ -135,8 +134,8 @@ public:
 	void putLocalToGlobalMPC(int *ptr, int *tg) { for(int i=0; i<numMPC; ++i) tg[ptr[subNumber]+i] = localToGlobalMPC[i]; }
 	void putNumMPC_primal(int *ptr) { ptr[subNumber] = numMPC_primal; }
 	void putLocalToGlobalMPC_primal(int *ptr, int *tg) { for(int i=0; i<numMPC_primal; ++i) tg[ptr[subNumber]+i] = localToGlobalMPC_primal[i]; }
-  void putNumFSI(int *ptr) { ptr[subNumber] = numFSI; }
-  void putLocalToGlobalFSI(int *ptr, int *tg) { for(int i=0; i<numFSI; ++i) tg[ptr[subNumber]+i] = localToGlobalFSI[i]; }
+	void putNumFSI(int *ptr) { ptr[subNumber] = numFSI; }
+	void putLocalToGlobalFSI(int *ptr, int *tg) { for(int i=0; i<numFSI; ++i) tg[ptr[subNumber]+i] = localToGlobalFSI[i]; }
 
 	void makeMpcInterface(Connectivity *subToMpc, const Connectivity &lmpcToSub,
 	                      Connectivity *subToSub_mpc);
@@ -151,8 +150,8 @@ public:
 	double getShiftVal() const override { return geoSource->shiftVal(); }
 public:
 
-  void addFsiElements();
-  void addSingleFsi(LMPCons *localFsi);
+	void addFsiElements();
+	void addSingleFsi(LMPCons *localFsi);
 	void addNodeXYZ(double *centroid, double* nNodes);
 
 public:
@@ -195,7 +194,7 @@ public:
 	void setDnb(std::list<SommerElement *> *_list);
 	void setScat(std::list<SommerElement *> *_list);
 	void setArb(std::list<SommerElement *> *_list);
-  void setWet(std::list<SommerElement *> *_list);
+	void setWet(std::list<SommerElement *> *_list);
 	// coupled_dph
 protected:
 	std::vector<bool> wetInterfaceMark;
@@ -211,15 +210,15 @@ protected:
 public:
 	/// \brief Non-owning pointer to the global(?) node to subdomain connectivity.
 	Connectivity *nodeToSub;
-  SparseConnectivityType2 *nodeToSub_sparse;
+	SparseConnectivityType2 *nodeToSub_sparse;
 	void setnodeToSubConnectivity(Connectivity *nTsubConn) { nodeToSub = nTsubConn; }
-  void setnodeToSubConnectivity(SparseConnectivityType2 *nTsubConn) { nodeToSub_sparse = nTsubConn; }
+	void setnodeToSubConnectivity(SparseConnectivityType2 *nTsubConn) { nodeToSub_sparse = nTsubConn; }
 	void markWetInterface(int nWI, int *wiNum, bool soweredInput);
 	bool onWetInterface(int iNode) const override { return wetInterfaceMark[iNode]; }
 	bool onWetInterfaceFluid(int iNode) { return wetInterfaceFluidMark[iNode]; }
 	bool onWetInterfaceStructure(int iNode) { return wetInterfaceStructureMark[iNode]; }
 	bool isWetInterfaceCorner(int iNode) const override { return wetInterfaceCornerMark[iNode]; }
-  void setWetInterface(int nWI, int *wiNum, bool soweredInput);
+	void setWetInterface(int nWI, int *wiNum, bool soweredInput);
 	void makeDSA();
 	void makeCDSA();
 	void makeCCDSA();
@@ -317,8 +316,8 @@ public:
 	void dispatchGeomStateData(FSCommPattern<double> *, GeomState *);
 	void collectGeomStateData(FSCommPattern<double> *, GeomState *);
 	void computeElementForce(int, Scalar *u, int Findex, Scalar *force);
-  void computeElementForce(GeomState *gs, Corotator **allCorot,
-                           int, int Findex, Scalar *force);
+	void computeElementForce(GeomState *gs, Corotator **allCorot,
+                                 int, int Findex, Scalar *force);
 	void computeStressStrain(int, Scalar *u, int Findex,
 	                         Scalar *stress, Scalar *weight = 0);
 	void computeStressStrain(GeomState *gs, Corotator **allCorot,

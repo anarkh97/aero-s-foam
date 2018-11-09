@@ -1191,10 +1191,6 @@ BaseSub::~BaseSub()
   if(internalMasterFlag) { delete [] internalMasterFlag; internalMasterFlag = 0; }
   // don't delete subToSub_fsi;
   // don't delete fsiNeighb;
-  if(locToGlSensorMap) { delete [] locToGlSensorMap; locToGlSensorMap = 0; }
-  if(locToGlActuatorMap) { delete [] locToGlActuatorMap; locToGlActuatorMap = 0; }
-  if(locToGlUserDispMap) { delete [] locToGlUserDispMap; locToGlUserDispMap = 0; }
-  if(locToGlUserForceMap) { delete [] locToGlUserForceMap; locToGlUserForceMap = 0; }
 //  if(glToLocalElem) delete [] glToLocalElem;
 #ifdef DISTRIBUTED
   if(outputNodes) delete [] outputNodes;

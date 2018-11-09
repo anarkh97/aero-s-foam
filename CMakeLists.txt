@@ -116,10 +116,10 @@ IF(UNIX)
 		# zoltan
 		IF(MPI_FOUND AND NOT WITH_ZOLTAN EQUAL 0)
 			FIND_PATH(ZOLTAN_INCLUDE_PATH Zoltan_config.h
-                PATHS /usr/include /usr/local/include /usr/include/trilinos)
+					PATHS /usr/include /usr/local/include /usr/include/trilinos)
 			FIND_PATH(ZOLTAN_SRC_PATH zz/zz_const.h
 					PATHS /usr/include /usr/local/include)
-      FIND_LIBRARY(ZOLTAN_LIBRARY NAMES zoltan trilinos_zoltan
+			FIND_LIBRARY(ZOLTAN_LIBRARY NAMES zoltan trilinos_zoltan
 					PATHS /usr/lib /usr/local/lib)
 			IF(ZOLTAN_INCLUDE_PATH AND ZOLTAN_SRC_PATH AND ZOLTAN_LIBRARY)
 				MESSAGE("-- A library with Zoltan API found.")

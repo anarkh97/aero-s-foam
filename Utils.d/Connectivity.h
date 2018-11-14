@@ -123,7 +123,9 @@ protected:
 	std::vector<float> weight;      // weights of pointer (or 0)
 
 public:
-	typedef int IndexType;
+	using IndexType = int;
+	using IndexCount = unsigned int;
+
 	int getNumTarget() const {return target.size(); }
 	int * getTarget() {return target.data(); }
 	const int * getTarget() const {return target.data(); }
@@ -182,8 +184,19 @@ public:
 	void countlink(int from, int to); //DEC
 	void addlink(int from, int to); //DEC
 
-//	Connectivity(SommerElement  **, int);
 	Connectivity(SommerElement  **, int, int);
+
+	/** \brief Factory from consecutive source indices, a target count and target list for each index.
+	 *
+	 * @tparam TargetCounter
+	 * @tparam TargetLister
+	 * @param numSources
+	 * @param counter
+	 * @param lister
+	 * @return
+	 */
+	template <typename TargetCounter, typename TargetLister>
+	static Connectivity fromElements(IndexCount numSources, TargetCounter counter, TargetLister lister);
 
 	virtual ~Connectivity();
 	virtual void end_count(); //dec
@@ -711,5 +724,33 @@ Connectivity Connectivity::fromLinkRange(const RangeT &range) {
 	for(auto &p : range)
 		targets[--pointers[map(p.first)]] = p.second;
 	return Connectivity(size, std::move(pointers), std::move(targets));
+}
+
+
+template<typename TargetCounter, typename TargetLister>
+Connectivity Connectivity::fromElements(Connectivity::IndexCount size, TargetCounter counter,
+                                        TargetLister lister)
+{
+	using TargetType = int;
+	using PointerType = int;
+	std::vector<PointerType> pointer;
+	// Find out the number of targets we will have
+	pointer.reserve(size+1);
+	PointerType pp = 0;
+	int nmax = 0;
+	for(Connectivity::IndexCount i=0; i < size; ++i) {
+		pointer.push_back(pp);
+		pp += counter(i);
+	}
+	pointer.push_back(pp);
+
+	std::vector<TargetType> target;
+	// Create the target array
+	target.reserve(pp);
+
+	// Fill it in
+	for(Connectivity::IndexCount i=0; i < size; ++i)
+		lister(i, target);
+	return Connectivity(size, std::move(pointer), std::move(target));
 }
 #endif

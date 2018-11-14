@@ -444,12 +444,12 @@ RequestVector::~RequestVector() {
 }
 
 CommunicatorHandle getWorldComm() {
-	return CommunicatorHandle(MPI_COMM_WORLD);
+	return CommunicatorHandle((MPI_Comm)MPI_COMM_WORLD);
 }
 
 namespace com_details {
 
-WinHandle Constants::nullWindow{MPI_WIN_NULL};
+WinHandle Constants::nullWindow{(MPI_Win)MPI_WIN_NULL};
 
 }
 

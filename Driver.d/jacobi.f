@@ -39,7 +39,7 @@ C
 C.....DECLARES GLOBAL VARIABLES
 C
       integer        out , n , nsmax
-      real*8         tol , ak(1) , am(1) , xx(n,n) , eigv(n)
+      real*8         tol , ak(*) , am(*) , xx(n,n) , eigv(n)
 C
 C.....DECLARES LOCAL VARIABLES
 C

@@ -370,8 +370,8 @@ GenFetiSolver<Scalar>::reComputeFiBC(int iSub)
 
  int crnDofSize = fetiOps[iSub]->crnDofSize;
 
- double *locInterfCRNs =
-         (double *) dbg_alloca(sizeof(double)*crnDofSize*this->sd[iSub]->interfLen());
+ Scalar *locInterfCRNs =
+         (Scalar *) dbg_alloca(sizeof(Scalar)*crnDofSize*this->sd[iSub]->interfLen());
 
  for (i=0; i< crnDofSize*this->sd[iSub]->interfLen(); i++) locInterfCRNs[i] = 0.0;
 

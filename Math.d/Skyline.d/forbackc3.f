@@ -26,8 +26,8 @@ C----------------------------------------------------------------------------
 C
 C-----DECLARATIONS
 C
-      INTEGER LD(1),PIVOT(1),NEQ,NOPS
-      COMPLEX*16  COLVAL(1),W1(1),W2(1),W3(1)
+      INTEGER LD(*),PIVOT(*),NEQ,NOPS
+      COMPLEX*16  COLVAL(*),W1(*),W2(*),W3(*)
       COMPLEX*16  XTEMP
 C
 C-----Local DECLARATIONS

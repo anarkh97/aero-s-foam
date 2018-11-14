@@ -52,9 +52,9 @@ C----------------------------------------------------------------------------
 C
 C-----DECLARATIONS
 
-      INTEGER LD(1),LACOL(1),PIVOT(1),NEQ,FLAG
+      INTEGER LD(*),LACOL(*),PIVOT(*),NEQ,FLAG
       INTEGER NZEM,NOPS
-      REAL*8  COLVAL(1),W(4,*),B(1),TOL
+      REAL*8  COLVAL(*),W(4,*),B(*),TOL
       REAL*8  ZEM(NEQ,*)
       INTEGER BAR,ll
       INTEGER NPROC

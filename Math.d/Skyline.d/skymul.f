@@ -20,10 +20,9 @@ C=BLOCK FORTRAN
 C
 C                       A R G U M E N T S
 C
-      double precision        ax(1)
-      double precision        a(1),     b(1),     x(1),     r(1)
-C     real          a(1),     b(1),     x(1),     r(1)
-      integer       iop, n, ld(1)
+      double precision        ax(*)
+      double precision        a(*),     b(*),     x(*),     r(*)
+      integer       iop, n, ld(*)
 C
 C                       T Y P E   &   D I M E N S I O N
 C

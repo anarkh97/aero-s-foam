@@ -51,9 +51,9 @@ C----------------------------------------------------------------------------
 C
 C-----DECLARATIONS
 
-      INTEGER LD(1),LACOL(1),PIVOT(1),NEQ,FLAG
+      INTEGER LD(*),LACOL(*),PIVOT(*),NEQ,FLAG
       INTEGER NZEM,NOPS
-      COMPLEX*16  COLVAL(1),W(4,*),B(1)
+      COMPLEX*16  COLVAL(1),W(4,*),B(*)
       REAL*8 TOL
       COMPLEX*16  ZEM(NEQ,*)
       INTEGER BAR,ll

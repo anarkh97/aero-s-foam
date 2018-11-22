@@ -271,7 +271,7 @@ char *computeClusterSuffix(int num, int maxNum)
   int numZeros = computeNumberOfDigits(maxNum) - computeNumberOfDigits(num);
 
   char zeros[100];
-  char *suffix = new char[100];
+  char *suffix = new char[111];
 
   std::strcpy(zeros, "");
   for (int k=0; k<numZeros; ++k)

@@ -5176,7 +5176,7 @@ FetiSub<Scalar>::gatherDOFList(FSCommPattern<int> *pat) {
 	int nbdofs = 0, nwdofs = 0;
 	int nbneighb = 0, nwneighb = 0;
 	bool isbneighb, iswneighb;
-	bool isCoupled = isCoupled;
+	bool isCoupled = FetiBaseSub::isCoupled;
 	for (iSub = 0; iSub < FetiBaseSub::scomm->numNeighb; ++iSub) {
 		FSSubRecInfo<int> rInfo = pat->recData(FetiBaseSub::scomm->subNums[iSub], FetiBaseSub::subNumber);
 		FetiBaseSub::boundaryDOFs[iSub].resize(sharedNodes.num(iSub));

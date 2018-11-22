@@ -37,7 +37,7 @@ TypeHandle CommTypeTrait<long>::typeHandle() {
 
 template <>
 TypeHandle CommTypeTrait<std::complex<double>>::typeHandle() {
-	return TypeHandle{MPI_COMPLEX};
+	return TypeHandle{MPI_DOUBLE_COMPLEX};
 }
 
 #else

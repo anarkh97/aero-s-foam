@@ -184,16 +184,15 @@ public:
 	void countlink(int from, int to); //DEC
 	void addlink(int from, int to); //DEC
 
-	Connectivity(SommerElement  **, int, int);
-
 	/** \brief Factory from consecutive source indices, a target count and target list for each index.
 	 *
-	 * @tparam TargetCounter
-	 * @tparam TargetLister
-	 * @param numSources
-	 * @param counter
-	 * @param lister
-	 * @return
+	 * @tparam TargetCounter Functor with signature integer_type (IndexType)
+	 * @tparam TargetLister Functor with signature void(IndexType, std::vector<TargetType> &)
+	 * @param numSources Number of source objects
+	 * @param counter Functor returning the number of target for each
+	 * @param lister Functor pushing the targets for a given index
+	 * onto the back of the vector passed as second argument.
+	 * @return The built connectivity.
 	 */
 	template <typename TargetCounter, typename TargetLister>
 	static Connectivity fromElements(IndexCount numSources, TargetCounter counter, TargetLister lister);

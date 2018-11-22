@@ -484,10 +484,21 @@ HData::makeSommerConnectivities()
 {
   if(!somNodeToNode) {
     SommerElement ** sElems = &(sommer[0]); // sbc.yieldPointer();
-//    somElemToNode = new Connectivity(sElems, numSommer,3);
-    somElemToNode = new Connectivity(sElems, numSommer, 4);//4 to be used with bricks - JF
-    somNodeToElem = somElemToNode->alloc_reverse();
-    somNodeToNode = somNodeToElem->transcon(somElemToNode);
+    somElemToNode = std::make_unique<Connectivity>(
+        Connectivity::fromElements(numSommer,
+                                   [&sElems](auto idx) {
+                                       return std::min(sElems[idx]->numNodes(),4);
+                                   },
+                                   [&sElems](auto idx, auto &destVec) {
+                                       auto nodes = sElems[idx]->getNodes();
+                                       auto nnd = std::min(sElems[idx]->numNodes(),4);
+                                       for(int i = 0; i < nnd; ++i)
+                                         destVec.push_back(nodes[i]);
+                                   }
+        )
+    );//4 to be used with bricks - JF
+    somNodeToElem = std::make_unique<Connectivity>(somElemToNode->reverse());
+    somNodeToNode = std::make_unique<Connectivity>(somNodeToElem->transcon(*somElemToNode));
   }
 }
 
@@ -776,12 +787,8 @@ HData::getCurvatures3Daccurate( Domain *dom )
 //NOTE: curvature_e, _f, _g are define in an irrelevant basis!
 //      curvaturesH, K and normal are ok.
 
-//  fprintf(stderr,"  Curvature accurate\n");
-  SommerElement ** sElems = &(sommer[0]); // sbc.yieldPointer();
-//  somElemToNode = new Connectivity(sElems, numSommer,3);
-  somElemToNode = new Connectivity(sElems, numSommer,4);//4 if we want to use bricks - JF
-  somNodeToElem = somElemToNode->alloc_reverse();
-  somNodeToNode = somNodeToElem->transcon(somElemToNode);
+  somNodeToNode.reset();
+  makeSommerConnectivities();
 
   int numNodesSommer = 0;
   int iNode;
@@ -2497,8 +2504,5 @@ HData::~HData()
 {
   if(frequencies) delete frequencies;
   if(coarse_frequencies) delete coarse_frequencies;
-  if(somElemToNode) delete somElemToNode;
-  if(somNodeToElem) delete somNodeToElem;
-  if(somNodeToNode) delete somNodeToNode;
   if(subScaToSca) delete [] subScaToSca;
 }

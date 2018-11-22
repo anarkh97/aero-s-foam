@@ -1368,39 +1368,6 @@ Connectivity::estimateCost(EqNumberer *eqn, double &cost, double &bandwidth, dou
 	return totalCost;
 }
 
-Connectivity::Connectivity(SommerElement  **els, int numSommer, int max)
-{
-	int i;
-
-	size = numSommer;
-
-	// Find out the number of targets we will have
-	pointer.resize(size+1);
-	int pp = 0;
-	int nmax = 0;
-	for(i=0; i < size; ++i) {
-		pointer[i] = pp;
-		int nn = els[i] ? els[i]->numNodes() : 0 ;
-		if (nn > nmax) nmax = nn;
-		pp += (nn > max) ? max : nn;
-	}
-	pointer[size] = pp;
-
-	// Create the target array
-	target.resize(pp);
-
-	int *buffer = (int*) dbg_alloca(nmax*sizeof(int));
-
-	// Fill it in
-	for(i=0; i < size; ++i)
-		if(els[i]) {
-			els[i]->nodes(buffer);
-			for(int j=0;j<pointer[i+1]-pointer[i] ;j++)
-				target[pointer[i]+j] = buffer[j];
-		}
-}
-
-
 Connectivity::Connectivity(FILE *f, int numtarget)
 {
 	target.reserve(numtarget);

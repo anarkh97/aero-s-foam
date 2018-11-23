@@ -22,5 +22,17 @@ void SetOfSubs<Scalar>::getSharedDOFs()
 	paralApply(subDomain, &FetiBaseSub::gatherDOFListPlus, &nodeIntPat);
 }
 
+template<typename Scalar>
+SetOfSubs<Scalar>::SetOfSubs(FSCommunicator *communicator,
+                             std::vector<FetiSub<Scalar> *> subDomain,
+                             const std::shared_ptr<Connectivity> &cpuToSub) :
+	communicator(communicator),
+	subDomain(std::move(subDomain)), cpuToSub(cpuToSub)
+{
+
+}
+
 template
 class SetOfSubs<double>;
+template
+class SetOfSubs<std::complex<double>>;

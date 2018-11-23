@@ -12,6 +12,11 @@ template <typename Scalar>
 class SetOfSubs {
 public:
 private:
+public:
+	SetOfSubs(FSCommunicator *communicator, std::vector<FetiSub<Scalar> *> subDomain,
+	          const std::shared_ptr<Connectivity> &cpuToSub);
+
+private:
 	void getSharedDOFs();
 
 	FSCommunicator *communicator;

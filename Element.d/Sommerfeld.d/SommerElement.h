@@ -10,6 +10,7 @@
 #include <Math.d/FullMatrix.h>
 #include <Math.d/FullRectMatrix.h>
 #include <Driver.d/Mpc.h>
+#include <gsl/span>
 
 class Domain;
 
@@ -40,6 +41,11 @@ public:
 
 	virtual const int *getNodes() const = 0;
 	virtual int *getNodes() = 0;
+
+	gsl::span<const int> getNodeSpan() const {
+		auto nd = getNodes();
+		return { nd, nd+numNodes() };
+	}
 
 	int *nodes(int * = 0) const override;
 

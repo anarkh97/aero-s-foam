@@ -489,11 +489,10 @@ HData::makeSommerConnectivities()
                                    [&sElems](auto idx) {
                                        return std::min(sElems[idx]->numNodes(),4);
                                    },
-                                   [&sElems](auto idx, auto &destVec) {
+                                   [&sElems](auto idx) {
                                        auto nodes = sElems[idx]->getNodes();
                                        auto nnd = std::min(sElems[idx]->numNodes(),4);
-                                       for(int i = 0; i < nnd; ++i)
-                                         destVec.push_back(nodes[i]);
+                                       return gsl::span<const int>{ nodes, nodes + nnd };
                                    }
         )
     );//4 to be used with bricks - JF

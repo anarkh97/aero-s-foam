@@ -3357,16 +3357,15 @@ int GeoSource::getCPUMap(FILE *f, Connectivity *subToSub, int glNumSub, int numC
 	// PJSA 02-04-2010
 	if(matchName != NULL) {
 	  BinFileHandler connectivityFile(conName, "rb");
-	  Connectivity *clusToSub = new Connectivity(connectivityFile, true);
+	  Connectivity clusToSub(connectivityFile, true);
 
 	  // build global to cluster subdomain map
 	  int *gl2ClSubMap = new int[totSub];
 	  for (int iClus = 0; iClus < 1; iClus++)  { // only one cluster currently supported
 		int clusNum = 0;
-		for (int iSub = 0; iSub < clusToSub->num(iClus); iSub++)
-		  gl2ClSubMap[ (*clusToSub)[iClus][iSub] ] = clusNum++;
+		for (int iSub = 0; iSub < clusToSub.num(iClus); iSub++)
+		  gl2ClSubMap[ clusToSub[iClus][iSub] ] = clusNum++;
 	  }
-	  delete clusToSub;
 
 	  for(int locSub = 0; locSub < numLocSub; ++locSub) {
 
@@ -4456,17 +4455,64 @@ GeoSource::setExitAfterDec(bool exit)
   if(exit) domain->solInfo().setProbType(SolverInfo::Decomp);
 }
 
-#ifndef SALINAS
 #include <Driver.d/Sower.h>
 #include <vector>
-/*
+
+Connectivity
+bindSommerToSolid(const Elemset &elemSet, gsl::span<SommerElement*> sommerElems, bool wetFlag = false) {
+	std::vector<std::pair<int,int>> sToE;
+	Connectivity nToE = Connectivity{ elemSet.asSet() }.reverse();
+	Connectivity sToN = Connectivity::fromElements( sommerElems.size(),
+		[&sommerElems] (auto i){ return sommerElems[i] ? sommerElems[i]->getNodeSpan() : gsl::span<const int>{}; });
+	Connectivity sToAnyE = sToN.transcon(nToE);
+	std::vector<int> anyENodes;
+	auto nBaseSommer = wetFlag ? sommerElems.size()/2 : sommerElems.size();
+	for (size_t i = 0; i < nBaseSommer; ++i) {
+		auto sommerNodes = sommerElems[i]->getNodeSpan();
+		bool found = false;
+		bool foundWet = false;
+		for (auto anyI : sToAnyE[i]) {
+			auto ae = elemSet[anyI];
+			anyENodes.resize(ae->numNodes());
+			ae->nodes(anyENodes.data());
+			auto inElement = [ &anyENodes ](auto nd) {
+				return std::find(anyENodes.begin(), anyENodes.end(), nd) != anyENodes.end();
+			};
+			if ( std::all_of(sommerNodes.begin(), sommerNodes.end(), inElement) ) {
+				if(wetFlag){
+					bool isFluid = ae->isFluidElement();
+					auto target = isFluid ? i : i + nBaseSommer;
+					if (ae->isFluidElement() && !found) {
+						sToE.push_back({target, anyI});
+						sommerElems[target]->sFlag = !isFluid;
+						sommerElems[target]->soundSpeed = ae->getProperty()->soundSpeed;
+					}
+					(isFluid ? found : foundWet) = true;
+					if(found && foundWet)
+						break;
+				} else {
+					sToE.push_back({i, anyI});
+					found = true;
+					break;
+				}
+			}
+		}
+		if (!found || (wetFlag && !foundWet)) {
+			fprintf(stderr,
+			        "Connectivity.C: No adjacent element to the Sommerfeld element.\n");
+			exit(-1);
+		}
+	}
+	return Connectivity::fromLinkRange(sToE);
+}
+
+/**
  * writeDistributedInputFiles will do the first step of the distributed input for fem :
  * it will assign subdomains to nCluster clusters and create a data file for each cluster
  * containing only the data pertinent to that cluster. (all of this is done by creating and initializing a Sower object properly )
  * @param nCluster number of cluster fem will run on
  * @see class Sower Driver.d/Sower.h
 */
-//#define SOWER_DEBUG
 void GeoSource::writeDistributedInputFiles(int nCluster, Domain *domain, int nCpu)
 {
   if(subToElem == 0)
@@ -4629,34 +4675,29 @@ void GeoSource::writeDistributedInputFiles(int nCluster, Domain *domain, int nCp
   typedef std::pair<int, ComplexBCond*> ComplexBCPair;
   typedef ImplicitConnectivity<ComplexBCPair*, ComplexBCDataAccessor> implicitComplexBC;
   ComplexBCPair cdirPair = std::make_pair(numComplexDirichlet, cdbc);
-  implicitComplexBC *cdirToNodes = new implicitComplexBC(&cdirPair);
-  sower.addChildToParentData<ComplexBCDataIO<HDIR_TYPE> >(HDIR_TYPE, NODES_TYPE, 0, &cdirPair, cdirToNodes);
-  delete cdirToNodes;
+  implicitComplexBC cdirToNodes(&cdirPair);
+  sower.addChildToParentData<ComplexBCDataIO<HDIR_TYPE> >(HDIR_TYPE, NODES_TYPE, 0, &cdirPair, &cdirToNodes);
 
   // COMPLEX NEUMANN
   ComplexBCPair cneuPair = std::make_pair(numComplexNeuman, cnbc);
-  implicitComplexBC *cneuToNodes = new implicitComplexBC(&cneuPair);
-  sower.addChildToParentData<ComplexBCDataIO<HNEU_TYPE> >(HNEU_TYPE, NODES_TYPE, 0, &cneuPair, cneuToNodes);
-  delete cneuToNodes;
+  implicitComplexBC cneuToNodes(&cneuPair);
+  sower.addChildToParentData<ComplexBCDataIO<HNEU_TYPE> >(HNEU_TYPE, NODES_TYPE, 0, &cneuPair, &cneuToNodes);
 
   // ATDDNB & HDNB
   typedef std::pair<int, SommerElement **> SommerPair;
   SommerPair dnbPair = std::make_pair(domain->numNeum,(domain->neum).yield());
-  Connectivity *dnbToE = new Connectivity( &domain->getElementSet(), dnbPair.first, dnbPair.second);
-  sower.addChildToParentData<SommerDataIO<DNB_TYPE> >(DNB_TYPE, ELEMENTS_TYPE, 0, &dnbPair, dnbToE);
-  delete dnbToE;
+  Connectivity dnbToE = bindSommerToSolid( domain->getElementSet(), {dnbPair.second, dnbPair.first});
+  sower.addChildToParentData<SommerDataIO<DNB_TYPE> >(DNB_TYPE, ELEMENTS_TYPE, 0, &dnbPair, &dnbToE);
 
   // ATDROB & HSCB
   SommerPair scatPair = std::make_pair(domain->numScatter,(domain->scatter).yield());
-  Connectivity *scatToE = new Connectivity(&domain->getElementSet(), scatPair.first, scatPair.second);
-  sower.addChildToParentData<SommerDataIO<SCAT_TYPE> >(SCAT_TYPE, ELEMENTS_TYPE, 0, &scatPair, scatToE);
-  delete scatToE;
+  Connectivity scatToE = bindSommerToSolid(domain->getElementSet(), {scatPair.second, scatPair.first});
+  sower.addChildToParentData<SommerDataIO<SCAT_TYPE> >(SCAT_TYPE, ELEMENTS_TYPE, 0, &scatPair, &scatToE);
 
   // ATDARB & HARB
   SommerPair arbPair = std::make_pair(domain->numSommer,(domain->sommer).yield());
-  Connectivity *arbToE = new Connectivity(&domain->getElementSet(), arbPair.first, arbPair.second);
-  sower.addChildToParentData<SommerDataIO<ARB_TYPE> >(ARB_TYPE, ELEMENTS_TYPE, 0, &arbPair, arbToE);
-  delete arbToE;
+  Connectivity arbToE = bindSommerToSolid(domain->getElementSet(), {arbPair.second, arbPair.first});
+  sower.addChildToParentData<SommerDataIO<ARB_TYPE> >(ARB_TYPE, ELEMENTS_TYPE, 0, &arbPair, &arbToE);
 
   // HWIBO
   // RT: Duplicate the wet elements so they can be sent to both sides
@@ -4665,9 +4706,8 @@ void GeoSource::writeDistributedInputFiles(int nCluster, Domain *domain, int nCp
   for(int i=0;i<domain->numWet;i++) wet2[i+domain->numWet] = domain->wet[i]->clone();
  
   SommerPair wetPair = std::make_pair(2*domain->numWet,wet2.yield());
-  Connectivity *wetToE = new Connectivity(&domain->getElementSet(), domain->numWet, wetPair.second,true);
-  sower.addChildToParentData<SommerDataIO<WET_TYPE> >(WET_TYPE, ELEMENTS_TYPE, 0, &wetPair, wetToE);
-  delete wetToE;
+  Connectivity wetToE = bindSommerToSolid(domain->getElementSet(), {wetPair.second,2*domain->numWet},true);
+  sower.addChildToParentData<SommerDataIO<WET_TYPE> >(WET_TYPE, ELEMENTS_TYPE, 0, &wetPair, &wetToE);
 
   if (claw) {
 	// distribute control law data -> have to do that for all 4 categories...
@@ -4675,33 +4715,29 @@ void GeoSource::writeDistributedInputFiles(int nCluster, Domain *domain, int nCp
 	  claw->sensor[i].val=i;
 	}
 	BCPair sensorPair = std::make_pair(claw->numSensor, claw->sensor);
-	implicitBC *sensorToNodes = new implicitBC(&sensorPair);
-	sower.addChildToParentData<BCDataIO<SENSOR_TYPE> >(SENSOR_TYPE, NODES_TYPE, 0, &sensorPair, sensorToNodes);
-	delete sensorToNodes;
+	implicitBC sensorToNodes(&sensorPair);
+	sower.addChildToParentData<BCDataIO<SENSOR_TYPE> >(SENSOR_TYPE, NODES_TYPE, 0, &sensorPair, &sensorToNodes);
 
 	for (int i = 0 ; i < claw->numActuator ; i++) {
 	  claw->actuator[i].val=i;
 	}
 	BCPair actuatorPair = std::make_pair(claw->numActuator, claw->actuator);
-	implicitBC *actuatorToNodes = new implicitBC(&actuatorPair);
-	sower.addChildToParentData<BCDataIO<ACTUATOR_TYPE> >(ACTUATOR_TYPE, NODES_TYPE, 0, &actuatorPair, actuatorToNodes);
-	delete actuatorToNodes;
+	implicitBC actuatorToNodes(&actuatorPair);
+	sower.addChildToParentData<BCDataIO<ACTUATOR_TYPE> >(ACTUATOR_TYPE, NODES_TYPE, 0, &actuatorPair, &actuatorToNodes);
 
 	for (int i = 0 ; i < claw->numUserDisp ; i++) {
 	  claw->userDisp[i].val=i;
 	}
 	BCPair usddPair = std::make_pair(claw->numUserDisp, claw->userDisp);
-	implicitBC *usddToNodes = new implicitBC(&usddPair);
-	sower.addChildToParentData<BCDataIO<USDD_TYPE> >(USDD_TYPE, NODES_TYPE, 0, &usddPair, usddToNodes);
-	delete usddToNodes;
+	implicitBC usddToNodes(&usddPair);
+	sower.addChildToParentData<BCDataIO<USDD_TYPE> >(USDD_TYPE, NODES_TYPE, 0, &usddPair, &usddToNodes);
 
 	for (int i = 0 ; i < claw->numUserForce ; i++) {
 	  claw->userForce[i].val=i;
 	}
 	BCPair usdfPair = std::make_pair(claw->numUserForce, claw->userForce);
-	implicitBC *usdfToNodes = new implicitBC(&usdfPair);
-	sower.addChildToParentData<BCDataIO<USDF_TYPE> >(USDF_TYPE, NODES_TYPE, 0, &usdfPair, usdfToNodes);
-	delete usdfToNodes;
+	implicitBC usdfToNodes(&usdfPair);
+	sower.addChildToParentData<BCDataIO<USDF_TYPE> >(USDF_TYPE, NODES_TYPE, 0, &usdfPair, &usdfToNodes);
   }
 
   // done adding data to sower object
@@ -4711,7 +4747,6 @@ void GeoSource::writeDistributedInputFiles(int nCluster, Domain *domain, int nCp
 #endif
   sower.write();
 }
-#endif
 
 std::unique_ptr<Connectivity>
 GeoSource::getDecomposition()
@@ -4733,30 +4768,27 @@ GeoSource::getDecomposition()
 	subToElem->renumberTargets(glToPckElems);  // required if gaps in element numbering
 
 #ifdef DISTRIBUTED
-	if(conName) {
-	  BinFileHandler connectivityFile(conName, "rb");
-	  clusToSub = std::make_unique<Connectivity>(connectivityFile, true);
-	  Connectivity *subToClusConnect = clusToSub->alloc_reverse();
-	  subToClus.resize(numSub);
-	  for(int i = 0; i < numSub; i++) subToClus[i] = (*subToClusConnect)[i][0];
-	  delete subToClusConnect;
-	  numClusters = clusToSub->csize();
-	}
-	else {
-      subToClus.resize(numSub);
-	  for(int i = 0; i < numSub; i++)
-		subToClus[i] = 0;
-	  numClusters = 1;
-	  int *ptr = new int[2];
-	  int *target = new int[numSub];
-	  for(int i = 0; i < numSub; i++)
-		target[i] = 0;
-	  ptr[0] = 0;
-	  ptr[1] = numSub;
-	clusToSub = std::make_unique<Connectivity>(1,ptr,target);
-	  numClusNodes = nGlobNodes;
-	  numClusElems = nElem; //HB: not sure this is be always correct (i.e. phantoms els ...)
-	}
+	  if(conName) {
+		  BinFileHandler connectivityFile(conName, "rb");
+		  clusToSub = std::make_unique<Connectivity>(connectivityFile, true);
+		  Connectivity subToClusConnect = clusToSub->reverse();
+		  subToClus.resize(numSub);
+		  for(int i = 0; i < numSub; i++) subToClus[i] = subToClusConnect[i][0];
+		  numClusters = clusToSub->csize();
+	  }
+	  else {
+		  subToClus.resize(numSub);
+		  for(int i = 0; i < numSub; i++)
+			  subToClus[i] = 0;
+		  numClusters = 1;
+		  std::vector<int> target(numSub, 0);
+		  std::vector<int> ptr(2);
+		  ptr[0] = 0;
+		  ptr[1] = numSub;
+		  clusToSub = std::make_unique<Connectivity>(1,std::move(ptr),std::move(target));
+		  numClusNodes = nGlobNodes;
+		  numClusElems = nElem; //HB: not sure this is be always correct (i.e. phantoms els ...)
+	  }
 #endif
   }
   if(matchName != NULL && !unsortedSubToElem) unsortedSubToElem = new Connectivity(*subToElem);

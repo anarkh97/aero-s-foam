@@ -1401,18 +1401,17 @@ Domain::setUpData(int topFlag)
     if(numLMPC && domain->solInfo().rbmflg == 1 && domain->solInfo().grbm_use_lmpc) {
       if(elemToNode == 0) elemToNode = new Connectivity(packedEset.asSet());
       if(nodeToElem == 0) nodeToElem = elemToNode->alloc_reverse();
-      Connectivity *elemToNode_tmp = new Connectivity(packedEset, nodeToElem);
-      Connectivity *nodeToElem_tmp = elemToNode_tmp->alloc_reverse();
-      Connectivity *nodeToNode_tmp = nodeToElem_tmp->transcon(elemToNode_tmp);
-      renumb_nompc = nodeToNode_tmp->renumByComponent(0);
-      int numnodes_tmp = nodeToNode_tmp->csize();
+      Connectivity elemToNode_tmp(packedEset, nodeToElem);
+      Connectivity nodeToElem_tmp = elemToNode_tmp.reverse();
+      Connectivity nodeToNode_tmp = nodeToElem_tmp.transcon(elemToNode_tmp);
+      renumb_nompc = nodeToNode_tmp.renumByComponent(0);
+      int numnodes_tmp = nodeToNode_tmp.csize();
       int *order = new int[numnodes_tmp];
       for(int i=0; i<numnodes_tmp; ++i) order[i] = -1;
       for(int i=0; i<numnodes_tmp; ++i)
         if(renumb_nompc.renum[i] >= 0)
           order[renumb_nompc.renum[i]] = i;
       renumb_nompc.order = order;
-      delete elemToNode_tmp; delete nodeToElem_tmp; delete nodeToNode_tmp;
     }
   }
 

@@ -6,6 +6,7 @@
 #include <mpi.h>
 #endif
 #include <stdexcept>
+#include <cstring>
 #include "BaseCommunicator.h"
 #include "MPICompatTraits.h"
 
@@ -170,7 +171,7 @@ void _fetchAndOp(WinHandle handle, OpHandle op, const void *sourceData, TypeHand
                    void *resData, int remoteRank, int remoteOffset) {
 #ifdef USE_MPI
 	check(
-			MPI_Fetch_and_op(sourceData, resData, dataType, remoteRank, remoteOffset, op, handle)
+			MPI_Fetch_and_op(const_cast<void*>(sourceData), resData, dataType, remoteRank, remoteOffset, op, handle)
 	);
 #else
 	// Get the Window data details
@@ -443,12 +444,12 @@ RequestVector::~RequestVector() {
 }
 
 CommunicatorHandle getWorldComm() {
-	return CommunicatorHandle(MPI_COMM_WORLD);
+	return CommunicatorHandle((MPI_Comm)MPI_COMM_WORLD);
 }
 
 namespace com_details {
 
-WinHandle Constants::nullWindow{MPI_WIN_NULL};
+WinHandle Constants::nullWindow{(MPI_Win)MPI_WIN_NULL};
 
 }
 

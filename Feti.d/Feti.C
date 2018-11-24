@@ -2105,13 +2105,6 @@ GenFetiSolver<Scalar>::Ksolve(int iSub, GenStackDistVector<Scalar> &R)
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::getRBMs(GenDistrVectorSet<Scalar> &)
-{
-	std::cerr << "WARNING: GenFetiSolver<Scalar>::getRBMs(GenDistrVectorSet<Scalar> &) is not implemented \n";
-}
-
-template<class Scalar>
-void
 GenFetiSolver<Scalar>::clean_up()
 {
 	long m1=0;
@@ -3527,8 +3520,6 @@ GenFetiSolver<Scalar>::makeRbmPat()
 	}
 }
 template class GenFetiSolver<std::complex<double>>;
-template <>
-void GenFetiSolver<std::complex<double>>::reComputeFiBC(int) { throw std::logic_error("reComputeFiBC does not exist for complex"); }
 #include <Feti.d/NLFeti.C>
 template class GenFetiSolver<double>;
 template class GenFetiWorkSpace<double>;

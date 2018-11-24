@@ -90,7 +90,7 @@ arenaGrow(size_t size, void *)
 
 bool loud = false;
 
-void * operator new(size_t size) throw(std::bad_alloc)
+void * operator new(size_t size) //deprecated in c++11: throw(std::bad_alloc)
 {
 #if defined(sgi) && !defined(_OPENMP) && defined(NEWNEW)
 // fprintf(stderr,"allocated %20d bytes  Running Total %14.3f Mb \n",

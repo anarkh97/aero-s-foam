@@ -1092,8 +1092,8 @@ GenFetiDPSolver<Scalar>::solve(const GenDistrVector<Scalar> &f, GenDistrVector<S
 			}
 			if(this->myCPU == 0 && typeid(Scalar)==typeid(DComplex) && !fetiInfo->complex_hermitian)
 				std::cerr << " *** WARNING: CG is not valid for all complex symmetric matrices even if positive definite.\n"
-				          << " *** If your matrix is complex hermitian include \"outerloop CG hermitian\" under FETI in your input file.\n"
-				          << " *** Otherwise, \"outerloop GMRES\" or \"outerloop GCR\" are safer choices.\n";
+				          << " *** If your matrix is complex hermitian include \"interf_solver CG hermitian\" under FETI in your input file.\n"
+				          << " *** Otherwise, \"interf_solver GMRES\" or \"interf_solver GCR\" are safer choices.\n";
 			if(verboseFlag) {
 				filePrint (stderr, "----------------------------------------------\n");
 				filePrint (stderr, "          Iterations loop monitoring          \n");

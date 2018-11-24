@@ -21,28 +21,26 @@ class PointVariPlaneSegmentDistanceConstraintFunction : public ScalarValuedFunct
     double thickness;
     bool negate;
 
-    static double toDouble(double x) {return x;}
-    template <typename T>
-    static double toDouble(const T &t) { return t.value(); }
   private:
-    Scalar distanceToSegment(Eigen::Matrix<Scalar,3,1> x0, Eigen::Matrix<Scalar,3,1> x1, Eigen::Matrix<Scalar,3,1> x2, Eigen::Matrix<Scalar,3,1> x3){
+    template<typename T>
+    T distanceToSegment(Eigen::Matrix<T,3,1> x0, Eigen::Matrix<T,3,1> x1, Eigen::Matrix<T,3,1> x2, Eigen::Matrix<T,3,1> x3){
 
-      Scalar d0;
+      T d0;
 
       // inward facing normals of tet formed by 4 points
-      Eigen::Matrix<Scalar,3,1> nplane = (x2-x1).cross(x3-x1).normalized();
-      Eigen::Matrix<Scalar,3,1> n1     = (x1-x2).cross(x0-x2).normalized();
-      Eigen::Matrix<Scalar,3,1> n2     = (x2-x3).cross(x0-x3).normalized();
-      Eigen::Matrix<Scalar,3,1> n3     = (x3-x1).cross(x0-x1).normalized();
+      Eigen::Matrix<T,3,1> nplane = (x2-x1).cross(x3-x1).normalized();
+      Eigen::Matrix<T,3,1> n1     = (x1-x2).cross(x0-x2).normalized();
+      Eigen::Matrix<T,3,1> n2     = (x2-x3).cross(x0-x3).normalized();
+      Eigen::Matrix<T,3,1> n3     = (x3-x1).cross(x0-x1).normalized();
 
       // angles between plane and sides of tet formed by 4 points
-      Scalar p1 = n1.dot(nplane);
-      Scalar p2 = n2.dot(nplane);
-      Scalar p3 = n3.dot(nplane);
+      T p1 = n1.dot(nplane);
+      T p2 = n2.dot(nplane);
+      T p3 = n3.dot(nplane);
 
       // this formulation assumes that the plane segment is an acute triangle
       
-      if( p1 <= Scalar(0.) && p2 <= Scalar(0.) && p3 <= Scalar(0.) ) { // if all angles are less than or equal to 90 degrees, then point projects to plane segment
+      if( p1 <= T(0.) && p2 <= T(0.) && p3 <= T(0.) ) { // if all angles are less than or equal to 90 degrees, then point projects to plane segment
 	 // this is the only case for which contact can occure     
 
          d0 = (x2-x1).cross(x3-x1).normalized().dot(x0-x1) - thickness;
@@ -51,24 +49,24 @@ class PointVariPlaneSegmentDistanceConstraintFunction : public ScalarValuedFunct
         d0 = std::min((x0-x2).norm() - thickness,std::min((x0-x3).norm() - thickness,(x0-x1).norm() - thickness)); 
       } 
 
-        /*else if (p1 > Scalar(0.) && p2 > Scalar(0.) && p3 <= Scalar(0.)) { // if two angles are greater than 90, point is closest to that vertex
+        /*else if (p1 > T(0.) && p2 > T(0.) && p3 <= T(0.)) { // if two angles are greater than 90, point is closest to that vertex
  
          d0 = (x0-x2).norm() - thickness;
 
-      } else if (p1 <= Scalar(0.) && p2 >= Scalar(0.) && p3 >= Scalar(0.)) { 
+      } else if (p1 <= T(0.) && p2 >= T(0.) && p3 >= T(0.)) { 
 
         d0 = (x0-x3).norm() - thickness;
 
-      } else if (p1 >= Scalar(0.) && p2 <= Scalar(0.) && p3 >= Scalar(0.)) {
+      } else if (p1 >= T(0.) && p2 <= T(0.) && p3 >= T(0.)) {
   
         d0 = (x0-x1).norm() - thickness;
 
-      } else if (p1 >= Scalar(0.) && p2 <= Scalar(0.) && p3 <= Scalar(0.)) { // if one angle is greater than 90 degrees, then point is closest to that line segment or its end points
+      } else if (p1 >= T(0.) && p2 <= T(0.) && p3 <= T(0.)) { // if one angle is greater than 90 degrees, then point is closest to that line segment or its end points
  
         if(p2 <= p3) { // closer to point opposite p2
           
           d0 = (x0-x1).dot(x2-x1);
-          if(d0 <= Scalar(0.)){
+          if(d0 <= T(0.)){
             d0 = (x0-x1).norm() - thickness;
           } else {
             d0 = sqrt((x0-x1).squaredNorm()-d0*d0) - thickness;
@@ -77,7 +75,7 @@ class PointVariPlaneSegmentDistanceConstraintFunction : public ScalarValuedFunct
         } else { // close to point opposite p3
 
           d0 = (x0-x2).dot(x1-x2);
-          if(d0 <= Scalar(0.)){
+          if(d0 <= T(0.)){
             d0 = (x0-x2).norm()  - thickness;
           } else {
             d0 = sqrt((x0-x2).squaredNorm()-d0*d0) - thickness;
@@ -85,12 +83,12 @@ class PointVariPlaneSegmentDistanceConstraintFunction : public ScalarValuedFunct
 
         }
 
-      } else if (p1 <= Scalar(0.) && p2 > Scalar(0.) && p3 <= Scalar(0.)) {
+      } else if (p1 <= T(0.) && p2 > T(0.) && p3 <= T(0.)) {
 
         if(p1 <= p3) { // closer to point opposite p1
 
           d0 = (x0-x3).dot(x2-x3);
-          if(d0 <= Scalar(0.)){
+          if(d0 <= T(0.)){
             d0 = (x0-x3).norm() - thickness;
           } else {
             d0 = sqrt((x0-x3).squaredNorm()-d0*d0) - thickness;
@@ -99,7 +97,7 @@ class PointVariPlaneSegmentDistanceConstraintFunction : public ScalarValuedFunct
         } else { // close to point opposite p3
 
           d0 = (x0-x2).dot(x3-x2);
-          if(d0 <= Scalar(0.)){
+          if(d0 <= T(0.)){
             d0 = (x0-x2).norm() - thickness;
           } else {
             d0 = sqrt((x0-x2).squaredNorm()-d0*d0) - thickness;
@@ -107,12 +105,12 @@ class PointVariPlaneSegmentDistanceConstraintFunction : public ScalarValuedFunct
 
         }
 
-      } else if (p1 <= Scalar(0.) && p2 <= Scalar(0.) && p3 > Scalar(0.)) {
+      } else if (p1 <= T(0.) && p2 <= T(0.) && p3 > T(0.)) {
 
         if(p2 <= p1) { // closer to point opposite p2
 
           d0 = (x0-x1).dot(x3-x1);
-          if(d0 <= Scalar(0.)){
+          if(d0 <= T(0.)){
             d0 = (x0-x1).norm() - thickness;
           } else {
             d0 = sqrt((x0-x1).squaredNorm()-d0*d0) - thickness;
@@ -121,7 +119,7 @@ class PointVariPlaneSegmentDistanceConstraintFunction : public ScalarValuedFunct
         } else { // close to point opposite p1
 
           d0 = (x0-x3).dot(x1-x3);
-          if(d0 <= Scalar(0.)){
+          if(d0 <= T(0.)){
             d0 = (x0-x3).norm() - thickness;
           } else {
             d0 = sqrt((x0-x3).squaredNorm()-d0*d0) - thickness;
@@ -164,7 +162,7 @@ public:
 
         thickness *= 0.01;
 
-        dist = toDouble ( distanceToSegment(z0,z1,z2,z3) );
+        dist = distanceToSegment(z0,z1,z2,z3);
     }
 
     Scalar operator() (const Eigen::Matrix<Scalar,12,1>& q, Scalar t)

@@ -256,6 +256,8 @@ HEVibTetra::computeMetrics(const CoordSet &cs, double gN[4][3]) const
 	gN[3][0] = g;
 	gN[3][1] = h;
 	gN[3][2] = i;
+
+	return dOmega;
 }
 
 

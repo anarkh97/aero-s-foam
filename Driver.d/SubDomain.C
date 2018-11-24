@@ -1665,8 +1665,7 @@ GenSubDomain<Scalar>::initialize() {
 	Kuc_arubber_l = 0;
 	Kuc_arubber_m = 0;
 #ifdef HB_COUPLED_PRECOND
-																															kSumWI = 0;
-  precNodeToNode = 0;
+	precNodeToNode = 0;
 #endif
 	mpcStatus = 0;
 	mpcStatus1 = 0;
@@ -1735,8 +1734,10 @@ GenSubDomain<Scalar>::~GenSubDomain() {
 		delete[] Kuc_arubber_m;
 	}
 #ifdef HB_COUPLED_PRECOND
-																															if(kSumWI) { delete kSumWI; kSumWI = 0; }
-  if(isMixedSub && precNodeToNode) { delete precNodeToNode; precNodeToNode = 0; }
+	if(isMixedSub && precNodeToNode) {
+		delete precNodeToNode;
+		precNodeToNode = 0;
+	}
 #endif
 	if (mpcStatus) {
 		delete[] mpcStatus;

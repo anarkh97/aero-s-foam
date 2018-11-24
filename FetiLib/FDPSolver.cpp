@@ -40,10 +40,10 @@ private:
 /** \brief Function creating useful connectivities from a matrix structure
  *
  */
-template <typename T>
-Connectivity getConnectivities(const Subdomain<T> &subdomain) {
-
-}
+//template <typename T>
+//Connectivity getConnectivities(const Subdomain<T> &subdomain) {
+//
+//}
 
 /**
  * \details makeSubs needs to equip ConcreteSub with:

@@ -81,7 +81,7 @@ class SpoolesType<complex<double> > {
 #endif
 
 template<class Scalar>
-GenSpoolesSolver<Scalar>::GenSpoolesSolver(Connectivity *nToN, EqNumberer *_dsa, SolverCntl& _scntl, int *map)
+GenSpoolesSolver<Scalar>::GenSpoolesSolver(const Connectivity *nToN, const EqNumberer *_dsa, const SolverCntl& _scntl, int *map)
  : SparseData(_dsa, nToN, map), scntl(_scntl)
 {
   // constructor for feti-dp coarse problem
@@ -106,8 +106,8 @@ GenSpoolesSolver<Scalar>::GenSpoolesSolver(Connectivity *nToN, EqNumberer *_dsa,
 }
 
 template<class Scalar>
-GenSpoolesSolver<Scalar>::GenSpoolesSolver(Connectivity *nToN, DofSetArray *_dsa,
-                                           ConstrainedDSA *c_dsa, SolverCntl& _scntl) 
+GenSpoolesSolver<Scalar>::GenSpoolesSolver(const Connectivity *nToN, const DofSetArray *_dsa,
+                                           const ConstrainedDSA *c_dsa, const SolverCntl& _scntl) 
  : SparseData(_dsa,c_dsa,nToN), scntl(_scntl)
 {
   init();

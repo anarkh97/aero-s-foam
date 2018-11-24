@@ -25,7 +25,7 @@ extern long totMemMumps;
 #define RINFO(I)        rinfo[(I)-1]
 
 template<class Scalar>
-GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, EqNumberer *_dsa, SolverCntl& _scntl, int *map,
+GenMumpsSolver<Scalar>::GenMumpsSolver(const Connectivity *nToN, const EqNumberer *_dsa, const SolverCntl& _scntl, int *map,
                                        FSCommunicator *_mpicomm)
  : SparseData(_dsa,nToN,map,0,1), scntl(_scntl)
 {
@@ -42,7 +42,7 @@ GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, EqNumberer *_dsa, Sol
 }
 
 template<class Scalar>
-GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, DofSetArray *_dsa, ConstrainedDSA *c_dsa, SolverCntl& _scntl,
+GenMumpsSolver<Scalar>::GenMumpsSolver(const Connectivity *nToN, const DofSetArray *_dsa, const ConstrainedDSA *c_dsa, const SolverCntl& _scntl,
                                        FSCommunicator *_mpicomm)
     : SparseData(_dsa,c_dsa,nToN,0,1,(_scntl.unsymmetric||solInfo.getNLInfo().unsymmetric)), scntl(_scntl)
 {
@@ -59,8 +59,8 @@ GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, DofSetArray *_dsa, Co
 }
 
 template<class Scalar>
-GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, DofSetArray *_dsa, ConstrainedDSA *c_dsa, int nsub,
-                                       gsl::span<GenSubDomain<Scalar> *> sd, SolverCntl& _scntl,
+GenMumpsSolver<Scalar>::GenMumpsSolver(const Connectivity *nToN, const DofSetArray *_dsa, const ConstrainedDSA *c_dsa, int nsub,
+                                       gsl::span<GenSubDomain<Scalar> *> sd, const SolverCntl& _scntl,
                                        FSCommunicator *_mpicomm)
 	: SparseData(_dsa,c_dsa,nToN,0,1,(_scntl.unsymmetric||solInfo.getNLInfo().unsymmetric)),
 	  MultiDomainSolver<Scalar>(numUncon, nsub, sd.data(), _mpicomm), scntl(_scntl)
@@ -94,7 +94,7 @@ GenMumpsSolver<Scalar>::init()
     if(neq < numCPU*scntl.mumps_mineq) {
       int numMumpsCPU = (neq + scntl.mumps_mineq - 1)/scntl.mumps_mineq;
       int thisCPU = mpicomm->cpuNum();
-      std::map<int,int>::iterator IcntlIter = scntl.mumps_icntl.find(18);   // JAT 072816
+      std::map<int,int>::const_iterator IcntlIter = scntl.mumps_icntl.find(18);   // JAT 072816
       if(IcntlIter != scntl.mumps_icntl.end() && IcntlIter->second > 0) {
         int step = numCPU/numMumpsCPU;
         int nl = numCPU%numMumpsCPU;
@@ -149,14 +149,14 @@ GenMumpsSolver<Scalar>::init()
   Tmumps_c(mumpsId.id);
 
   // Set control parameters CNTL and ICNTL
-  std::map<int,double>::iterator CntlIter = scntl.mumps_cntl.begin();
+  std::map<int,double>::const_iterator CntlIter = scntl.mumps_cntl.begin();
   while(CntlIter != scntl.mumps_cntl.end()) {
     int CntlNum         = CntlIter->first;
     double CntlPar      = CntlIter->second;
     mumpsId.id.CNTL(CntlNum) = CntlPar;
     CntlIter ++;
   }
-  std::map<int,int>::iterator IcntlIter = scntl.mumps_icntl.begin();
+  std::map<int,int>::const_iterator IcntlIter = scntl.mumps_icntl.begin();
   while(IcntlIter != scntl.mumps_icntl.end()) {
     int IcntlNum        = IcntlIter->first;
     int IcntlPar        = IcntlIter->second;

@@ -112,6 +112,7 @@ FabricMat::getGenStrainEvaluator()
 {
   switch(strain_measure) {
     case INFINTESIMAL: return &linStrain2D;
+    default:
     case GREEN_LAGRANGE: return &glStrain2D;
   }
 }

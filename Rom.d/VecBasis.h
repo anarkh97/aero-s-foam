@@ -131,7 +131,7 @@ public:
   const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor>& basis() const { return basis_; }
   const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic>& compressedBasis() const { return compressedBasis_; }
   const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic>& compressedBasis2() const { return compressedBasis2_; }
-  const std::map<int,int>& compressedKey() const { return compressedKey_; }
+  const std::vector<int>& compressedKey() const { return compressedKey_; }
 #endif
 };
 

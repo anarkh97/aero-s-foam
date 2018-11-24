@@ -116,10 +116,10 @@ IF(UNIX)
 		# zoltan
 		IF(MPI_FOUND AND NOT WITH_ZOLTAN EQUAL 0)
 			FIND_PATH(ZOLTAN_INCLUDE_PATH Zoltan_config.h
-                PATHS /usr/include /usr/local/include /usr/include/trilinos)
+					PATHS /usr/include /usr/local/include /usr/include/trilinos)
 			FIND_PATH(ZOLTAN_SRC_PATH zz/zz_const.h
 					PATHS /usr/include /usr/local/include)
-      FIND_LIBRARY(ZOLTAN_LIBRARY NAMES zoltan trilinos_zoltan
+			FIND_LIBRARY(ZOLTAN_LIBRARY NAMES zoltan trilinos_zoltan
 					PATHS /usr/lib /usr/local/lib)
 			IF(ZOLTAN_INCLUDE_PATH AND ZOLTAN_SRC_PATH AND ZOLTAN_LIBRARY)
 				MESSAGE("-- A library with Zoltan API found.")
@@ -237,13 +237,18 @@ IF(UNIX)
 
 		# sacado
 		IF(NOT WITH_SACADO EQUAL 0)
-      FIND_PATH(SACADO_INCLUDE_PATH NAMES Sacado.hpp
-                PATHS /usr/include /usr/local/include /usr/include/trilinos)
+			FIND_PATH(SACADO_INCLUDE_PATH NAMES Sacado.hpp
+				PATHS /usr/include /usr/local/include /usr/include/trilinos)
 			IF(SACADO_INCLUDE_PATH)
 				set(SACADO_FOUND TRUE)
 				MESSAGE("-- A library with SACADO API found. ")
 				add_definitions(-DTRILINOS_NO_CONFIG_H -DUSE_SACADO)
-				include_directories(${SACADO_INCLUDE_PATH} ${SACADO_INCLUDE_PATH}/mpl)
+				include_directories(${SACADO_INCLUDE_PATH})
+				FIND_PATH(SACADO_MPL_INCLUDE_PATH NAMES Sacado_mpl_vector.hpp
+					PATHS ${SACADO_INCLUDE_PATH} ${SACADO_INCLUDE_PATH}/mpl)
+				if(SACADO_MPL_INCLUDE_PATH AND (NOT (SACADO_INCLUDE_PATH EQUAL SACADO_MPL_INCLUDE_PATH)))
+					include_directories(${SACADO_MPL_INCLUDE_PATH})
+				endif(SACADO_MPL_INCLUDE_PATH AND (NOT (SACADO_INCLUDE_PATH EQUAL SACADO_MPL_INCLUDE_PATH)))
 				if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
 					if (GCC_VERSION VERSION_GREATER 5.0 OR GCC_VERSION VERSION_EQUAL 5.0)
 						MESSAGE("Note: Sacado source code may need to be changed if Aero-S does not build "
@@ -256,13 +261,17 @@ IF(UNIX)
 
 		# metis
 		IF(NOT WITH_METIS EQUAL 0)
+			FIND_PATH(METIS_INCLUDE_PATH NAMES metis.h
+				PATHS /usr/include /usr/local/include)
 			FIND_LIBRARY(METIS_LIBRARY NAMES metis
 					PATHS /usr/lib /usr/local/lib)
-			IF(METIS_LIBRARY)
+			IF(METIS_LIBRARY AND METIS_INCLUDE_PATH)
+				set(METIS_FOUND TRUE)
 				MESSAGE("-- A library with METIS API found.")
 				add_definitions(-DUSE_METIS)
+				include_directories(${METIS_INCLUDE_PATH})
 				SET(EXTRALIBRARIES ${METIS_LIBRARY} ${EXTRALIBRARIES})
-			ENDIF(METIS_LIBRARY)
+			ENDIF(METIS_LIBRARY AND METIS_INCLUDE_PATH)
 		ENDIF(NOT WITH_METIS EQUAL 0)
 
 		# scalapack
@@ -299,13 +308,19 @@ IF(UNIX)
 
 		# scotch
 		IF(NOT WITH_SCOTCH EQUAL 0)
-			find_package(Scotch)
-      IF(SCOTCH_LIBRARIES AND SCOTCH_INCLUDE_DIRS)
+			IF(NOT SCOTCH_scotch.h_DIRS OR NOT SCOTCH_scotch_LIBRARY OR NOT SCOTCH_scotcherrexit_LIBRARY)
+				find_package(Scotch)
+			ELSE(NOT SCOTCH_scotch.h_DIRS OR NOT SCOTCH_scotch_LIBRARY OR NOT SCOTCH_scotcherrexit_LIBRARY)
+				SET(SCOTCH_INCLUDE_DIRS ${SCOTCH_scotch.h_DIRS})
+				SET(SCOTCH_LIBRARIES ${SCOTCH_scotch_LIBRARY} ${SCOTCH_scotcherrexit_LIBRARY})
+			ENDIF(NOT SCOTCH_scotch.h_DIRS OR NOT SCOTCH_scotch_LIBRARY OR NOT SCOTCH_scotcherrexit_LIBRARY)
+			IF(SCOTCH_LIBRARIES AND SCOTCH_INCLUDE_DIRS)
+				set(SCOTCH_FOUND TRUE)
 				MESSAGE("-- A library with SCOTCH API found.")
 				add_definitions(-DUSE_SCOTCH)
 				SET(EXTRALIBRARIES ${SCOTCH_LIBRARIES} ${EXTRALIBRARIES})
-        include_directories(${SCOTCH_INCLUDE_DIRS})
-      ENDIF(SCOTCH_LIBRARIES AND SCOTCH_INCLUDE_DIRS)
+			include_directories(${SCOTCH_INCLUDE_DIRS})
+			ENDIF(SCOTCH_LIBRARIES AND SCOTCH_INCLUDE_DIRS)
 		ENDIF(NOT WITH_SCOTCH EQUAL 0)
 
 		# mumps
@@ -465,6 +480,10 @@ ENDIF(ACME_FOUND AND (ZOLTAN_FOUND OR NOT MPI_FOUND))
 #  SET(ALLLIBS Pita ${ALLLIBS} )
 #ENDIF(MPI_FOUND)
 
+SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${EXTRALIB})
+if(MPI_FOUND)
+	SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${EXTRALIB_MPI})
+endif(MPI_FOUND)
 
 IF(CREATE_DSO)
 	add_definitions(-DCREATE_DSO)
@@ -658,11 +677,11 @@ IF(ACME_FOUND)
 ELSE(ACME_FOUND)
 	MESSAGE("Acme:                     NO ")
 ENDIF(ACME_FOUND)
-IF(METIS_LIBRARY)
+IF(METIS_FOUND)
 	MESSAGE("Metis:                    YES")
-ELSE(METIS_LIBRARY)
+ELSE(METIS_FOUND)
 	MESSAGE("Metis:                    NO ")
-ENDIF(METIS_LIBRARY)
+ENDIF(METIS_FOUND)
 IF(EIGEN3_FOUND)
 	MESSAGE("Eigen template library:   YES")
 ELSE(EIGEN3_FOUND)

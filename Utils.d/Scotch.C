@@ -23,7 +23,7 @@ Connectivity::SCOTCH_graphPart(int partnbr) const
                     // vertnbr if it is disjoint from verttab.
   int * velotab = 0; // the vertex load array, of size vertnbr if it exists.
   int * vlbltab = 0; // the vertex label array, of size vertnbr if it exists.
-  int edgenbr = numtarget; // the number of arcs (that is, twice the number of edges).
+  int edgenbr = target.size(); // the number of arcs (that is, twice the number of edges).
   const int * edgetab = target.data(); // the adjacency array, of size at least edgenbr (it can be more if the
                     // edge array is not compact).
   int * edlotab = 0; // the arc load array, of size edgenbr if it exists
@@ -53,7 +53,7 @@ Connectivity::SCOTCH_graphPart(int partnbr) const
   int *ptr = new int[vertnbr+1];
   for(int i=0; i<vertnbr+1; ++i) ptr[i] = i;
   Connectivity vertToPart(vertnbr, ptr, parttab);
-  Connectivity *partToVert = vertToPart.reverse();
+  Connectivity *partToVert = vertToPart.alloc_reverse();
   //cerr << "partToVert = \n"; partToVert->print();
   return partToVert;
 #else

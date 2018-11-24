@@ -3143,7 +3143,7 @@ FetiSub<Scalar>::makeQ() {
 						this->makeEdgeVectorsPlus(false);  // build augmentation for structure dofs
 					} else {
 						// TODO Make this in an alternative way, i.e. constructor of the solver???
-						filePrintOnce(stderr, "Warning: Not checking for thermal or Helmholtz correctly\n");
+						filePrintOnce(stderr, "Warning: Not checking for thermal or Helmholtz correctly\n", nullptr);
 						bool isThermalSub = false; // Was packedEset[0]->getCategory() == Element::Thermal
 						bool isUndefinedSub = false; // Was packedEset[0]->getCategory() == Element::Undefined)
 						bool isHelmholtz = false; // Was isFluid(0)
@@ -5175,7 +5175,7 @@ FetiSub<Scalar>::gatherDOFList(FSCommPattern<int> *pat) {
 	int nbdofs = 0, nwdofs = 0;
 	int nbneighb = 0, nwneighb = 0;
 	bool isbneighb, iswneighb;
-	bool isCoupled = isCoupled;
+	bool isCoupled = FetiBaseSub::isCoupled;
 	for (iSub = 0; iSub < FetiBaseSub::scomm->numNeighb; ++iSub) {
 		FSSubRecInfo<int> rInfo = pat->recData(FetiBaseSub::scomm->subNums[iSub], FetiBaseSub::subNumber);
 		FetiBaseSub::boundaryDOFs[iSub].resize(sharedNodes.num(iSub));

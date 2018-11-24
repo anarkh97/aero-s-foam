@@ -3592,7 +3592,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
        if(it != domain->solInfo().solvercntl->mumps_icntl.end() && it->second == 3) {
          Connectivity *subToCpu = cpuToSub->alloc_reverse();
          Connectivity *elemToCpu = elemToSub->transcon(subToCpu);
-         Connectivity *nodeToNodeLocal = domain->getNodeToElem()->transcon(elemToNode, elemToCpu->getTarget(), communicator->cpuNum());
+         Connectivity *nodeToNodeLocal = domain->getNodeToElem()->transcon(elemToNode.get(), elemToCpu->getTarget(), communicator->cpuNum());
          msmat = new GenMumpsSolver<Scalar>(nodeToNodeLocal, domain->getDSA(), domain->getCDSA(), numSub, subDomain, 
                                             *domain->solInfo().solvercntl, communicator);
          delete nodeToNodeLocal;

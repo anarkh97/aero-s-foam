@@ -123,10 +123,13 @@ protected:
 	std::vector<float> weight;      // weights of pointer (or 0)
 
 public:
-	typedef int IndexType;
+	using IndexType = int;
+	using IndexCount = unsigned int;
+
 	int getNumTarget() const {return target.size(); }
 	int * getTarget() {return target.data(); }
 	const int * getTarget() const {return target.data(); }
+        int * getPointer() {return pointer.data(); }
 	const int * getPointer() const {return pointer.data(); }
 
 	/** \brief Factory static method.
@@ -156,10 +159,6 @@ public:
 	 */
 	template <class A>
 	Connectivity(const SetAccess<A> &sa);
-	/** \brief Build a connectivity which is a map from SommerElement to the actual (single) element to which
-	 * the sommerElement is attached. TODO Get rid of this. The result is a one to one map. Not a connectivity.
-	 */
-	Connectivity(Elemset *, int, SommerElement**, bool wetFlag = false);
 	Connectivity(int _size, int *_pointer, int *_target, int _removeable=1, float *_weight = 0);
 	Connectivity(int _size, std::vector<int> _pointer, std::vector<int> _target,
 		             std::vector<float> _weight = std::vector<float>{});
@@ -186,7 +185,27 @@ public:
 	void countlink(int from, int to); //DEC
 	void addlink(int from, int to); //DEC
 
-	Connectivity(SommerElement  **, int, int);
+	/** \brief Factory from consecutive source indices, a target count and target range for each index.
+	 *
+	 * @tparam TargetCounter Functor with signature integer_type (IndexType)
+	 * @tparam TargetLister Functor with signature range(IndexType)
+	 * @param numSources Number of source objects
+	 * @param counter Functor returning the number of target for each
+	 * @param lister Functor returning a range of targets for a given index.
+	 * @return The built connectivity.
+	 */
+	template <typename TargetCounter, typename TargetLister>
+	static Connectivity fromElements(IndexCount numSources, TargetCounter counter, TargetLister lister);
+
+	/** \brief Factory from consecutive source indices, a target count and target list for each index.
+	*
+	* @tparam TargetLister Functor with signature range(IndexType)
+	* @param numSources Number of source objects
+	* @param lister Functor returning a range of targets for a given index.
+	* @return The built connectivity.
+	*/
+	template <typename TargetLister>
+	static Connectivity fromElements(IndexCount numSources, TargetLister lister);
 
 	virtual ~Connectivity();
 	virtual void end_count(); //dec
@@ -715,5 +734,56 @@ Connectivity Connectivity::fromLinkRange(const RangeT &range) {
 	for(auto &p : range)
 		targets[--pointers[map(p.first)]] = p.second;
 	return Connectivity(size, std::move(pointers), std::move(targets));
+}
+
+
+template<typename TargetCounter, typename TargetLister>
+Connectivity Connectivity::fromElements(Connectivity::IndexCount size, TargetCounter counter,
+                                        TargetLister lister)
+{
+	using TargetType = int;
+	using PointerType = int;
+	std::vector<PointerType> pointer;
+	// Find out the number of targets we will have
+	pointer.reserve(size+1);
+	PointerType pp = 0;
+	for(Connectivity::IndexCount i=0; i < size; ++i) {
+		pointer.push_back(pp);
+		pp += counter(i);
+	}
+	pointer.push_back(pp);
+
+	std::vector<TargetType> target;
+	// Create the target array
+	target.reserve(pp);
+
+	// Fill it in
+	for(Connectivity::IndexCount i=0; i < size; ++i) {
+		auto targets = lister(i);
+		for(auto &t : targets)
+			target.push_back(t);
+	}
+	return Connectivity(size, std::move(pointer), std::move(target));
+}
+
+template<typename TargetLister>
+Connectivity Connectivity::fromElements(Connectivity::IndexCount numSources, TargetLister lister)
+{
+	return fromElements(numSources,
+		[&lister](auto idx) { const auto &tg = lister(idx); return std::distance(tg.begin(), tg.end()); },
+		lister);
+//	using TargetType = int;
+//	using PointerType = int;
+//	std::vector<PointerType> pointer;
+//	// Find out the number of targets we will have
+//	pointer.reserve(numSources+1);
+//
+//	PointerType pp = 0;
+//	for(Connectivity::IndexCount i=0; i < numSources; ++i) {
+//		pointer.push_back(pp);
+//		const auto &tg = lister(i);
+//		pp += std::distance(tg.begin(), tg.end());
+//	}
+//	pointer.push_back(pp);
 }
 #endif

@@ -33,7 +33,7 @@ template<class Scalar>
 class GenSpoolesSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar>,
                          public SparseData 
 {
-   SolverCntl& scntl;
+   const SolverCntl& scntl;
    int neq;               // number of equations
    int *constrNum;        // constrained equation numbers
    Scalar *unonz;
@@ -63,8 +63,8 @@ class GenSpoolesSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar
 #endif
 
  public:
-   GenSpoolesSolver(Connectivity *nToN, EqNumberer *dsa, SolverCntl& _scntl, int *map=0);
-   GenSpoolesSolver(Connectivity *nToN, DofSetArray *_dsa, ConstrainedDSA *c_dsa, SolverCntl& _scntl);
+   GenSpoolesSolver(const Connectivity *nToN, const EqNumberer *dsa, const SolverCntl& _scntl, int *map=0);
+   GenSpoolesSolver(const Connectivity *nToN, const DofSetArray *_dsa, const ConstrainedDSA *c_dsa, const SolverCntl& _scntl);
 
    virtual void clean_up() override {
      cleanUp();

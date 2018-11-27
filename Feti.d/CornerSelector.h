@@ -39,6 +39,10 @@ public:
 	               std::vector<FetiSubCornerHandler *> handlers,
 	               FSCommPattern<int> *commPattern, FSCommunicator *communicator);
 	~CornerSelector();
+	/** \brief Pick the corners for FETI-DP.
+	 *
+	 * @return The total number of corners picked in the complete problem.
+	 */
 	int makeCorners();
 	std::unique_ptr<const Connectivity> yieldGrToSub() { return std::move(grToSub); }
 	auto &handlers() { return cornerHandler; }
@@ -87,14 +91,14 @@ public:
 	void resendNumbers(FSCommPattern<int> *pat);
 	void checkNumbers(FSCommPattern<int> *pat);
 
-	gsl::span<const int> getCorners() const { return crnList; }
+	gsl::span<const lc_node_idx> getCorners() const { return crnList; }
 	int getNumCorners() { return totNC; }
 
 protected:
 	int glSubNum;
 	int nnodes;
 	std::vector<int> deg;
-	std::vector<int> crnList;
+	std::vector<lc_node_idx> crnList;
 	int totNC;
 	std::vector<int> weight;
 	std::vector<bool> isCorner;

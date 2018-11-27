@@ -5,6 +5,8 @@
 #include <complex>
 #include "Threads.d/PHelper.h"
 #include "SetOfSubs.h"
+#include "Math.d/CuCSparse.h"
+#include "Math.d/SparseSet.h"
 
 template<typename Scalar>
 void SetOfSubs<Scalar>::getSharedDOFs()
@@ -16,7 +18,7 @@ void SetOfSubs<Scalar>::getSharedDOFs()
 		sub->setNodeCommSize(&nodeIntPat);
 	nodeIntPat.finalize();
 
-	paralApplyToAll(numSub, subDomain, &FetiBaseSub::sendDOFList, &nodeIntPat);
+	paralApply(subDomain, &FetiBaseSub::sendDOFList, &nodeIntPat);
 	nodeIntPat.exchange();
 	paralApply(subDomain, &FetiSub<Scalar>::gatherDOFList, &nodeIntPat);
 	paralApply(subDomain, &FetiBaseSub::gatherDOFListPlus, &nodeIntPat);
@@ -24,7 +26,7 @@ void SetOfSubs<Scalar>::getSharedDOFs()
 
 template<typename Scalar>
 SetOfSubs<Scalar>::SetOfSubs(FSCommunicator *communicator,
-                             std::vector<FetiSub<Scalar> *> subDomain,
+                             std::vector<std::unique_ptr<FetiSub<Scalar> >>  subDomain,
                              const std::shared_ptr<Connectivity> &cpuToSub) :
 	communicator(communicator),
 	subDomain(std::move(subDomain)), cpuToSub(cpuToSub)

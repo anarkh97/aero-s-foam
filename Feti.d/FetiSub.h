@@ -92,6 +92,8 @@ public:
 	/** \brief Make the subdomain determine its master flag, i.e. whether it is the primary holder of a variable. */
 	void computeMasterFlag(const Connectivity &mpcToSub);
 
+	virtual void setCorners(gsl::span<const lc_node_idx> cNum);
+
 	/// \brief Obtain the number of MPC constraints.
 	int numMPCs() const  { return numMPC; }
 	int numMPCs_primal() const  { return numMPC_primal; }
@@ -214,6 +216,7 @@ protected:
 	std::vector<int> glCornerNodes; //!< \brief Corner nodes in global numbering.
 	int numCRN = 0;
 	int numCRNdof = 0;
+	int crnDofSize = 0;
 	std::vector<std::vector<DofSet>> boundaryDOFs;
 	std::vector<int> edgeDofSizeTmp;   // XXXX
 	std::vector<int> edgeDofSize;      //<! \brief Number of edge DOF per neighbor.

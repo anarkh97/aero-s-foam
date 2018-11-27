@@ -521,7 +521,7 @@ BaseSub::checkForColinearCrossPoints(int numCornerPoints,
 }
 
 void
-BaseSub::setCorners(gsl::span<const int> cNum)
+BaseSub::setCorners(gsl::span<const lc_node_idx> cNum)
 {
   int i;
 
@@ -664,13 +664,13 @@ BaseSub::setCorners(gsl::span<const int> cNum)
           numCRN++;
         }
       }
-      if(solInfo().isCoupled && (solInfo().solvercntl->fetiInfo.fsi_corner == 2)) { 
+      if(solInfo().isCoupled && (getFetiInfo().fsi_corner == 2)) {
         cornerNodes[numCRN] = thisNode;
         isCornerNode[thisNode] = true;
         cornerDofs[numCRN] = ( (*c_dsa)[thisNode] & interestingDofs );
         numCRN++;
       }
-      if(solInfo().isCoupled && (solInfo().solvercntl->fetiInfo.fsi_corner == 3)) { 
+      if(solInfo().isCoupled && (getFetiInfo().fsi_corner == 3)) {
         if (!(onWetInterface(thisNode))) { 
           cornerNodes[numCRN] = thisNode;
           isCornerNode[thisNode] = true;
@@ -693,7 +693,7 @@ BaseSub::setCorners(gsl::span<const int> cNum)
       }
     }
   }
-  if(drySharedNodes) { delete drySharedNodes; drySharedNodes = 0; }  // this is only needed for corner selection
+  delete drySharedNodes; drySharedNodes = 0;  // this is only needed for corner selection
 }
 
 void
@@ -720,25 +720,32 @@ BaseSub::markWetInterface(int nWI, int *wiNum, bool soweredInput)
   for(i = 0; i < nWI; ++i) {
     DofSet interestingDofs;
     int thisNode = glToLocalNode[wiNum[i]];
-    if(soweredInput) getInterestingDofs(interestingDofs, thisNode);
-    else domain->getInterestingDofs(interestingDofs, wiNum[i]);
+    if(soweredInput)
+        getInterestingDofs(interestingDofs, thisNode);
+    else
+        domain->getInterestingDofs(interestingDofs, wiNum[i]);
     if ((*c_dsa)[thisNode].contains(interestingDofs.list())) {
       wetInterfaceMark[thisNode] = true;
       // both fluid and structure wet interface corners 
-      if (solInfo().isCoupled && (solInfo().solvercntl->fetiInfo.fsi_corner == 2) && 
+      if (solInfo().isCoupled && (getFetiInfo().fsi_corner == 2) &&
           ((soweredInput && nodeToSub_sparse->num(wiNum[i]) > CornerWeightOne) ||
-          (!soweredInput && nodeToSub->num(wiNum[i]) > CornerWeightOne))) wetInterfaceCornerMark[thisNode] = true;
+          (!soweredInput && nodeToSub->num(wiNum[i]) > CornerWeightOne)))
+          wetInterfaceCornerMark[thisNode] = true;
       // only fluid wet interface corners 
-      if (solInfo().isCoupled && (solInfo().solvercntl->fetiInfo.fsi_corner == 1) &&
+      if (solInfo().isCoupled && (getFetiInfo().fsi_corner == 1) &&
           (*c_dsa)[thisNode].contains(DofSet::Helm)) 
-        if ((soweredInput && nodeToSub_sparse->num(wiNum[i]) > CornerWeightOne) || (!soweredInput && nodeToSub->num(wiNum[i]) > CornerWeightOne)) { 
+        if ((soweredInput && nodeToSub_sparse->num(wiNum[i]) > CornerWeightOne)
+            || (!soweredInput && nodeToSub->num(wiNum[i]) > CornerWeightOne))
+        {
           wetInterfaceCornerMark[thisNode] = true;
           wetInterfaceFluidMark[thisNode] = true;
         }
       // fluid and a few structure wet interface corners 
-      if (solInfo().isCoupled && (solInfo().solvercntl->fetiInfo.fsi_corner == 3)) { 
+      if (solInfo().isCoupled && (getFetiInfo().fsi_corner == 3)) {
         if ((*c_dsa)[thisNode].contains(DofSet::Helm))  
-          if ((soweredInput && nodeToSub_sparse->num(wiNum[i]) > CornerWeightOne) || (!soweredInput && nodeToSub->num(wiNum[i]) > CornerWeightOne)) { 
+          if ((soweredInput && nodeToSub_sparse->num(wiNum[i]) > CornerWeightOne)
+              || (!soweredInput && nodeToSub->num(wiNum[i]) > CornerWeightOne))
+          {
             wetInterfaceCornerMark[thisNode] = true;
             wetInterfaceFluidMark[thisNode] = true;
           } 
@@ -779,7 +786,7 @@ BaseSub::setWetInterface(int nWI, int *wiNum, bool soweredInput)
   numWInodes = 0;
   for(i=0; i<nWI; ++i) {
     int thisNode = glToLocalNode[wiNum[i]];
-    if(solInfo().isCoupled && solInfo().solvercntl->fetiInfo.fsi_corner == 0) {
+    if(solInfo().isCoupled && getFetiInfo().fsi_corner == 0) {
       DofSet interestingDofs;
       if(soweredInput) getInterestingDofs(interestingDofs, thisNode);
       else domain->getInterestingDofs(interestingDofs, wiNum[i]); // COUPLED DEBUG
@@ -788,7 +795,7 @@ BaseSub::setWetInterface(int nWI, int *wiNum, bool soweredInput)
     }
   }
 
-  if ((numWInodes > 0) && solInfo().isCoupled && (solInfo().solvercntl->fetiInfo.fsi_corner != 0))
+  if ((numWInodes > 0) && solInfo().isCoupled && (getFetiInfo().fsi_corner != 0))
     std::cout << " ERROR: no wetINterface nodes should exist. " << std::endl; 
 
   std::sort(myWetInterfaceNodes, myWetInterfaceNodes+numWInodes);
@@ -1219,7 +1226,7 @@ BaseSub::computeWaveNumbers()
   double omega2 = geoSource->shiftVal();
   double E, nu, rho, eh, di, beta4, kappaHelm;
 
-  if(solInfo().solvercntl->fetiInfo.waveMethod == FetiInfo::uniform) {
+  if(getFetiInfo().waveMethod == FetiInfo::uniform) {
     // this should only be used when there is one material property
     StructProp *sProps = packedEset[0]->getProperty();
     E = (*sProps).E;
@@ -1248,7 +1255,7 @@ BaseSub::computeWaveNumbers()
       k_s2 = k_s; // temp fix for isotropic subdomains
     }
   }
-  else if(solInfo().solvercntl->fetiInfo.waveMethod == FetiInfo::averageK) {
+  else if(getFetiInfo().waveMethod == FetiInfo::averageK) {
     k_f = k_p = k_s = k_s2 = 0.0;
     int fcount = 0, scount = 0;
     for(int i=0; i<numele; ++i) {

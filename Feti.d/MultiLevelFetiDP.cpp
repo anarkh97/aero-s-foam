@@ -372,8 +372,6 @@ selectCorners(std::vector<std::unique_ptr<FetiSub<T>>> &subs, FSCommunicator *co
 	vector<FetiSubCornerHandler *> fsh;
 	fsh.reserve(subs.size());
 	for(auto &sub: subs) {
-		auto &dsa = *sub->getDsa();
-		auto &c_dsa = *sub->get_c_dsa();
 		cornerHandlers.emplace_back(
 			new FetiSubCornerHandler(sub.get())
 			);
@@ -387,6 +385,8 @@ selectCorners(std::vector<std::unique_ptr<FetiSub<T>>> &subs, FSCommunicator *co
 	CornerSelector cornerSelector(glNumSub, subs.size(), std::move(fsh), &cpat, communicator);
 	int res = cornerSelector.makeCorners();
 	std::cout << "Result of corner selection is " << res << std::endl;
+	for(int i = 0; i < subs.size(); ++i)
+		subs[i]->setCorners( cornerHandlers[i]->getCorners() );
 }
 
 /** \brief Build an upper level FetiDP Solver.
@@ -505,6 +505,8 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDPNew(const Connectivity &subToCorne
 	                           superElements, subToAllCoarseNodes, nodes, this->glSubToLoc);
 
 	selectCorners(subs, this->fetiCom, &cpuToCoarse, decCoarse->csize());
+
+	SetOfSubs<Scalar> setOfSubs{ this->fetiCom, std::move(subs), std::make_shared<Connectivity>(cpuToCoarse)};
 
 //	std::vector<FetiBaseSub *> baseSubs(decCoarseDomain->getAllSubDomains(),
 //	                                    decCoarseDomain->getAllSubDomains()+decCoarseDomain->getNumSub());

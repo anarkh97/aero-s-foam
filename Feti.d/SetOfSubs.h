@@ -13,14 +13,14 @@ class SetOfSubs {
 public:
 private:
 public:
-	SetOfSubs(FSCommunicator *communicator, std::vector<FetiSub<Scalar> *> subDomain,
+	SetOfSubs(FSCommunicator *communicator, std::vector<std::unique_ptr<FetiSub<Scalar> >> subDomain,
 	          const std::shared_ptr<Connectivity> &cpuToSub);
 
 private:
 	void getSharedDOFs();
 
 	FSCommunicator *communicator;
-	std::vector<FetiSub<Scalar> *> subDomain;
+	std::vector<std::unique_ptr<FetiSub<Scalar> >>  subDomain;
 	std::shared_ptr<Connectivity> cpuToSub;
 };
 

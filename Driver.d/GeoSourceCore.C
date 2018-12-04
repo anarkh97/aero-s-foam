@@ -2605,7 +2605,7 @@ void GeoSource::getTextDecomp(bool sowering)
 	  int *ptr = new int[2];
 	  int *target = new int[numSub];
 	  for(int i = 0; i < numSub; i++)
-		target[i] = 0;
+		target[i] = i;
 	  ptr[0] = 0;
 	  ptr[1] = numSub;
 	clusToSub = std::make_unique<Connectivity>(1,ptr,target);
@@ -4781,7 +4781,7 @@ GeoSource::getDecomposition()
 		  for(int i = 0; i < numSub; i++)
 			  subToClus[i] = 0;
 		  numClusters = 1;
-		  std::vector<int> target(numSub, 0);
+		  std::vector<int> target(numSub); std::iota(target.begin(), target.end(), 0);
 		  std::vector<int> ptr(2);
 		  ptr[0] = 0;
 		  ptr[1] = numSub;

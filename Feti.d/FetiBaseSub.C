@@ -593,3 +593,13 @@ void FetiBaseSub::setCorners(gsl::span<const lc_node_idx> cNum) {
 	}
 
 }
+
+void
+FetiBaseSub::mergeInterfaces()
+{
+	// mpc list should already have been set before now
+	boundDofFlag = scomm->mergeTypeSpecificLists(); // merge types 0, 1 and 2 (std, wet and mpc)
+	auto abd = scomm->allBoundDofs();
+	totalInterfSize = scomm->totalInterfSize();
+	allBoundDofs.assign(abd.begin(), abd.end());
+}

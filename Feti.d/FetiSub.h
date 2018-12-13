@@ -92,6 +92,8 @@ public:
 	/** \brief Make the subdomain determine its master flag, i.e. whether it is the primary holder of a variable. */
 	void computeMasterFlag(const Connectivity &mpcToSub);
 
+	void mergeInterfaces();
+
 	virtual void setCorners(gsl::span<const lc_node_idx> cNum);
 
 	/// \brief Obtain the number of MPC constraints.

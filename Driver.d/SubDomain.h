@@ -218,7 +218,6 @@ public:
 	void makeDSA();
 	void makeCDSA();
 	void makeCCDSA();
-	void mergeInterfaces();
 
 #ifdef HB_COUPLED_PRECOND
 	Connectivity* precNodeToNode;

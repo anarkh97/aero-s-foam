@@ -2537,7 +2537,7 @@ GenDecDomain<Scalar>::getSharedDOFs()
   paralApplyToAll(numSub, subDomain, &FetiBaseSub::sendDOFList, &nodeIntPat);
   nodeIntPat.exchange();
   paralApply(subDomain, &FetiSub<Scalar>::gatherDOFList, &nodeIntPat);
-  paralApply(subDomain, &GenSubDomain<Scalar>::gatherDOFListPlus, &nodeIntPat);
+  paralApply(subDomain, &FetiBaseSub::gatherDOFListPlus, &nodeIntPat);
 
 
   stopTimerMemory(mt.makeInterface, mt.memoryInterface);

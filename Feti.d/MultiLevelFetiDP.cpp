@@ -322,6 +322,7 @@ formSubdomains(const gsl::span<gl_sub_idx> &cpuMetasubIndices, const Connectivit
  getSharedMPCs(); // N/A right now
 
   paralApply(subDomain, &BaseSub::mergeInterfaces);
+  // Splitting needs to be done on the force, not on applied BC....!!!!
  paralApply(subDomain, &GenSubDomain<Scalar>::applySplitting);
 
  //paralApply(subDomain, &GenSubDomain<Scalar>::initSrc);

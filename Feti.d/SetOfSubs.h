@@ -18,10 +18,13 @@ public:
 
 private:
 	void getSharedDOFs();
+	void makeInternalInfo();
 
 	FSCommunicator *communicator;
 	std::vector<std::unique_ptr<FetiSub<Scalar> >>  subDomain;
 	std::shared_ptr<Connectivity> cpuToSub;
+	std::unique_ptr<DistrInfo> internalInfo;
+	std::unique_ptr<DistrInfo> internalInfo2;
 };
 
 

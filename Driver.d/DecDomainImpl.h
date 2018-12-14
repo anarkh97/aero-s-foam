@@ -3671,6 +3671,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
    switch(domain->solInfo().solvercntl->subtype) {
 #ifdef USE_MUMPS
      case 9 : {
+       if(soweredInput) { filePrint(stderr, " *** ERROR: MUMPS solver is not supported with binary input. Exiting...\n"); exit(-1); }
        GenMumpsSolver<Scalar> *msmat;
        std::map<int,int>::iterator it = domain->solInfo().solvercntl->mumps_icntl.find(18);
        if(it != domain->solInfo().solvercntl->mumps_icntl.end() && it->second == 3) {

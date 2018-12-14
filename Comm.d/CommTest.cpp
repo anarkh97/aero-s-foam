@@ -138,7 +138,7 @@ int main(int argc, char *argv[]) {
 #ifdef USE_MPI
 	int required = MPI_THREAD_MULTIPLE, provided;
 	MPI_Init_thread(&argc, &argv, required, &provided);
-	BaseCommunicator comm(MPI_COMM_WORLD);
+	BaseCommunicator comm((MPI_Comm)MPI_COMM_WORLD);
 	int myRank = comm.rank();
 	int commSize = comm.commSize();
 	if(myRank == 0)

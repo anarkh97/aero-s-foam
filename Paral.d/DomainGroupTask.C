@@ -263,7 +263,7 @@ GenDomainGroupTask<Scalar>::runForWB(int isub, bool make_feti)
 #ifdef USE_MPI
 				GenDecDomain<Scalar> *decSubDomain =
 					new GenDecDomain<Scalar>(sd[isub],
-					                         new Communicator(CommunicatorHandle{MPI_COMM_SELF}));
+					                         new Communicator(CommunicatorHandle{(MPI_Comm)MPI_COMM_SELF}));
 #else
 				GenDecDomain<Scalar> *decSubDomain = new GenDecDomain<Scalar>(sd[isub], NULL);
 #endif

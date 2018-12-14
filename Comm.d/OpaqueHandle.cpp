@@ -9,35 +9,35 @@
 
 #ifdef USE_MPI
 #include <mpi.h>
-OpHandle MaxHandle{MPI_MAX};
-OpHandle MinHandle{MPI_MIN};
-OpHandle SumHandle{MPI_SUM};
-OpHandle ProdHandle{MPI_PROD};
-TypeHandle IntHandle{MPI_INT};
+OpHandle MaxHandle{(MPI_Op)MPI_MAX};
+OpHandle MinHandle{(MPI_Op)MPI_MIN};
+OpHandle SumHandle{(MPI_Op)MPI_SUM};
+OpHandle ProdHandle{(MPI_Op)MPI_PROD};
+TypeHandle IntHandle{(MPI_Datatype)MPI_INT};
 
 template <>
 TypeHandle CommTypeTrait<double>::typeHandle() {
-	return TypeHandle{MPI_DOUBLE};
+	return TypeHandle{(MPI_Datatype)MPI_DOUBLE};
 }
 
 template <>
 TypeHandle CommTypeTrait<char>::typeHandle() {
-	return TypeHandle{MPI_CHAR};
+	return TypeHandle{(MPI_Datatype)MPI_CHAR};
 }
 
 template <>
 TypeHandle CommTypeTrait<int>::typeHandle() {
-	return TypeHandle{MPI_INT};
+	return TypeHandle{(MPI_Datatype)MPI_INT};
 }
 
 template <>
 TypeHandle CommTypeTrait<long>::typeHandle() {
-	return TypeHandle{MPI_LONG};
+	return TypeHandle{(MPI_Datatype)MPI_LONG};
 }
 
 template <>
 TypeHandle CommTypeTrait<std::complex<double>>::typeHandle() {
-	return TypeHandle{MPI_DOUBLE_COMPLEX};
+	return TypeHandle{(MPI_Datatype)MPI_DOUBLE_COMPLEX};
 }
 
 #else

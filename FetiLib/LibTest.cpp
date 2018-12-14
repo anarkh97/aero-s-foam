@@ -116,7 +116,7 @@ void addSubsFor(int tg, std::vector<int> &subs, std::vector<int> &processors) {
 int main(int argc, char *argv[]) {
 #ifdef USE_MPI
 	MPI_Init(&argc,&argv);
-	BaseCommunicator baseCommunicator{MPI_COMM_WORLD};
+	BaseCommunicator baseCommunicator{(MPI_Comm)MPI_COMM_WORLD};
 
 	int numProc = baseCommunicator.commSize();
 	int myProc =  baseCommunicator.rank();

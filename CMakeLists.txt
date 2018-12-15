@@ -1,7 +1,11 @@
 PROJECT (FEM)
 
-cmake_minimum_required(VERSION 3.5  FATAL_ERROR)
+cmake_minimum_required(VERSION 3.13  FATAL_ERROR)
 enable_language(Fortran)
+cmake_policy(SET CMP0076 NEW)
+
+option(USE_MPI "Use MPI" ON)
+option(USE_CHOLMOD "Attempt to use Choldmod" ON)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake" "/usr/local/include/eigen3/cmake/")
 
@@ -76,7 +80,7 @@ ELSE(WITH_OPENMP)
 	unset(OpenMP_FLAG_DETECTED CACHE)
 ENDIF(WITH_OPENMP)
 
-SET(BLA_VENDOR Generic)
+find_package(BLAS REQUIRED)
 if(NOT LAPACK_FOUND)
 	FIND_PACKAGE(LAPACK)
 endif(NOT LAPACK_FOUND)
@@ -89,7 +93,6 @@ SET(EXEC_DIR ${CMAKE_CURRENT_BINARY_DIR}/Regression.d)
 SET(REG_SRC_DIR ${PROJECT_SOURCE_DIR}/Regression.d)
 SET(BASELINE $EXEC_DIR/baseline)
 
-OPTION(USE_MPI "Use MPI" ON)
 if(USE_MPI)
 	FIND_PACKAGE(MPI)
 	SET(MPI_FOUND ${MPI_CXX_FOUND}) # We only care about C++

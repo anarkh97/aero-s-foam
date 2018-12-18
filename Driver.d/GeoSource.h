@@ -22,10 +22,6 @@
 #include <Eigen/Core>
 #endif
 
-#ifndef SALINAS
-#include <Driver.d/Sower.h>
-#endif
-
 using namespace NewVec;
 #define PI 3.14159265358979
 

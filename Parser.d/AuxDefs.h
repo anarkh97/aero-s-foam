@@ -6,6 +6,13 @@
 #include <Element.d/NonLinearity.d/FabricMap.h>
 #include <Element.d/NonLinearity.d/FabricMat.h>
 #include <Element.d/Sommerfeld.d/SommerElement.h>
+#include <Element.d/Sommerfeld.d/LineSommerBC.h>
+#include <Element.d/Sommerfeld.d/Line2SommerBC.h>
+#include <Element.d/Sommerfeld.d/TriangleSommerBC.h>
+#include <Element.d/Sommerfeld.d/QuadSommerBC.h>
+#include <Element.d/Sommerfeld.d/Triangle6SommerBC.h>
+#include <Element.d/Sommerfeld.d/IsoParamQuadSommer.h>
+#include <Element.d/Sommerfeld.d/IsoParamTriSommer.h>
 
 #include <Parser.d/DecInit.h>
 

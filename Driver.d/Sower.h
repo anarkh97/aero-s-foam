@@ -8,6 +8,7 @@
 **/
 
 #include <string>
+#include <sstream>
 #define FILENAME_LENGTH 80
 extern std::string clusterData_;
 extern std::string subdomains_;
@@ -256,14 +257,12 @@ public:
 			BinFileHandler fp(subdomains_.c_str(), "r");
 			readSubFile(fp);
 		}
+		std::stringstream fName;
+		fName << clusterData_;
+		if ( (*subToClus)[sub].size() > 0 )
+			fName << ( (*subToClus)[sub][0]+1 );
 		// opening cluster file
-		char filename[FILENAME_LENGTH];
-		char clusterNumStr[10] = {'\0'};
-		if((*subToClus)[sub].size() > 0)
-			sprintf(clusterNumStr, "%u", (*subToClus)[sub][0]+1); // phil modify here to add support for more than one file per cluster (michel)
-		strcpy(filename, clusterData_.c_str());
-		strcat(filename, clusterNumStr);
-		return std::make_unique<BinFileHandler>(filename, "r");
+		return std::make_unique<BinFileHandler>(fName.str().c_str(), "r");
 	}
 
     int clusterIndex(int glSub) {

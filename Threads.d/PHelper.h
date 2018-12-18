@@ -1,6 +1,7 @@
 #ifndef _PHELPER_H_
 #define _PHELPER_H_
 
+#include <memory>
 #include <vector>
 #include <Timers.d/GetTime.h>
 #include <Threads.d/Paral.h>

@@ -3,6 +3,7 @@
 
 #include <cassert>
 #include <cstring>
+#include <string>
 #include <iostream>
 #include <list>
 #include <vector>
@@ -79,13 +80,6 @@ struct DoubleList {
 	double v[32];
 };
 
-struct ltstr
-{
-	inline bool operator()(const char* s1, const char* s2) const
-	{
-	  return strcmp(s1, s2) < 0;
-	}
-};
 
 class GeoSource {
 protected:
@@ -156,7 +150,7 @@ protected:
 	int numLayMat;
 	ResizeArray<LayMat *> layMat;
 
-	std::map<const char *, MatLoader, ltstr> userDefMat;
+	std::map<std::string, MatLoader> userDefMat;
 	std::map<int, NLMaterial *> materials;
 	std::map<int, int> matUsage;
 

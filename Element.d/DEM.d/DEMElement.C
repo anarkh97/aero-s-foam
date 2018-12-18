@@ -5,7 +5,6 @@
 #include <ctime>
 #include <complex>
 
-#ifndef SANDIA
 #include <Element.d/Helm.d/IsoParamUtils.h>
 #include <Element.d/Helm.d/GaussRules.h>
 
@@ -15,33 +14,37 @@
 #include <Utils.d/linkfc.h>
 
 #include <Element.d/DEM.d/DEMElement.h>
-
-#else
-
-#ifdef F_NEEDS_UNDSC
-#define _FORTRAN(a) a ## _
-#else
-#define _FORTRAN(a) a
-#endif
-
-#ifdef _STANDARD_C_PLUS_PLUS
- #include <complex>
- using std::complex;
-#else
-#include <complex.h>
-#endif
-#ifdef COMPLEX_NON_TEMPLATE
-typedef complex ComplexD;
-typedef complex DComplex;
-#else
-typedef complex<double> ComplexD;
-typedef complex<double> DComplex;
-#endif
-
-#include "IsoParamUtils.h"
-#include "GaussRules.h"
+#include <Driver.d/Domain.h>
+extern Domain *domain;
+//#else
+//
+//#ifdef F_NEEDS_UNDSC
+//#define _FORTRAN(a) a ## _
+//#else
+//#define _FORTRAN(a) a
+//#endif
+//
+//#ifdef _STANDARD_C_PLUS_PLUS
+// #include <complex>
+// using std::complex;
+//#else
+//#include <complex.h>
+//#endif
+//#ifdef COMPLEX_NON_TEMPLATE
+//typedef complex ComplexD;
+//typedef complex DComplex;
+//#else
+//typedef complex<double> ComplexD;
+//typedef complex<double> DComplex;
+//#endif
+//
+//#include "IsoParamUtils.h"
+//#include "GaussRules.h"
+//#endif
 #include "DEMElement.h"
-#endif
+
+#include <Driver.d/GeoSource.h>
+extern GeoSource *geoSource;
 
 using namespace std;
 
@@ -223,6 +226,20 @@ int DEMElement::nodesE(int no) {
  return condensedFlag()?0:nEnrichmentDofs();
 }
 
+double DEMElement::getOmega() const { return geoSource->omega(); }
+
+double *DEMElement::getWaveDirection() const { return domain->getWaveDirection(); }
+
+double DEMElement::getSpeedOfSound() const
+{
+    return geoSource->omega()/prop->kappaHelm;
+}
+
+void
+DEMElement::getNodalCoord(int n, int *nn, double *xyz) const
+{
+    (domain->getNodes()).getCoordinates(nn,n,xyz,xyz+n,xyz+2*n);
+}
 
 void DEMElement::nodalSolution(CoordSet &cs, complex<double> *sol,
                           complex<double> (*nodalSol)[8]) {

@@ -8,11 +8,6 @@
 #include <Element.d/Element.h>
 #include <Math.d/ComplexD.h>
 
-#include <Driver.d/GeoSource.h>
-extern GeoSource *geoSource;
-#include <Driver.d/Domain.h>
-extern Domain *domain;
-
 #else
 #include <complex>
 using std::complex;
@@ -97,71 +92,6 @@ public:
 	                                complex<double> *re, complex<double> *pe);
 };
 
-#ifdef SANDIA
-
-class hex8dem {
-public:
-    double omega;
-    double* nodal_coords;
-    double rho;
-    double c0;
-    complex<double> *forceVector;
-    DEMElement *de;
-
-    hex8dem();
-
-    int Initialize(bool condense_enrichment_flag, // indicates whether condensation takes place
-                   bool dgm_flag, // indicates whether the element has polynomial field
-                   bool store_matrices_flag, // indicates whether element matrices should be stored
-                   int element_enrichment_type, // type of enrichment
-                   int* lagrange_multiplier_type, // type of lagrange multiplier
-                   const double* nodal_coords, // coordinates of element nodes
-                   int* connectivity, // global node numbers of element nodes
-                   double omega, // omega = 2*pi*f, where f is the frequency
-                   double c0, // speed of sound
-                   double rho // density of fluid
-                   );
-    ~hex8dem();
-    int NumEhancementDofs() const;
-    int NumConstraintDofs() const;
-    int NumPolynomialDofs() const;
-
-    void ElemDynamicMtx(complex<double> *matrix) const;
-    void ScalarFaceIntegral(int faceid, const double *scalar_field,
-                            complex<double> **vector) const;
-};
-
-
-struct PMLProps {
- int PMLtype;
- double gamma, Rx, Ry, Rz, Sx, Sy, Sz;
-};
-
-
-class DEMElement: public DEMCoreElement {
- hex8dem *sinterf;
-public:
- virtual int numDofs() const override {
-   return ( (dgmFlag())?0:nPolynomialDofs() ) +
-          ( (condensedFlag())?0:nEnrichmentDofs() ) +
-           nLagrangeDofs() ; 
- }
- virtual double getOmega() { return sinterf->omega ; }
- virtual double *getWaveDirection() { return 0; }
- virtual complex<double> *getField() { return 0; }
- virtual void getNodalCoord(int n, int *nn, double *xyz) {
-   xyz = sinterf->nodal_coords;
- }
- virtual double getRho() { return sinterf->rho; }
- virtual double getSpeedOfSound() {
-   return sinterf->c0; }
- virtual double getE() { return 1.0; }
- virtual double getNu() { return 0.3; }
- virtual PMLProps* getPMLProps() { return 0; }
-};
-
-#else
-
 class DEMElement: public Element, public DEMCoreElement {
 public:
 	int ne; // enrichment node offset
@@ -192,20 +122,16 @@ public:
 	FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg=1) const override;
 
 // Interface
-	virtual double getOmega() { return geoSource->omega(); }
-	virtual double *getWaveDirection() { return domain->getWaveDirection(); }
+	virtual double getOmega() const;
+	virtual double *getWaveDirection() const;
 	virtual complex<double> *getField() { return forceVector; }
-	virtual void getNodalCoord(int n, int *nn, double *xyz) {
-		(domain->getNodes()).getCoordinates(nn,n,xyz,xyz+n,xyz+2*n);
-	}
-	virtual double getRho() { return prop->rho; }
-	virtual double getSpeedOfSound() {
-		return geoSource->omega()/prop->kappaHelm; }
-	virtual double getE() { return prop->E; }
-	virtual double getNu() { return prop->nu; }
-	virtual PMLProps* getPMLProps() { return &prop->fp; }
+	virtual void getNodalCoord(int n, int *nn, double *xyz) const;
+	virtual double getRho() const { return prop->rho; }
+	virtual double getSpeedOfSound() const;
+	virtual double getE() const { return prop->E; }
+	virtual double getNu() const { return prop->nu; }
+	virtual PMLProps* getPMLProps() const { return &prop->fp; }
 };
-#endif
 
 class DEMCoreInterfaceElement {
 public:

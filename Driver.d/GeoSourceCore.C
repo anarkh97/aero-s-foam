@@ -4153,8 +4153,7 @@ GeoSource::loadMaterial(const char *matName, const char *fileName)
 	exit(-1);
   }
   fprintf(stderr, "Loaded material is at %p\n", fct);
-  char *mm = strdup(matName);
-  userDefMat[mm] = fct;
+  userDefMat[matName] = fct;
 
 #else
 		std::cerr << " (W) : Warning : not supported under windows/salinas !" << std::endl;
@@ -4164,14 +4163,13 @@ GeoSource::loadMaterial(const char *matName, const char *fileName)
 void
 GeoSource::addMaterial(int i, const char *matName, DoubleList &args)
 {
- std::map<const char *, MatLoader, ltstr>::iterator it =
-	userDefMat.find(matName);
- if(it == userDefMat.end()) {
-	fprintf(stderr, "User defined material %s is not found\n", matName);
-	exit(-1);
- }
- MatLoader ml = userDefMat[matName];
- materials[i] = (*ml)(args.nval, args.v);
+	auto it = userDefMat.find(matName);
+	if(it == userDefMat.end()) {
+		fprintf(stderr, "User defined material %s is not found\n", matName);
+		exit(-1);
+	}
+	MatLoader ml = userDefMat[matName];
+	materials[i] = (*ml)(args.nval, args.v);
 }
 
 void

@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <memory>
+#include <map>
 
 #include <Utils.d/DistHelper.h>
 
@@ -84,8 +85,8 @@
 #include <Element.d/MpcElement.d/MpcElement.h>
 #include <Element.d/MpcElement.d/FsiElement.h>
 #include <Element.d/MatrixElement.d/MatrixElement.h>
+#include <Driver.d/Domain.h>
 
-#include <map>
 extern std::map<int,double> weightList;
 extern std::map<int,double> fieldWeightList;
 #ifdef USE_EIGEN3

@@ -20,11 +20,12 @@ public:
 	double  getMass(const CoordSet& cs) const override;
 	double getMassThicknessSensitivity(CoordSet&) override;
 
+	int getTopNumber() const override;
 	Element *clone() override;
 	void renum(const int *) override;
 	void renum(EleRenumMap&) override;
 	void markDofs(DofSetArray &) const override;
-//	int getTopNumber() override {return 195;}
+//	int getTopNumber() const override {return 195;}
 	int numTopNodes() const override {return (order*(order+1))/2;}
 	int* dofs(DofSetArray &, int *p) const override;
 	int numDofs() const override { return (order*(order+1)); }

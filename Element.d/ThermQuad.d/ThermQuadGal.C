@@ -171,7 +171,7 @@ ThermQuadGal::markDofs(DofSetArray &dsa) const
 }
 
 int
-ThermQuadGal::getTopNumber()
+ThermQuadGal::getTopNumber() const
 {
   return 110; // 2
 }

@@ -70,7 +70,7 @@ public:
 
 	void computePressureForce(CoordSet&, Vector& elPressureForce,
 	                          GeomState *gs, int cflg, double t) override;
-	int getTopNumber() override { return 101; }
+	int getTopNumber() const override { return 101; }
 
 	void extractDeformations(GeomState &geomState, CoordSet &cs, double *vld,
 	                         int &nlflag) override { nlflag = 2; }

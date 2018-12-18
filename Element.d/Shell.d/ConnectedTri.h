@@ -27,7 +27,7 @@ public:
 	void getFlLoad(CoordSet &, const InterpPoint &,
 	                       double *flF, double *resF, GeomState *gs) override;
 	PrioInfo examine(int sub, MultiFront *) override;
-	int getTopNumber() override;
+	int getTopNumber() const override;
 
 };
 

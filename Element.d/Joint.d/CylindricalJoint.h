@@ -11,7 +11,7 @@ class CylindricalJoint : public SuperElement
 {
   public:
     CylindricalJoint(int*);
-    int getTopNumber() override;
+    int getTopNumber() const override;
     bool hasRot() const override { return true; }
     PrioInfo examine(int sub, MultiFront*) override;
 };

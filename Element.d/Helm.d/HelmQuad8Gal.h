@@ -25,7 +25,7 @@ public:
 
 	int numNodes() const override;
 	int * nodes(int *) const override;
-	int getTopNumber() override { return(132); }
+	int getTopNumber() const override { return(132); }
 	void addFaces(PolygonSet *pset) override;
 
 };

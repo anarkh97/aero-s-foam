@@ -116,7 +116,7 @@ BarRadiation::markDofs(DofSetArray& dsa) const
 }
 
 int
-BarRadiation::getTopNumber()
+BarRadiation::getTopNumber() const
 {
   return 147;
 }

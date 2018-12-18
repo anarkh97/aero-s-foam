@@ -152,7 +152,7 @@ QuadContact::markDofs(DofSetArray &dsa) const
 }
 
 int
-QuadContact::getTopNumber()
+QuadContact::getTopNumber() const
 {
   return 148;
 }

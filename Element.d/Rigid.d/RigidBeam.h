@@ -11,7 +11,7 @@ class RigidBeam : public SuperElement
     double length;
   public:
     RigidBeam(int*, int=0);
-    int getTopNumber() override { return 106; }
+    int getTopNumber() const override { return 106; }
     bool isRigidElement() const override { return true; }
     bool hasRot() const override { return true; }
     bool isSafe() const override { return true; }
@@ -31,7 +31,7 @@ class RigidBeamWithMass : public SuperElement
     double length;
   public:
     RigidBeamWithMass(int*, int=0);
-    int getTopNumber() override { return 106; }
+    int getTopNumber() const override { return 106; }
     bool isRigidElement() const override { return true; }
     bool hasRot() const override { return true; }
     bool isSafe() const override { return true; }

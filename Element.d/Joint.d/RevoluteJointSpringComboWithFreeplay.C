@@ -18,7 +18,7 @@ RevoluteJointSpringComboWithFreeplay::RevoluteJointSpringComboWithFreeplay(int* 
 }
 
 int 
-RevoluteJointSpringComboWithFreeplay::getTopNumber() 
+RevoluteJointSpringComboWithFreeplay::getTopNumber() const
 { 
   return 106; 
 }

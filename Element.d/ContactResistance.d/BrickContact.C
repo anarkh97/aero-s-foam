@@ -214,7 +214,7 @@ BrickContact::markDofs(DofSetArray &dsa) const
 }
 
 int
-BrickContact::getTopNumber()
+BrickContact::getTopNumber() const
 {
   return 151;
 }

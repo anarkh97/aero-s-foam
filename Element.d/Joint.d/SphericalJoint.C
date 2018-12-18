@@ -7,7 +7,7 @@ SphericalJoint::SphericalJoint(int* _nn)
 }
 
 int 
-SphericalJoint::getTopNumber() 
+SphericalJoint::getTopNumber() const
 { 
   return 106; 
 }

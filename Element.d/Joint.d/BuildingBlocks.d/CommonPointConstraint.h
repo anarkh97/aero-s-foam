@@ -12,7 +12,7 @@ class CommonPointConstraint : public SuperElement
 public:
 	explicit CommonPointConstraint(int*);
 	void buildFrame(CoordSet& cs) override;
-	int getTopNumber() override;
+	int getTopNumber() const override;
 };
 
 #endif

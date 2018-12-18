@@ -19,7 +19,7 @@ SphericalJointSpringCombo::SphericalJointSpringCombo(int* _nn)
 }
 
 int 
-SphericalJointSpringCombo::getTopNumber() 
+SphericalJointSpringCombo::getTopNumber() const
 { 
   return 106; 
 }

@@ -170,7 +170,7 @@ Therm3DQuad::markDofs(DofSetArray &dsa) const
 }
 
 int
-Therm3DQuad::getTopNumber()
+Therm3DQuad::getTopNumber() const
 {
   return 103; // 2
 }

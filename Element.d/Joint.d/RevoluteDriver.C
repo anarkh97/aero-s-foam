@@ -19,7 +19,7 @@ RevoluteDriver::RevoluteDriver(int* _nn)
 }
 
 int 
-RevoluteDriver::getTopNumber() 
+RevoluteDriver::getTopNumber() const
 { 
   return 106; 
 }

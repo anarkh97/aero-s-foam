@@ -7,7 +7,7 @@ class SphericalJoint : public CommonPointConstraint
 {
   public:
     SphericalJoint(int*);
-    int getTopNumber() override;
+    int getTopNumber() const override;
     PrioInfo examine(int sub, MultiFront*) override;
 };
 

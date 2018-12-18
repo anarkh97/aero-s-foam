@@ -21,7 +21,7 @@ public:
 	
 	int numNodes() const override;
 	int* nodes(int * = 0) const override;
-	int getTopNumber() override;
+	int getTopNumber() const override;
 
 
 	FullSquareMatrix stiffness(const CoordSet&,double *kel, int flg=1) const override;

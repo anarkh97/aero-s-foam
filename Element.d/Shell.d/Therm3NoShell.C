@@ -254,7 +254,7 @@ Therm3NoShell::getFlFlux(double gp[2], double *flF, double *tresF)
 }
 
 int
-Therm3NoShell::getTopNumber()
+Therm3NoShell::getTopNumber() const
 {
   return 146;//4;
 }

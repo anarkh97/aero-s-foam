@@ -36,7 +36,7 @@ CommonPointConstraint::buildFrame(CoordSet& cs)
 }
 
 int 
-CommonPointConstraint::getTopNumber() 
+CommonPointConstraint::getTopNumber() const
 { 
   return 101; 
 }

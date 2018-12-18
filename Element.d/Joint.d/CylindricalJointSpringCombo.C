@@ -19,7 +19,7 @@ CylindricalJointSpringCombo::CylindricalJointSpringCombo(int* _nn)
 }
 
 int 
-CylindricalJointSpringCombo::getTopNumber() 
+CylindricalJointSpringCombo::getTopNumber() const
 { 
   return 106; 
 }

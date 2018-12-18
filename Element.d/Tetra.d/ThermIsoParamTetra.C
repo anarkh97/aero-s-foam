@@ -155,7 +155,7 @@ int ThermIsoParamTetra::numNodes() const {
     return(4);   // to ignore effect of mid-size nodes in dec
 }
 
-int ThermIsoParamTetra::getTopNumber() {
+int ThermIsoParamTetra::getTopNumber() const {
   return 150;//5;
 }
 

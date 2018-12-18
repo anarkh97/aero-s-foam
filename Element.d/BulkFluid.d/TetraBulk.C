@@ -194,7 +194,7 @@ TetraBulk::markDofs(DofSetArray &dsa) const
 }
 
 int
-TetraBulk::getTopNumber()
+TetraBulk::getTopNumber() const
 {
   return 150;
 }

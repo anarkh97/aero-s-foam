@@ -247,11 +247,11 @@ HelmBrick32::markDofs(DofSetArray &dsa) const
 }
 
 // Treat as a Hexa8 (MECH)
-//int HelmBrick32::getTopNumber() { return(117); }  
+//int HelmBrick32::getTopNumber() const { return(117); }
 //int HelmBrick32::numTopNodes() { return(8); }
 
 int
-HelmBrick32::getTopNumber() { return(193); } 
+HelmBrick32::getTopNumber() const { return(193); }
 int
 HelmBrick32::numTopNodes() const { return(32); }
 

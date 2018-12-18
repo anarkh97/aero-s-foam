@@ -10,7 +10,7 @@ class FelippaShellX2 : public SuperElement
     FelippaShellX2(int *nodenums);
 
     Element* clone() override;
-    int getTopNumber() override;
+    int getTopNumber() const override;
     bool isShell() const override { return true; }
 
     // aero functions

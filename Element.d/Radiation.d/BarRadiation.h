@@ -28,7 +28,7 @@ public:
 	int numNodes() const override;
 	int * nodes(int *) const override;
 	PrioInfo examine(int sub, MultiFront *) override;
-	int getTopNumber() override;
+	int getTopNumber() const override;
 
 	bool isRadiationElement() override { return true; }
 

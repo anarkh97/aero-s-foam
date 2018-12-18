@@ -22,6 +22,7 @@ public:
 
 	Element* clone() override;
 
+	int getTopNumber() const override;
 	void setDofs(DofSet *d);
 	void setStiffness(GenAssembledFullM<double> *k);
 	void setStiffness(GenAssembledFullM<complex<double> > *k);

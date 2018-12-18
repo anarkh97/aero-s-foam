@@ -31,7 +31,7 @@ ParallelAxesConstraint::ParallelAxesConstraint(int* _nn, int axis)
 }
 
 int 
-ParallelAxesConstraint::getTopNumber() 
+ParallelAxesConstraint::getTopNumber() const
 { 
   return 106; 
 }

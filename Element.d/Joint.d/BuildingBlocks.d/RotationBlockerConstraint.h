@@ -12,7 +12,7 @@ class RotationBlockerConstraint : public DotType1ConstraintElement
   public:
     RotationBlockerConstraint(int*, int, int);
     void buildFrame(CoordSet&) override;
-    int getTopNumber() override;
+    int getTopNumber() const override;
     bool hasRot() const override { return true; }
 };
 

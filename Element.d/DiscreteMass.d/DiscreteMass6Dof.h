@@ -27,7 +27,7 @@ public:
 	int* dofs(DofSetArray&, int*) const override;
 	void markDofs(DofSetArray&) const override;
 	bool hasRot() const override { return true; }
-	int getTopNumber() override { return 506; }
+	int getTopNumber() const override { return 506; }
 
 	FullSquareMatrix stiffness(const CoordSet&,double *kel, int flg) const override;
 	int getMassType() const override { return 0; } // lumped only

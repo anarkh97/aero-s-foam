@@ -55,7 +55,7 @@ public:
 	void markDofs(DofSetArray &) const override;
 	int* dofs(DofSetArray &, int *p) const override;
 	int numDofs() const override;
-	int getTopNumber() override;
+	int getTopNumber() const override;
 
 	int numNodes() const override;
 	int* nodes(int * ) const override;

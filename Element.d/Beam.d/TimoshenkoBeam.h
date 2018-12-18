@@ -69,7 +69,7 @@ public:
 
 	Corotator *getCorotator(CoordSet &, double *, int, int) override;
 
-	int getTopNumber() override;
+	int getTopNumber() const override;
 
 	void setPressure(PressureBCond *_pbc) override { pbc = _pbc; }
 

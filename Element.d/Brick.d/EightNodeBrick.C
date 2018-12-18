@@ -554,7 +554,7 @@ EightNodeBrick::numDofs() const
 }
 
 int
-EightNodeBrick::getTopNumber()
+EightNodeBrick::getTopNumber() const
 {
   return 117;
 }

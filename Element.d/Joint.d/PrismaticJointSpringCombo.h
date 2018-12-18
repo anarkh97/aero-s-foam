@@ -7,7 +7,7 @@ class PrismaticJointSpringCombo : public SuperElement
 {
   public:
     PrismaticJointSpringCombo(int*);
-    int getTopNumber() override;
+    int getTopNumber() const override;
     bool hasRot() const override { return true; }
     PrioInfo examine(int sub, MultiFront*) override;
 };

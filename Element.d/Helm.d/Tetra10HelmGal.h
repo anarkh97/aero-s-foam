@@ -40,6 +40,6 @@ public:
 private:
 	void computedxdxi(const CoordSet &cs, int nint, double (*derivatives)[10][3], Matrix33 *dxdxi, double *det) const;
 	PrioInfo examine(int sub, MultiFront *) override;
-	int getTopNumber() override {return (142);}
+	int getTopNumber() const override {return (142);}
 };
 #endif

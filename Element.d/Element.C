@@ -318,7 +318,7 @@ Element::computePressureForce(CoordSet&, Vector& elPressureForce,
 }
 
 int
-Element::getTopNumber()
+Element::getTopNumber() const
 {
  return -1;
 }

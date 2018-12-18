@@ -12,7 +12,7 @@ class WeldedJoint : public SuperElement
     ~WeldedJoint() override;
     void setFrame(EFrame *_elemframe) override;
     void buildFrame(CoordSet&) override;
-    int getTopNumber() override;
+    int getTopNumber() const override;
     bool hasRot() const override { return true; }
     PrioInfo examine(int sub, MultiFront*) override;
 };

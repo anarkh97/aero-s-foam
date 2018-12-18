@@ -477,7 +477,7 @@ Penta15::numDofs() const
 // treat as a 6-node penta
 // this is because xpost does not have a 15-node penta
 int
-Penta15::getTopNumber()
+Penta15::getTopNumber() const
 {
   return 124;
 }

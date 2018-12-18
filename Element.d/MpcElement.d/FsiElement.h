@@ -41,7 +41,7 @@ public:
 	int* nodes(int *) const override;
 	int  numInternalNodes() const override { return 0; }
 
-	int  getTopNumber() override { return 502; }
+	int  getTopNumber() const override { return 502; }
 	int numTopNodes() const override { return nnodes; }
 
 	PrioInfo examine(int sub, MultiFront *mf) override;

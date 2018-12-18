@@ -49,7 +49,7 @@ public:
 	int              numNodes() const override;
 	int*             nodes(int *) const override;
 
-	int getTopNumber() override;
+	int getTopNumber() const override;
 
 
 	void computeDisp(CoordSet&cs, State &state, const InterpPoint &,

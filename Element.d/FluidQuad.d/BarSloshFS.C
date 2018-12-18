@@ -120,7 +120,7 @@ BarSloshFS::markDofs(DofSetArray& dsa) const
 }
 
 int
-BarSloshFS::getTopNumber()
+BarSloshFS::getTopNumber() const
 {
   return 147;//1;
 }

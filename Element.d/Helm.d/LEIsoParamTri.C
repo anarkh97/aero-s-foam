@@ -9,6 +9,7 @@
 #include <Math.d/matrix.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Utils.d/dofset.h>
+#include "LEIsoParamTri.h"
 
 
 LEIsoParamTri::LEIsoParamTri(int o, int* nodenums) {
@@ -165,4 +166,9 @@ LEIsoParamTri::numNodes() const {
     return (order*(order+1))/2;
   else
     return(3);   // to ignore effect of mid-size nodes in dec
+}
+
+int LEIsoParamTri::getTopNumber() const
+{
+ return -1;
 }

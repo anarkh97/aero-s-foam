@@ -91,7 +91,7 @@ public:
     void getFlLoad(CoordSet&, const InterpPoint&, double*, double *,
                    GeomState*) override;
 
-    int getTopNumber() override;
+    int getTopNumber() const override;
     void computePressureForce(CoordSet&, Vector& elPressureForce,
                               GeomState* gs, int cflg, double t) override;
 

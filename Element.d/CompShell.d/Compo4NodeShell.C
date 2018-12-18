@@ -44,7 +44,7 @@ Compo4NodeShell::clone()
 }
 
 int
-Compo4NodeShell::getTopNumber()
+Compo4NodeShell::getTopNumber() const
 {
   return 2120;
 }

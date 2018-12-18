@@ -169,7 +169,7 @@ ThermTriangle::markDofs(DofSetArray &dsa) const
 }
 
 int
-ThermTriangle::getTopNumber()
+ThermTriangle::getTopNumber() const
 {
   return 153;//4;
 }

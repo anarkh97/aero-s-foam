@@ -29,7 +29,7 @@ public:
 		fprintf(stderr,"BarSloshFS.h: PrioInfo examine is commented in Dec.d/ElemMFCheck.C.");
 		return *(new PrioInfo);
 	};
-	int getTopNumber() override;
+	int getTopNumber() const override;
 };
 
 #endif

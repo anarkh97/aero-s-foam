@@ -325,7 +325,7 @@ PentaBulk::markDofs(DofSetArray &dsa) const
 }
 
 int
-PentaBulk::getTopNumber()
+PentaBulk::getTopNumber() const
 { 
   // Wrong top number - this type of element still needs to be defined in XPost
   return 151;

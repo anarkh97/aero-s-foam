@@ -25,7 +25,7 @@ public:
 
 	int numNodes() const override;
 	int * nodes(int *) const override;
-	int getTopNumber() override;
+	int getTopNumber() const override;
 	PrioInfo examine(int sub, MultiFront *) override {
 		fprintf(stderr,"SloshQuadGal.h: PrioInfo examine is commented in Dec.d/ElemMFCheck.C");
 		return *(new PrioInfo);

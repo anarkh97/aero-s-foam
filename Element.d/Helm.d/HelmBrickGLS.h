@@ -31,7 +31,7 @@ public:
 
 	void addFaces(PolygonSet *pset) override;
 
-	int getTopNumber() override;
+	int getTopNumber() const override;
 
 	double helmCoef() override { return coef; }
 

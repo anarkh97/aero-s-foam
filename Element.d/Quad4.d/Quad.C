@@ -220,7 +220,7 @@ Quad::markDofs(DofSetArray &dsa) const
 }
 
 int
-Quad::getTopNumber()
+Quad::getTopNumber() const
 {
  return 2;
 }

@@ -25,7 +25,7 @@ public:
 	void renum(const int *) override;
         void renum(EleRenumMap&) override;
 	void markDofs(DofSetArray &) const override;
-	int getTopNumber() override {return 195;}
+	int getTopNumber() const override {return 195;}
 	int numTopNodes() const override {return order*order*order;}
         int* dofs(DofSetArray &, int *p) const override;
         int numDofs() const override { return order*order*order; }

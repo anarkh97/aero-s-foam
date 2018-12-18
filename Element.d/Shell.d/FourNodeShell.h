@@ -9,7 +9,7 @@ public:
 	explicit FourNodeShell(int *nodenums);
 
 	Element* clone() override;
-	int getTopNumber() override;
+	int getTopNumber() const override;
 	bool isShell() const override { return true; }
 
 	int nDecFaces() const override { return 1;}

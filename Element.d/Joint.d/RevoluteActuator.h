@@ -8,7 +8,7 @@ class RevoluteActuator : public SuperElement
   public:
     explicit RevoluteActuator(int*);
     void setProp(StructProp *p, bool myProp) override;
-    int getTopNumber() override;
+    int getTopNumber() const override;
     bool hasRot() const override { return true; }
     PrioInfo examine(int sub, MultiFront*) override;
 };

@@ -48,7 +48,7 @@ WeldedJoint::buildFrame(CoordSet &cs)
 }
 
 int 
-WeldedJoint::getTopNumber() 
+WeldedJoint::getTopNumber() const
 { 
   return 106; 
 }

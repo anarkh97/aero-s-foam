@@ -176,7 +176,7 @@ Therm2NodeBar::markDofs(DofSetArray& dsa) const
 }
 
 int
-Therm2NodeBar::getTopNumber()
+Therm2NodeBar::getTopNumber() const
 {
 	return 109; // 1
 }

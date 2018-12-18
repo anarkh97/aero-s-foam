@@ -26,7 +26,7 @@ public:
 
 	int             numNodes() const override;
 	int * nodes(int *) const override;
-	int getTopNumber() override;
+	int getTopNumber() const override;
 	PrioInfo examine(int sub, MultiFront *) override;
 	int nDecFaces() const override { return 4;}
 	int getDecFace(int iFace, int *fn) override;

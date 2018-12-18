@@ -10,6 +10,7 @@
 #include <Math.d/matrix.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Utils.d/dofset.h>
+#include "HelmIsoParamQuad.h"
 
 
 HelmIsoParamQuad::HelmIsoParamQuad(int o, int* nodenums) {
@@ -213,5 +214,10 @@ HelmIsoParamQuad::numNodes() const {
     return order*order;
   else
     return(4);   // to ignore effect of mid-size nodes in dec
+}
+
+int HelmIsoParamQuad::getTopNumber() const
+{
+    return -1;
 }
 

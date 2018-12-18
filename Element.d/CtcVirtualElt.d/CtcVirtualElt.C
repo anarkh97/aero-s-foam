@@ -82,7 +82,7 @@ CtcVirtualElt::markDofs(DofSetArray& dsa) const
 }
 
 int
-CtcVirtualElt::getTopNumber()
+CtcVirtualElt::getTopNumber() const
 {
  return 0;
 }

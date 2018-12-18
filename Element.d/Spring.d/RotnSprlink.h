@@ -27,7 +27,7 @@ public:
 	int* nodes(int*) const override;
 	Corotator* getCorotator(CoordSet&, double*, int, int) override;
 
-	int getTopNumber() override;
+	int getTopNumber() const override;
 	bool isSafe() const override { return false; }
 	bool isSpring() const override { return true; }
 	PrioInfo examine(int sub, MultiFront*) override;

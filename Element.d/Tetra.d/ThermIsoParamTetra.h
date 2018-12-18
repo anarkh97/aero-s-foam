@@ -26,7 +26,7 @@ public:
         int* nodes(int * = 0) const override;
 
         PrioInfo examine(int sub, MultiFront *mf) override;
-        int getTopNumber() override;
+        int getTopNumber() const override;
 
         Corotator * getCorotator(CoordSet &, double*, int, int) override { return 0; }
 };

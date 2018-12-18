@@ -531,7 +531,7 @@ public:
 
 	virtual Corotator *getCorotator(CoordSet &, double *, int = 2, int = 2);
 
-	virtual int getTopNumber();
+	virtual int getTopNumber() const;
 	virtual int numTopNodes() const { return numNodes() - numInternalNodes(); }   // this is the number of nodes printed in the top file
 	// can make it different to numNodes for elements that aren't
 	// supported by xpost eg RigidSolid6Dof
@@ -590,7 +590,7 @@ public:
 	// (b) for 3D solid element all face normals are outward pointing.
 	virtual int getFace(int iFace, int *fn);
 
-	virtual bool hasDamping() { return false; }
+	virtual bool hasDamping() final { return false; }
 	bool isFluidElement();
 	virtual bool isSommerElement() const { return false; }
 	virtual bool isRadiationElement() { return false; }

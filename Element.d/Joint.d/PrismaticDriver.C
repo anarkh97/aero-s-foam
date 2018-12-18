@@ -17,7 +17,7 @@ PrismaticDriver::PrismaticDriver(int* _nn)
 }
 
 int 
-PrismaticDriver::getTopNumber() 
+PrismaticDriver::getTopNumber() const
 { 
   return 106; 
 }

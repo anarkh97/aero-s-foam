@@ -132,7 +132,7 @@ TriangleConvec::markDofs(DofSetArray &dsa) const
 }
 
 int
-TriangleConvec::getTopNumber()
+TriangleConvec::getTopNumber() const
 {
   return 149;//4;
 }

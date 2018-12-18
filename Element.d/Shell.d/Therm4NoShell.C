@@ -48,7 +48,7 @@ Therm4NoShell::clone()
 }
 
 int
-Therm4NoShell::getTopNumber()
+Therm4NoShell::getTopNumber() const
 {
   return 4746;//2;
 }

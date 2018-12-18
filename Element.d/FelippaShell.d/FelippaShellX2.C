@@ -45,7 +45,7 @@ FelippaShellX2::clone()
 }
 
 int
-FelippaShellX2::getTopNumber()
+FelippaShellX2::getTopNumber() const
 {
   return 188;
 }

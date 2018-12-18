@@ -10,6 +10,7 @@
 #include <Math.d/matrix.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Utils.d/dofset.h>
+#include "HelmIsoParamTri.h"
 
 
 HelmIsoParamTri::HelmIsoParamTri(int o, int* nodenums) {
@@ -221,4 +222,9 @@ HelmIsoParamTri::numNodes() const {
     return (order*(order+1))/2;
   else
     return(3);   // to ignore effect of mid-size nodes in dec
+}
+
+int HelmIsoParamTri::getTopNumber() const
+{
+    return -1;
 }

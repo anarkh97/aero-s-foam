@@ -33,7 +33,7 @@ public:
         int numNodes() const override;
         int * nodes(int *) const override;
 
-	int getTopNumber() override;
+	int getTopNumber() const override;
 
         int getMassType() const override { return 0; } // lumped only
 };

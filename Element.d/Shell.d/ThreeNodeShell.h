@@ -48,7 +48,7 @@ public:
 	void getFlLoad(CoordSet &, const InterpPoint &,
 	               double *flF, double *resF, GeomState *gs) override;
 
-	int getTopNumber() override;
+	int getTopNumber() const override;
 	int nDecFaces() const override { return 1;}
 	int getDecFace(int iFace, int *fn) override { for(int i; i<3; i++) fn[i] = nn[i]; return 3; }
 

@@ -32,7 +32,7 @@ public:
 	int numNodes() const override { return order*order; }
 	int * nodes(int *) const override;
 	void addFaces(PolygonSet *pset) override;
-	int getTopNumber() override {return 163;}
+	int getTopNumber() const override {return 163;}
 
 	PrioInfo examine(int sub, MultiFront *mf) override;
 };

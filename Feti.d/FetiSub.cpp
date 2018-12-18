@@ -1950,10 +1950,9 @@ FetiSub<Scalar>::sendDiag(GenSparseMatrix<Scalar> *s, FSCommPattern<Scalar> *vPa
 template<class Scalar>
 void
 FetiSub<Scalar>::multFcB(Scalar *p) {
-	int i, k;
 	if (Src->numCol() == 0) return;
 	if ((totalInterfSize == 0) || (localLen() == 0)) {
-		for (i = 0; i < Src->numCol(); ++i) fcstar[i] = 0.0;
+		for (int i = 0; i < Src->numCol(); ++i) fcstar[i] = 0.0;
 		return;
 	}
 
@@ -1967,7 +1966,7 @@ FetiSub<Scalar>::multFcB(Scalar *p) {
 
 	// for coupled_dph add fcstar += Kcw Bw uw
 	if (numWIdof) {
-		for (i = 0; i < scomm->lenT(SComm::wet); ++i)
+		for (int i = 0; i < scomm->lenT(SComm::wet); ++i)
 			localw[scomm->wetDofNb(i)] = p[scomm->mapT(SComm::wet, i)];
 		if (Kcw) Kcw->mult(localw.data(), fcstar.data(), -1.0, 1.0);
 		if (Kcw_mpc) Kcw_mpc->multSubWI(localw.data(), fcstar.data());
@@ -1975,12 +1974,12 @@ FetiSub<Scalar>::multFcB(Scalar *p) {
 
 	// fcstar += Bc^(s)^T p
 	bool *mpcFlag = (bool *) dbg_alloca(sizeof(bool) * numMPC);
-	for (i = 0; i < numMPC; ++i) mpcFlag[i] = true;
-	for (i = 0; i < scomm->lenT(SComm::mpc); ++i) {
+	for (int i = 0; i < numMPC; ++i) mpcFlag[i] = true;
+	for (int i = 0; i < scomm->lenT(SComm::mpc); ++i) {
 		int locMpcNb = scomm->mpcNb(i);
 		if (mpcFlag[locMpcNb]) {
 			const auto &m = mpc[locMpcNb];
-			for (k = 0; k < m->nterms; k++) {
+			for (int k = 0; k < m->nterms; k++) {
 				int dof = (m->terms)[k].dof;
 				if ((dof >= 0) && (cornerMap[dof] >= 0))
 					fcstar[cornerMap[dof]] += p[scomm->mapT(SComm::mpc, i)] * (m->terms)[k].coef;

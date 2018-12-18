@@ -281,7 +281,7 @@ TwoNodeTrussF::getCorotator(CoordSet &cs, double *kel, int, int)
 
 
 int
-TwoNodeTrussF::getTopNumber()
+TwoNodeTrussF::getTopNumber() const
 {
   return 101;
 }

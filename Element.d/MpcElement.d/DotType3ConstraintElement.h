@@ -22,7 +22,7 @@ public:
 
 protected:
 	void getConstants(const CoordSet & cs, Eigen::Array<double,10,1>& sconst, Eigen::Array<int,0,1>&,
-	                  const GeomState *gs = nullptr) const;
+	                  const GeomState *gs = nullptr) const override;
 };
 
 #endif

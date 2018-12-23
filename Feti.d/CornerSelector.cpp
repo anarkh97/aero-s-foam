@@ -24,7 +24,7 @@ double magnitude(double v[3]) {
 // variable used to select corner nodes for the 2D-case
 DofSet XYDofs = DofSet::Xdisp | DofSet::Ydisp;
 
-static double checkArea(int np, int *pt, double pxyz[][3], int dim =3)
+static double checkArea(int np, gsl::span<const int> pt, double pxyz[][3], int dim =3)
 {
 	double area = 0.0;
 	if(dim < 3) {
@@ -1074,11 +1074,11 @@ CornerSelector::chooseCorners(char *glCornerList, double (*crnXYZ)[3],
                            Connectivity &cNConnect, Connectivity &subToRotCrn,
                            int *glCrnGroup)
 {
-	Connectivity *subToCrn = cNConnect.alloc_reverse();
-	Connectivity *rotCrnToSub = subToRotCrn.alloc_reverse();
+	Connectivity subToCrn = cNConnect.reverse();
+	Connectivity rotCrnToSub = subToRotCrn.reverse();
 	// fprintf(stderr, "We have %d rot corners\n", rotCrnToSub->csize());
-	Connectivity *rotSubToSub = subToRotCrn.transcon(rotCrnToSub);
-	grToSub = std::make_unique<Connectivity> ( rotSubToSub->connexGroups() );
+	Connectivity rotSubToSub = subToRotCrn.transcon(rotCrnToSub);
+	grToSub = std::make_unique<Connectivity> ( rotSubToSub.connexGroups() );
 
 	double aamin = DBL_MAX, aamax = -DBL_MAX;
 
@@ -1088,12 +1088,12 @@ CornerSelector::chooseCorners(char *glCornerList, double (*crnXYZ)[3],
 		lastGrSize = grToSub->csize();
 		int iGr;
 		// fprintf(stderr, "Group has size %d\n", grToSub->csize());
-		Connectivity *grToCrn = grToSub->transcon(subToCrn);
-		Connectivity *crnToGr = grToCrn->alloc_reverse();
+		Connectivity grToCrn = grToSub->transcon(subToCrn);
+		Connectivity crnToGr = grToCrn.reverse();
 		// Eliminate the corners that are not corners anymore
-		//grToCrn = grToCrn->trim(crnToGr);
-		grToCrn->sortTargets();
-		Connectivity *grToGr = grToCrn->transcon(crnToGr);
+		//grToCrn = grToCrn.trim(crnToGr);
+		grToCrn.sortTargets();
+		Connectivity grToGr = grToCrn.transcon(crnToGr);
 		// Now examine each group and establish a set of connection
 		// priorities
 		int (*fav)[2] = new int[grToSub->csize()][2];
@@ -1102,7 +1102,7 @@ CornerSelector::chooseCorners(char *glCornerList, double (*crnXYZ)[3],
 		int *finalFav = new int[grToSub->csize()];
 		bool *tied = new bool[grToSub->csize()];
 
-		for(iGr = 0; iGr < grToCrn->csize(); ++iGr) {
+		for(iGr = 0; iGr < grToCrn.csize(); ++iGr) {
 			tied[iGr] = false;
 			int jGr;
 			finalFav[iGr] = fav[iGr][0] = fav[iGr][1]  = -1;
@@ -1111,21 +1111,21 @@ CornerSelector::chooseCorners(char *glCornerList, double (*crnXYZ)[3],
 
 			//double amax = 0, amax2 = 0;
 			bamax[iGr][0] = bamax[iGr][1] = 0.0;
-			for(jGr = 0; jGr < grToGr->num(iGr); ++jGr) {
-				int grJ = (*grToGr)[iGr][jGr];
+			for(jGr = 0; jGr < grToGr.num(iGr); ++jGr) {
+				int grJ = (grToGr)[iGr][jGr];
 				if(grJ == iGr) continue;
 				// Find the comon nodes
-				int maxCm = std::min( grToCrn->num(iGr), grToCrn->num(grJ) );
+				int maxCm = std::min( grToCrn.num(iGr), grToCrn.num(grJ) );
 				// XML this needs to be changed
-				int *cnode = (int *) dbg_alloca(maxCm*sizeof(int));
+				std::vector<int>cnode(maxCm, -1);
 				int nc = 0;
 				int n1 = 0, n2 = 0;
-				while(n1 < grToCrn->num(iGr) && n2 < grToCrn->num(grJ)) {
-					if( (*grToCrn)[iGr][n1] == (*grToCrn)[grJ][n2] ) {
-						cnode[nc++] = (*grToCrn)[iGr][n1];
+				while(n1 < grToCrn.num(iGr) && n2 < grToCrn.num(grJ)) {
+					if( (grToCrn)[iGr][n1] == grToCrn[grJ][n2] ) {
+						cnode[nc++] = grToCrn[iGr][n1];
 						n1++; n2++;
 					} else {
-						if( (*grToCrn)[iGr][n1] < (*grToCrn)[grJ][n2] )
+						if( grToCrn[iGr][n1] < grToCrn[grJ][n2] )
 							n1++;
 						else
 							n2++;
@@ -1139,10 +1139,10 @@ CornerSelector::chooseCorners(char *glCornerList, double (*crnXYZ)[3],
 				for(iC = 1; iC < nc; ++iC)
 					if(glCornerList[cnode[iC]]) {
 						if(glCornerList[bc] == 0 ||
-						   crnToGr->num(cnode[iC]) > crnToGr->num(bc))
+						   crnToGr.num(cnode[iC]) > crnToGr.num(bc))
 							bc = cnode[iC];
 					} else if(glCornerList[bc] == 0
-					          && crnToGr->num(cnode[iC]) > crnToGr->num(bc))
+					          && crnToGr.num(cnode[iC]) > crnToGr.num(bc))
 						bc = cnode[iC];
 
 				// Now identify the furthest nodes from one another
@@ -1263,7 +1263,7 @@ CornerSelector::chooseCorners(char *glCornerList, double (*crnXYZ)[3],
 				aamin = 0.6*grAmax;
 		}
 		// Make pairs of groups
-		for(iGr = 0; iGr < grToCrn->csize(); ++iGr) {
+		for(iGr = 0; iGr < grToCrn.csize(); ++iGr) {
 			if(tied[iGr]) continue;
 			if(fav[iGr][0] < 0) {
 				//fprintf(stderr, "Warning: Group %d cannot be tied\n", iGr);
@@ -1272,9 +1272,9 @@ CornerSelector::chooseCorners(char *glCornerList, double (*crnXYZ)[3],
 //           fprintf(stderr, "Sub %d\n", (*grToSub)[iGr][in]);
 					glSubGroup[(*grToSub)[iGr][in]] = iGr;
 				}
-				for(in = 0; in < grToCrn->num(iGr); ++in) {
-//           fprintf(stderr, "Corner %d\n", (*grToCrn)[iGr][in]);
-					glCrnGroup[(*grToCrn)[iGr][in]] = iGr;
+				for(in = 0; in < grToCrn.num(iGr); ++in) {
+//           fprintf(stderr, "Corner %d\n", grToCrn[iGr][in]);
+					glCrnGroup[grToCrn[iGr][in]] = iGr;
 				}
 			} else {
 				// check if one of our favorites is not tied yet
@@ -1298,7 +1298,7 @@ CornerSelector::chooseCorners(char *glCornerList, double (*crnXYZ)[3],
 			}
 		}
 		// now attach the groups that had not been attached yet
-		for(iGr = 0; iGr < grToCrn->csize(); ++iGr) {
+		for(iGr = 0; iGr < grToCrn.csize(); ++iGr) {
 			if(tied[iGr]) continue;
 			if(fav[iGr][0] >= 0) {
 				glCornerList[choices[iGr][0][0]] = 1;
@@ -1308,22 +1308,22 @@ CornerSelector::chooseCorners(char *glCornerList, double (*crnXYZ)[3],
 			}
 		}
 		// Now create a new group to group connectivity
-		int *count = new int[grToCrn->csize()+1];
-		for(iGr = 0; iGr < grToCrn->csize(); ++iGr)
+		int *count = new int[grToCrn.csize()+1];
+		for(iGr = 0; iGr < grToCrn.csize(); ++iGr)
 			count[iGr] = 1;
-		count[grToCrn->csize()] = 0;
-		for(iGr = 0; iGr < grToCrn->csize(); ++iGr)
+		count[grToCrn.csize()] = 0;
+		for(iGr = 0; iGr < grToCrn.csize(); ++iGr)
 			if(finalFav[iGr] >= 0)
 				count[finalFav[iGr]]++;
-		for(iGr = 0; iGr < grToCrn->csize(); ++iGr)
+		for(iGr = 0; iGr < grToCrn.csize(); ++iGr)
 			count[iGr+1] += count[iGr];
-		int *target = new int[count[grToCrn->csize()] ];
-		for(iGr = 0; iGr < grToCrn->csize(); ++iGr) {
+		int *target = new int[count[grToCrn.csize()] ];
+		for(iGr = 0; iGr < grToCrn.csize(); ++iGr) {
 			target[--count[iGr]] = finalFav[iGr];
 			if(finalFav[iGr] >= 0)
 				target[--count[ finalFav[iGr] ] ] = iGr;
 		}
-		Connectivity *gr2Gr = new Connectivity(grToCrn->csize(), count, target);
+		Connectivity *gr2Gr = new Connectivity(grToCrn.csize(), count, target);
 
 		// Find the disconnected parts as separate groups.
 		Connectivity grToPrevGr = gr2Gr->connexGroups();
@@ -1335,17 +1335,12 @@ CornerSelector::chooseCorners(char *glCornerList, double (*crnXYZ)[3],
 		delete [] fav;
 		delete [] bamax;
 		delete gr2Gr;
-
-		delete grToCrn;
-		delete crnToGr;
-		delete grToGr;
+		
 	}
 	//communicator->sync();
 	//fprintf(stderr, "Possible extremes: %e %e\n",aamax, aamin);
 	delete [] crnXYZ;
 
-	delete subToCrn;
-	delete rotCrnToSub;
-	delete rotSubToSub;
+
 }
 

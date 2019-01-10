@@ -3279,185 +3279,181 @@ void GeoSource::readMatchInfo(BinFileHandler &matchFile,
 
 int GeoSource::getCPUMap(FILE *f, Connectivity *subToSub, int glNumSub, int numCPU)
 {
-  int numSub = glNumSub;
-  if(subToSub)
-	numSub = subToSub->csize();
-  int totSub = numSub;
+	int numSub = glNumSub;
+	if(subToSub)
+		numSub = subToSub->csize();
+	int totSub = numSub;
 
-  if(!cpuToSub) {
-#ifdef DISTRIBUTED
-	if(f == 0) { // Trivial map
+	if(!cpuToSub) {
+		if(f == 0) { // Trivial map
 
 #ifdef USE_SCOTCH
-	  if(subToSub) {
+			if(subToSub) {
 	if(verboseFlag) filePrint(stderr, " ... Making CPU Map using SCOTCH, numCPU = %d ...\n", numCPU);
 	Connectivity *graph = subToSub->modifyAlt(); // scotch doesn't allow loops
 	cpuToSub = std::shared_ptr<Connectivity>(graph->SCOTCH_graphPart(numCPU));
 	delete graph;
 	  } else
 #endif
-	  {
-		if(verboseFlag) filePrint(stderr, " ... Making Trivial CPU Map, numCPU = %d ... \n", numCPU);
-		int *cx  = new int[numCPU+1];
-		int *connect = new int[totSub];
-		if(subToCPU) delete [] subToCPU;
-		subToCPU = new int[totSub];
+			{
+				if(verboseFlag) filePrint(stderr, " ... Making Trivial CPU Map, numCPU = %d ... \n", numCPU);
+				int *cx  = new int[numCPU+1];
+				int *connect = new int[totSub];
+				if(subToCPU) delete [] subToCPU;
+				subToCPU = new int[totSub];
 
-		int curSub = 0;
-		int icpu;
-		int nSubPerCPU = totSub/numCPU;
-		int remain = totSub%numCPU;
-		for (icpu = 0; icpu < numCPU; ++icpu) {
-		  cx[icpu] = curSub;
-		  int iSub;
-		  int subForCPU = (icpu < remain) ? nSubPerCPU+1 : nSubPerCPU;
-		  for(iSub = 0; iSub < subForCPU; ++iSub) {
-			connect[curSub] = curSub;
-			subToCPU[curSub] = icpu;
-			curSub++;
-		  }
+				int curSub = 0;
+				int icpu;
+				int nSubPerCPU = totSub/numCPU;
+				int remain = totSub%numCPU;
+				for (icpu = 0; icpu < numCPU; ++icpu) {
+					cx[icpu] = curSub;
+					int iSub;
+					int subForCPU = (icpu < remain) ? nSubPerCPU+1 : nSubPerCPU;
+					for(iSub = 0; iSub < subForCPU; ++iSub) {
+						connect[curSub] = curSub;
+						subToCPU[curSub] = icpu;
+						curSub++;
+					}
+				}
+				cx[numCPU] = curSub;
+				cpuToSub = std::make_shared<Connectivity>(numCPU, cx, connect);
+			}
+		} else {
+			cpuToSub = std::make_shared<Connectivity>(f,totSub);
+			numCPU = cpuToSub->csize();
+			filePrint(stderr, " ... Reading CPU Map from file %s, numCPU = %d ... \n", mapName, numCPU);
+			if(numCPU != structCom->numCPUs()) {
+				fprintf(stderr, " *** ERROR: CPUMAP file is for %d MPI processes\n", numCPU);
+				exit(-1);
+			}
 		}
-		cx[numCPU] = curSub;
-		cpuToSub = std::make_shared<Connectivity>(numCPU, cx, connect);
-	  }
-	} else {
-#endif
-	  cpuToSub = std::make_shared<Connectivity>(f,totSub);
-	  numCPU = cpuToSub->csize();
-	  filePrint(stderr, " ... Reading CPU Map from file %s, numCPU = %d ... \n", mapName, numCPU);
-#ifdef DISTRIBUTED
-	  if(numCPU != structCom->numCPUs()) {
-	fprintf(stderr, " *** ERROR: CPUMAP file is for %d MPI processes\n", numCPU);
-	exit(-1);
-	  }
 	}
-#endif
-  }
 
-  Connectivity subDomainToCPU = cpuToSub->reverse();
-  if(cpuToCPU) delete cpuToCPU;
-  cpuToCPU = cpuToSub->transcon(&subDomainToCPU);
+	Connectivity subDomainToCPU = cpuToSub->reverse();
+	if(cpuToCPU) delete cpuToCPU;
+	cpuToCPU = cpuToSub->transcon(&subDomainToCPU);
 
-  if(domain->solInfo().aeroFlag >= 0 || domain->solInfo().aeroheatFlag >= 0) {
-	int numLocSub = 0;
+	if(domain->solInfo().aeroFlag >= 0 || domain->solInfo().aeroheatFlag >= 0) {
+		int numLocSub = 0;
 #ifdef USE_MPI
-	int myID = structCom->myID();
+		int myID = structCom->myID();
 #else
-	int myID = 0;
+		int myID = 0;
 #endif
-	numLocSub = cpuToSub->num(myID);
+		numLocSub = cpuToSub->num(myID);
 
-	// allocate for match data arrays
-	typedef double (*gVec)[3];
-	numMatchData = new int[numLocSub];
-	matchData = new MatchData *[numLocSub];
-	numGapVecs = new int[numLocSub];
-	gapVec = new gVec[numLocSub];
+		// allocate for match data arrays
+		typedef double (*gVec)[3];
+		numMatchData = new int[numLocSub];
+		matchData = new MatchData *[numLocSub];
+		numGapVecs = new int[numLocSub];
+		gapVec = new gVec[numLocSub];
 
-	// PJSA 02-04-2010
-	if(matchName != NULL) {
-	  BinFileHandler connectivityFile(conName, "rb");
-	  Connectivity clusToSub(connectivityFile, true);
+		// PJSA 02-04-2010
+		if(matchName != NULL) {
+			BinFileHandler connectivityFile(conName, "rb");
+			Connectivity clusToSub(connectivityFile, true);
 
-	  // build global to cluster subdomain map
-	  int *gl2ClSubMap = new int[totSub];
-	  for (int iClus = 0; iClus < 1; iClus++)  { // only one cluster currently supported
-		int clusNum = 0;
-		for (int iSub = 0; iSub < clusToSub.num(iClus); iSub++)
-		  gl2ClSubMap[ clusToSub[iClus][iSub] ] = clusNum++;
-	  }
+			// build global to cluster subdomain map
+			int *gl2ClSubMap = new int[totSub];
+			for (int iClus = 0; iClus < 1; iClus++)  { // only one cluster currently supported
+				int clusNum = 0;
+				for (int iSub = 0; iSub < clusToSub.num(iClus); iSub++)
+					gl2ClSubMap[ clusToSub[iClus][iSub] ] = clusNum++;
+			}
 
-	  for(int locSub = 0; locSub < numLocSub; ++locSub) {
+			for(int locSub = 0; locSub < numLocSub; ++locSub) {
 
-		char fullDecName[128];
-		sprintf(fullDecName, "%s1", decName); // only one cluster currently supported
-		BinFileHandler decFile(fullDecName, "rb");
+				char fullDecName[128];
+				sprintf(fullDecName, "%s1", decName); // only one cluster currently supported
+				BinFileHandler decFile(fullDecName, "rb");
 
-		// read some stuff from decFile which can now be discarded
-		int numClusSub;
-		decFile.read(&numClusSub, 1);
-		BinFileHandler::OffType curLoc = decFile.tell();
-		int glSub = (*cpuToSub)[myID][locSub];
-		int clusSub = gl2ClSubMap[glSub];
-		decFile.seek(curLoc + sizeof(BinFileHandler::OffType) * clusSub);
-		BinFileHandler::OffType infoLoc;
-		decFile.read(&infoLoc, 1);
-		decFile.seek(infoLoc);
-		int (*nodeRanges)[2] = 0;
-		int numNodeRanges;
-		int numLocNodes = readRanges(decFile, numNodeRanges, nodeRanges);
-		int (*elemRanges)[2] = 0;
-		int numElemRanges;
-		int numLocElems = readRanges(decFile, numElemRanges, elemRanges);
+				// read some stuff from decFile which can now be discarded
+				int numClusSub;
+				decFile.read(&numClusSub, 1);
+				BinFileHandler::OffType curLoc = decFile.tell();
+				int glSub = (*cpuToSub)[myID][locSub];
+				int clusSub = gl2ClSubMap[glSub];
+				decFile.seek(curLoc + sizeof(BinFileHandler::OffType) * clusSub);
+				BinFileHandler::OffType infoLoc;
+				decFile.read(&infoLoc, 1);
+				decFile.seek(infoLoc);
+				int (*nodeRanges)[2] = 0;
+				int numNodeRanges;
+				int numLocNodes = readRanges(decFile, numNodeRanges, nodeRanges);
+				int (*elemRanges)[2] = 0;
+				int numElemRanges;
+				int numLocElems = readRanges(decFile, numElemRanges, elemRanges);
 
-		int minElemNum = elemRanges[0][0];
-		int maxElemNum = 0;
-		for(int iR = 0; iR < numElemRanges; iR++)  {
-		  if(elemRanges[iR][0] < minElemNum)
-			minElemNum = elemRanges[iR][0];
-		  if(elemRanges[iR][1] > maxElemNum)
-			maxElemNum = elemRanges[iR][1];
+				int minElemNum = elemRanges[0][0];
+				int maxElemNum = 0;
+				for(int iR = 0; iR < numElemRanges; iR++)  {
+					if(elemRanges[iR][0] < minElemNum)
+						minElemNum = elemRanges[iR][0];
+					if(elemRanges[iR][1] > maxElemNum)
+						maxElemNum = elemRanges[iR][1];
+				}
+				maxElemNum++;  // for easy allocation
+				int iElem;
+				int *cl2LocElem = new int[maxElemNum];
+				for(iElem = 0; iElem < maxElemNum; iElem++)
+					cl2LocElem[iElem] = -1;
+				iElem = 0;
+				for(int iR = 0; iR < numElemRanges; ++iR)
+					for(int cElem = elemRanges[iR][0]; cElem <= elemRanges[iR][1]; ++cElem) {
+						cl2LocElem[cElem] = iElem++;
+					}
+				if(nodeRanges) delete [] nodeRanges;
+				if(elemRanges) delete [] elemRanges;
+
+				int nConnects;
+				decFile.read(&nConnects, 1);
+				if(nConnects > 0) {
+					int *connectedDomain = new int[nConnects];
+					decFile.read(connectedDomain, nConnects);
+					int size, numtarget;
+					decFile.read(&size, 1);
+					decFile.read(&numtarget, 1);
+					int *pointer = new int[size+1];
+					decFile.read(pointer, size+1);
+					if(numtarget > 0) {
+						int *target = new int[numtarget];
+						decFile.read(target, numtarget);
+						delete [] target;
+					}
+					delete [] pointer;
+					delete [] connectedDomain;
+				}
+
+				// now we are at the right place in decFile to read matcher stuff
+				int numMatchRanges;
+				int (*matchRanges)[2] = 0;
+				numMatchData[locSub] = readRanges(decFile, numMatchRanges, matchRanges);
+				matchData[locSub] = new MatchData[numMatchData[locSub]];
+				gapVec[locSub] = new double[numMatchData[locSub]][3];
+				if(numMatchRanges) {
+					char fullMatchName[128];
+					sprintf(fullMatchName, "%s1", matchName); // only one cluster currently supported
+					BinFileHandler matchFile(fullMatchName, "rb");
+					readMatchInfo(matchFile, matchRanges, numMatchRanges, locSub, cl2LocElem, myID);
+				}
+				if(matchRanges) delete [] matchRanges;
+				delete [] cl2LocElem;
+			}
+			delete [] gl2ClSubMap;
+			delete unsortedSubToElem;
+			unsortedSubToElem = 0;
 		}
-		maxElemNum++;  // for easy allocation
-		int iElem;
-		int *cl2LocElem = new int[maxElemNum];
-		for(iElem = 0; iElem < maxElemNum; iElem++)
-		  cl2LocElem[iElem] = -1;
-		iElem = 0;
-		for(int iR = 0; iR < numElemRanges; ++iR)
-		  for(int cElem = elemRanges[iR][0]; cElem <= elemRanges[iR][1]; ++cElem) {
-			cl2LocElem[cElem] = iElem++;
-		  }
-		if(nodeRanges) delete [] nodeRanges;
-		if(elemRanges) delete [] elemRanges;
-
-		int nConnects;
-		decFile.read(&nConnects, 1);
-		if(nConnects > 0) {
-		  int *connectedDomain = new int[nConnects];
-		  decFile.read(connectedDomain, nConnects);
-		  int size, numtarget;
-		  decFile.read(&size, 1);
-		  decFile.read(&numtarget, 1);
-		  int *pointer = new int[size+1];
-		  decFile.read(pointer, size+1);
-		  if(numtarget > 0) {
-			int *target = new int[numtarget];
-			decFile.read(target, numtarget);
-			delete [] target;
-		  }
-		  delete [] pointer;
-		  delete [] connectedDomain;
-		}
-
-		// now we are at the right place in decFile to read matcher stuff
-		int numMatchRanges;
-		int (*matchRanges)[2] = 0;
-		numMatchData[locSub] = readRanges(decFile, numMatchRanges, matchRanges);
-		matchData[locSub] = new MatchData[numMatchData[locSub]];
-		gapVec[locSub] = new double[numMatchData[locSub]][3];
-		if(numMatchRanges) {
-		  char fullMatchName[128];
-		  sprintf(fullMatchName, "%s1", matchName); // only one cluster currently supported
-		  BinFileHandler matchFile(fullMatchName, "rb");
-		  readMatchInfo(matchFile, matchRanges, numMatchRanges, locSub, cl2LocElem, myID);
-		}
-		if(matchRanges) delete [] matchRanges;
-		delete [] cl2LocElem;
-	  }
-	  delete [] gl2ClSubMap;
-	  delete unsortedSubToElem;
-	  unsortedSubToElem = 0;
-	}
 /*
 	else {
 	  fprintf(stderr,"*** ERROR: Binary Match File not specified\n");
 	  exit (-1);
 	}
 */
-  }
+	}
 
-  return numCPU;
+	return numCPU;
 }
 
 //-----------------------------------------------------------------------

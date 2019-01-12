@@ -3269,8 +3269,8 @@ GenDecDomain<Scalar>::makeGlobalMpcToMpc(Connectivity *_procMpcToMpc)
 // to assemble the matrix CC^T for the generalized preconditioner (rixen/dual method)
   int i, j, k;
   int pid = myCPU;
-  int *size = new int[numCPU];
-  int *numtarget = new int[numCPU];
+  std::vector<int> size(numCPU);
+  std::vector<int> numtarget(numCPU);
   for(i=0; i<numCPU; ++i) {
     if(i == pid) {
       size[i] = _procMpcToMpc->csize();
@@ -3282,8 +3282,8 @@ GenDecDomain<Scalar>::makeGlobalMpcToMpc(Connectivity *_procMpcToMpc)
     }
   }
 #ifdef DISTRIBUTED
-  communicator->globalSum(numCPU, size);
-  communicator->globalSum(numCPU, numtarget);
+	communicator->globalSum(size);
+	communicator->globalSum(numtarget);
 #endif
 
   int totSize = 0;
@@ -3293,8 +3293,8 @@ GenDecDomain<Scalar>::makeGlobalMpcToMpc(Connectivity *_procMpcToMpc)
     totNumtarget += numtarget[i];
   }
 
-  int *pointer = new int[totSize+numCPU];
-  int *target = new int[totNumtarget];
+	std::vector<int> pointer(totSize+numCPU);
+	std::vector<int> target(totNumtarget);
   int startp = 0;
   int startt = 0;
   for(i=0; i<pid; ++i) {
@@ -3309,35 +3309,36 @@ GenDecDomain<Scalar>::makeGlobalMpcToMpc(Connectivity *_procMpcToMpc)
   for(i=0; i<numtarget[pid]; ++i)
     target[startt + i] = _procMpcToMpc->getTargetValue(i);
 #ifdef DISTRIBUTED
-  communicator->globalSum(totSize+numCPU, pointer);
-  communicator->globalSum(totNumtarget, target);
+    communicator->globalSum(pointer);
+    communicator->globalSum(target);
 #endif
 
   // now all the _procMpcToMpc connectivity data is stored in size, pointer and target
-  Connectivity **tmpMpcToMpc = new Connectivity * [numCPU];
+  std::vector<Connectivity> tmpMpcToMpc;
+	tmpMpcToMpc.reserve(numCPU);
   for(i=0; i<numCPU; ++i) {
     startp = 0; startt = 0;
     for(j=0; j<i; ++j) {
       startp += size[j]+1;
       startt += numtarget[j];
     }
-    tmpMpcToMpc[i] = new Connectivity(size[i], pointer+startp, target+startt, 0);
+    tmpMpcToMpc.emplace_back(size[i], &pointer[startp], &target[startt], 0);
   }
   // now each processor has the _procMpcToMpc connectivities for all other processors
   Connectivity subToCpu = cpuToSub->reverse();
   mpcToCpu = std::make_unique<Connectivity>( mpcToSub_dual->transcon(subToCpu) );
   int csize = mpcToCpu->csize();
-  int *flags = new int[csize];
+	std::vector<int> flags(csize);
   for(i=0; i<csize; ++i) flags[i] = -1;
   // identify the number of connections from MPC i
-  int *np = new int[csize+1];
+  std::vector<int> np(csize+1);
   int cp = 0;
   for(i=0; i<csize; ++i) {
     np[i] = cp;
     for(j=0; j < mpcToCpu->num(i); ++j) {
       int cpu = (*mpcToCpu)[i][j];
-      for(k=0; k < tmpMpcToMpc[cpu]->num(i); ++k) {
-        int mpck = (*tmpMpcToMpc[cpu])[i][k];
+      for(k=0; k < tmpMpcToMpc[cpu].num(i); ++k) {
+        int mpck = tmpMpcToMpc[cpu][i][k];
         if(flags[mpck] != i) {
           cp++;
           flags[mpck] = i;
@@ -3349,14 +3350,14 @@ GenDecDomain<Scalar>::makeGlobalMpcToMpc(Connectivity *_procMpcToMpc)
 
   // Now allocate and fill the new target
   for(i=0; i<csize; ++i) flags[i] = -1;
-  int *ntg = new int[cp];
+	std::vector<int> ntg(cp);
   cp = 0;
   for(i=0; i<csize; ++i) {
     np[i] = cp;
     for(j=0; j < mpcToCpu->num(i); ++j) {
       int cpu = (*mpcToCpu)[i][j];
-      for(k=0; k < tmpMpcToMpc[cpu]->num(i); ++k) {
-        int mpck = (*tmpMpcToMpc[cpu])[i][k];
+      for(k=0; k < tmpMpcToMpc[cpu].num(i); ++k) {
+        int mpck = tmpMpcToMpc[cpu][i][k];
         if(flags[mpck] != i) {
           ntg[cp] = mpck;
           cp++;
@@ -3366,20 +3367,13 @@ GenDecDomain<Scalar>::makeGlobalMpcToMpc(Connectivity *_procMpcToMpc)
     }
   }
 
-  delete [] size;
-  delete [] numtarget;
-  delete [] flags;
-  delete [] pointer;
-  delete [] target;
-  for(i=0; i<numCPU; ++i) delete tmpMpcToMpc[i];
-  delete [] tmpMpcToMpc;
 #ifdef USE_MUMPS
   if(domain->solInfo().solvercntl->fetiInfo.cct_cntl->subtype == FetiInfo::mumps && domain->solInfo().solvercntl->fetiInfo.cct_cntl->mumps_icntl[18] == 3) {
     procMpcToMpc = _procMpcToMpc;
   } else
 #endif
   delete _procMpcToMpc;
-  mpcToMpc = std::make_unique<Connectivity>(csize, np, ntg);
+  mpcToMpc = std::make_unique<Connectivity>(csize, std::move(np), std::move(ntg));
 }
 
 template<class Scalar>

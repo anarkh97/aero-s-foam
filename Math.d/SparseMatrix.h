@@ -34,6 +34,8 @@ class GenSMV {
 
 template<class Scalar>
 class GenSparseMatrix {
+		// TODO Get this out of here! Single use object that should be built
+		// by the class using it (ScalarBlockDiagPrec)
         GenSolver<Scalar>* meansolver;
         int *firstdof;
         Scalar* scalarfactors;
@@ -130,13 +132,15 @@ class SparseData {
   std::vector<int> xunonz;
   std::vector<int> rowu;
   std::vector<int> colu;
-  int numConstrained;
-  int numUncon;
-  int neq;
-  int myMem_rowu;
+  int numConstrained = 0;
+  int numUncon = 0;
+  int neq = 0;
+//  int myMem_rowu = 1;
  public: 
     SparseData();
     // Constructors for data structures of type CuCSparse and CuCComplexSparse
+
+    /// \brief Form the sparse data associated with constrained to unconstrained DOFs
     SparseData(const Connectivity *con, const DofSetArray *dsa, const int *bc);
     SparseData(const Connectivity *con, const DofSetArray *dsa, const DofSetArray *c_dsa);
     SparseData(const Connectivity *con, const DofSetArray *dsa, const int *glbmap, const int *glimap);
@@ -154,7 +158,7 @@ class SparseData {
     SparseData(const Connectivity *cn, const EqNumberer *eqn, double trbm, int expand = 1);
 
     // MLX This constructor is for the Padma sparse solver
-    SparseData(const EqNumberer *eqn, const Connectivity *cn, double trbm);
+    SparseData(const EqNumberer *eqn, const Connectivity *cn);
 
     // KHP: for storing mpcs.
     // ML: Can we make the LMPConst const? Can't implicitely cast LMPCons ** to const LMPConst **
@@ -167,9 +171,6 @@ class SparseData {
 
     virtual ~SparseData();
     void clean_up();
-
-  private:
-    void initialize();
 
 };
 

@@ -40,6 +40,7 @@ public:
 
 	void parallelFactor() override;
 private:
+	CholmodImp &getImplementation();
 
 	std::unique_ptr<CholmodImp> impl;
 };
@@ -78,14 +79,22 @@ void CholmodSolver<Scalar>::solve(const Scalar *rhs, Scalar *solution)
 template<typename Scalar>
 void CholmodSolver<Scalar>::factor()
 {
-	// TODO
+	auto &cholmodImp = getImplementation();
 }
 
 
 template<typename Scalar>
 void CholmodSolver<Scalar>::parallelFactor()
 {
-	// TODO
+	factor(); // TODO make parallel.
+}
+
+template<typename Scalar>
+CholmodImp &CholmodSolver<Scalar>::getImplementation()
+{
+//	if ( !impl )
+//		impl = std::make_unique<CholmodImp>();
+	return *impl;
 }
 
 template class CholmodSolver<double>;

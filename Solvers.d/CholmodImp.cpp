@@ -19,7 +19,7 @@ cholmod_common *getCholmodCommon() {
 #endif // USE_CHOLMOD
 }
 
-CholmodImp::CholmodImp(const Connectivity *cn, const EqNumberer *_dsa, bool isComplex)
+CholmodImp::CholmodImp(const SparseData &fortranBasedUpperMatrix, bool isComplex)
 {
 #ifdef USE_CHOLMOD
 	auto c = getCholmodCommon();

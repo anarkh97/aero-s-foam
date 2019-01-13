@@ -5,6 +5,8 @@
 #ifndef FEM_CHOLMODIMP_H
 #define FEM_CHOLMODIMP_H
 
+#include <Math.d/SparseMatrix.h>
+
 #ifdef USE_CHOLMOD
 #include "cholmod.h"
 #else
@@ -17,7 +19,7 @@ class EqNumberer;
 
 class CholmodImp {
 public:
-	CholmodImp(const Connectivity *cn, const EqNumberer *_dsa, bool isComplex);
+	CholmodImp(const SparseData &fortranBasedUpperMatrix, bool isComplex);
 	~CholmodImp();
 
 	long memorySize() const;

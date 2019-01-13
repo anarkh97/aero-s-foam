@@ -100,6 +100,7 @@ class GenSolver {
     // function to return memory used
     virtual double getMemoryUsed() const { return memUsed; }
 
+    /// \brief Get the memory used by the solver in bytes.
     virtual long size() const = 0;
     virtual void clean_up();
 

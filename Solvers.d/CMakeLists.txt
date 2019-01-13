@@ -9,6 +9,7 @@ ADD_LIBRARY(solver
         GoldfarbIdnani.C
         SolverFactoryCore.C
         MultiDomainSolver.h MultiDomainSolver.C
+		CholmodSolver.cpp CholmodSolver.h
 		)
 if(USE_CHOLMOD)
 	message("Looking for CHOLMOD")
@@ -16,13 +17,13 @@ if(USE_CHOLMOD)
 	message("Cholmod include: ${CHOLMOD_INCLUDE_DIR}")
 	message("Cholmod libraries: ${CHOLMOD_LIBRARIES}")
 	if (CHOLMOD_INCLUDE_DIR AND CHOLMOD_LIBRARIES)
-		message("Will use CholMod")
+		message("Will use CholMod and ${CHOLMOD_FOUND}")
+		# pass whether we use choldmod or not to the base CMakeLists.
+		set (CHOLMOD_FOUND ${CHOLMOD_FOUND} PARENT_SCOPE)
 		target_sources(solver
 				PRIVATE
-				CholmodSolver.cpp
 				CholmodImp.h CholmodImp.cpp
-				PUBLIC
-				CholmodSolver.h)
+				)
 		target_compile_definitions(solver PUBLIC WITH_CHOLMOD)
 		target_include_directories(solver PRIVATE ${CHOLMOD_INCLUDE_DIR})
 	endif (CHOLMOD_INCLUDE_DIR AND CHOLMOD_LIBRARIES)

@@ -20,6 +20,7 @@
 #include <Math.d/DBSparseMatrix.h>
 #include <Driver.d/Communicator.h>
 #include <Utils.d/DistHelper.h>
+#include "CholmodSolver.h"
 
 template<class Scalar>
 GenSolver<Scalar> *
@@ -121,15 +122,24 @@ GenSolverFactory<Scalar>::createSolver(const Connectivity *con, const EqNumberer
 				} break;
 #endif
 				case 17: {
-					GenEiSparseMatrix<Scalar,Eigen::SparseQR<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > > *s =
-							new GenEiSparseMatrix<Scalar,Eigen::SparseQR<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > >(con, eqnum, false);
+					auto *s =
+						new GenEiSparseMatrix<Scalar,Eigen::SparseQR<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > >(con, eqnum, false);
 					solver = (GenSolver<Scalar> *) s;
 					sparse = (GenSparseMatrix<Scalar> *) s;
 				} break;
 #endif
+				case 18: { // CholMod
+					auto p = getCholmod<Scalar>(con, eqnum);
+					solver = p.first;
+					sparse = p.second;
+					throw "Not done yet.";
+				}
+				case 19: { // Pardiso in MKL
+					throw "Not done yet.";
+				}
 			}
 
-		} break;
+		} break; // case Direct solver
 
 		default: break;
 	}

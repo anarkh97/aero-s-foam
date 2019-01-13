@@ -125,23 +125,28 @@ public:
 
 class LMPCons;
 
+/** \brief Structure data of a sparse matrix arranged in a column by column storage.
+ *
+ * \details The column by column storage is only a matter of vocabulary.
+ * Effectively xunonz, rowu have the same structure as a Connectivity.
+ */
 class SparseData {
  protected:
   std::vector<int> unconstrNum;
   std::vector<int> constrndNum;
-  std::vector<int> xunonz;
-  std::vector<int> rowu;
-  std::vector<int> colu;
+  std::vector<int> xunonz; //!< \brief Pointer into rowu for the start of each column.
+  std::vector<int> rowu; //!< Row index of each term.
+  std::vector<int> colu; //!< Column index for  an entry
   int numConstrained = 0;
   int numUncon = 0;
   int neq = 0;
-//  int myMem_rowu = 1;
- public: 
-    SparseData();
+ public:
+    SparseData() = default;
     // Constructors for data structures of type CuCSparse and CuCComplexSparse
 
-    /// \brief Form the sparse data associated with constrained to unconstrained DOFs
+    /// \brief Form the sparse data for constrained to unconstrained DOFs. Generates 0-based indexing.
     SparseData(const Connectivity *con, const DofSetArray *dsa, const int *bc);
+	/// \brief Form the sparse data for constrained to unconstrained DOFs. Generates 0-based indexing.
     SparseData(const Connectivity *con, const DofSetArray *dsa, const DofSetArray *c_dsa);
     SparseData(const Connectivity *con, const DofSetArray *dsa, const int *glbmap, const int *glimap);
 
@@ -157,7 +162,11 @@ class SparseData {
     // This constructor is for the Esmond sparse solver (BLKSparseMatrix)
     SparseData(const Connectivity *cn, const EqNumberer *eqn, double trbm, int expand = 1);
 
-    // MLX This constructor is for the Padma sparse solver
+	/** \brief Form the sparse data for a square matrix in 0-based indexing.
+	 *
+	 * @param eqn Equation numbering for the nodes.
+	 * @param cn Node to node connectivity.
+	 */
     SparseData(const EqNumberer *eqn, const Connectivity *cn);
 
     // KHP: for storing mpcs.

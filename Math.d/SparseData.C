@@ -1,12 +1,10 @@
 #include <Utils.d/dbg_alloca.h>
-#include <cstdio>
 #include <Math.d/SparseMatrix.h>
 #include <Utils.d/Connectivity.h>
 #include <Driver.d/Mpc.h>
 
 SparseData::~SparseData()
 {
-  clean_up();
 }
 
 void
@@ -22,10 +20,6 @@ SparseData::clean_up()
 	rowu.shrink_to_fit();
 	colu.clear();
 	colu.shrink_to_fit();
-}
-
-SparseData::SparseData()
-{
 }
 
 SparseData::SparseData(const Connectivity *con, const DofSetArray *dsa, const int *bc)
@@ -118,9 +112,6 @@ SparseData::SparseData(const Connectivity *con, const DofSetArray *dsa, const in
 SparseData::SparseData(const Connectivity *con, const DofSetArray *dsa,
                        const DofSetArray *c_dsa)
 {
- 
- int i, j, k, l;
-
  neq = dsa->size();
 
  int numNodes = c_dsa->numNodes();
@@ -136,11 +127,11 @@ SparseData::SparseData(const Connectivity *con, const DofSetArray *dsa,
  int *numFixed    = (int * ) dbg_alloca(sizeof(int)*numNodes);
  int *numNotFixed = (int * ) dbg_alloca(sizeof(int)*numNodes);
 
- for(i=0; i<numNodes; ++i) {
+ for (int i=0; i<numNodes; ++i) {
    numFixed[i] = 0;
    int myFirstDof = dsa->firstdof(i);
    int myNumDofs  = dsa->weight(i);
-   for(j = 0; j < myNumDofs; ++j)
+   for (int j = 0; j < myNumDofs; ++j)
      if(constrndNum[myFirstDof+j] >= 0) numFixed[i] += 1;
    numNotFixed[i] = myNumDofs - numFixed[i];
  }
@@ -148,20 +139,20 @@ SparseData::SparseData(const Connectivity *con, const DofSetArray *dsa,
 // Allocate memory for xunonz.
  xunonz.resize(numConstrained+1);
 
- for(i=0; i<numNodes; ++i) {
+ for (int i=0; i<numNodes; ++i) {
    if(numFixed[i] == 0) continue;
    int nentries=0;
-   for(j=0; j<con->num(i); ++j)
+   for (int j=0; j<con->num(i); ++j)
      nentries += numNotFixed[(*con)[i][j]];
    int myFirstDof = dsa->firstdof(i);
    int myNumDofs  = dsa->weight(i);
-   for(j=0; j<myNumDofs; ++j)
+   for (int j=0; j<myNumDofs; ++j)
      if(constrndNum[myFirstDof+j] >= 0)
         xunonz[constrndNum[myFirstDof+j]] = nentries;
  }
 
  int count = 0;
- for(i=0; i<numConstrained; ++i) {
+ for (int i=0; i<numConstrained; ++i) {
    int temp = xunonz[i];
    xunonz[i] = count;
    count += temp;
@@ -170,17 +161,17 @@ SparseData::SparseData(const Connectivity *con, const DofSetArray *dsa,
 
  rowu.resize(count);
 
- for(i=0; i<numNodes; ++i) {
+ for (int i=0; i<numNodes; ++i) {
    if(numFixed[i] == 0) continue;
    int iFirstDof = dsa->firstdof(i);
    int nentries=0;
-   for(j=0; j<con->num(i); ++j) {
+   for (int j=0; j<con->num(i); ++j) {
      int jNode = (*con)[i][j];
      if(numNotFixed[jNode] == 0) continue;
      int jFirstDof = dsa->firstdof(jNode);
-     for(k=0; k<dsa->weight(jNode); ++k) {
+     for (int k=0; k<dsa->weight(jNode); ++k) {
        if(unconstrNum[jFirstDof + k] >= 0) {
-         for(l = 0; l < dsa->weight(i); ++l)
+         for (int l = 0; l < dsa->weight(i); ++l)
             if(constrndNum[iFirstDof+l] >= 0)
                rowu[ xunonz [constrndNum[iFirstDof+l]] +nentries] = unconstrNum[jFirstDof + k];
          nentries++;
@@ -276,7 +267,6 @@ SparseData::SparseData(const Connectivity *con, const DofSetArray *dsa, const in
 // Constructor for DBSparseMatrix data structures
 SparseData::SparseData(const EqNumberer *_dsa, const Connectivity *cn, const int *rCN, int expand, int make_colu)
 {
-  
   int i, j, k, thisNode;
 
   neq = _dsa->size();
@@ -294,7 +284,6 @@ SparseData::SparseData(const EqNumberer *_dsa, const Connectivity *cn, const int
     unconstrNum[i] = (rCN) ? rCN[i] : i;
     if(unconstrNum[i] >= 0) numUncon++;
   }
-  //cerr << "cn = \n"; cn->print(); "rCN = "; for(int i=0;i<neq;++i) cerr << rCN[i] << " "; cerr << endl;
 
   for(i=0; i < numNodes; ++i) {
     int fdof = _dsa->firstdof(i);
@@ -662,7 +651,7 @@ SparseData::SparseData(const EqNumberer *eqn, const Connectivity *icn)
  numUncon = neq  = eqn->size(); // Total number of equations
 
  int numNodes = cn->csize();
- int *nodeCWeight = (int *) dbg_alloca(sizeof(int)*numNodes);
+ std::vector<int> nodeCWeight(numNodes);
 
  for(i = 0; i < numNodes; ++i) {
     nodeCWeight[i] = 0;

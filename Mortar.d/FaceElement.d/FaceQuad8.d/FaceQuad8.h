@@ -54,7 +54,7 @@ public:
 
 	int GetFaceElemType() override;
 #ifdef USE_ACME
-	ContactSearch::ContactFace_Type GetACMEFaceElemType();
+	ContactSearch::ContactFace_Type GetACMEFaceElemType() override;
 #else
 	int GetACMEFaceElemType() override;
 #endif
@@ -66,7 +66,7 @@ public:
 	void GetVertices(int*, std::map<int,int>& renumTable) override;
 
 #ifdef USE_ACME
-	ContactSearch::ContactFace_Type GetACMEFFIFaceElemType();
+	ContactSearch::ContactFace_Type GetACMEFFIFaceElemType() override;
 #else
 	int GetACMEFFIFaceElemType() override;
 #endif

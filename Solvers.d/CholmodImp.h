@@ -6,8 +6,9 @@
 #define FEM_CHOLMODIMP_H
 
 #include <Math.d/SparseMatrix.h>
+#include <Math.d/DBSparseMatrix.h>
 
-#ifdef USE_CHOLMOD
+#ifdef WITH_CHOLMOD
 #include "cholmod.h"
 #else
 struct cholmod_sparse{};
@@ -19,8 +20,12 @@ class EqNumberer;
 
 class CholmodImp {
 public:
-	CholmodImp(const SparseData &fortranBasedUpperMatrix, bool isComplex);
+	CholmodImp(const SparseData &upperTriangularStructure, bool isComplex);
 	~CholmodImp();
+
+	template <typename Scalar>
+	void setData(const GenDBSparseMatrix<Scalar> &K);
+	void factorize();
 
 	long memorySize() const;
 private:
@@ -28,6 +33,7 @@ private:
 	cholmod_factor *L = nullptr;
 	size_t n;
 	size_t nnz;
+	bool isComplex;
 
 };
 

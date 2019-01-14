@@ -2,12 +2,13 @@
 // Created by Michel Lesoinne on 2018-12-14.
 //
 
+#include <complex>
 #include <Utils.d/Connectivity.h>
 #include <Utils.d/dofset.h>
 #include "CholmodImp.h"
 
 namespace {
-#ifdef USE_CHOLMOD
+#ifdef WITH_CHOLMOD
 cholmod_common *getCholmodCommon() {
 	static cholmod_common c;
 	static bool is_initialized = [] {
@@ -16,12 +17,15 @@ cholmod_common *getCholmodCommon() {
 	} ();
 	return &c;
 }
-#endif // USE_CHOLMOD
+#endif // WITH_CHOLMOD
 }
 
-CholmodImp::CholmodImp(const SparseData &fortranBasedUpperMatrix, bool isComplex)
+CholmodImp::CholmodImp(const SparseData &upperTriangularStructure, bool isComplex)
+	: isComplex(isComplex)
 {
-#ifdef USE_CHOLMOD
+#ifdef WITH_CHOLMOD
+	n = upperTriangularStructure.numCol();
+	nnz = upperTriangularStructure.nnz();
 	auto c = getCholmodCommon();
 	A = cholmod_allocate_sparse(
 		n,
@@ -29,30 +33,67 @@ CholmodImp::CholmodImp(const SparseData &fortranBasedUpperMatrix, bool isComplex
 		nnz,
 		false,
 		true,
-		1, // lower triangular
+		1, // upper triangular
 		isComplex ? CHOLMOD_COMPLEX : CHOLMOD_REAL,
 		c
 	);
-	// Fill A
+	// Create the structure of A
+	auto colptr = static_cast<int*>(A->p);
+	auto rowind = static_cast<int*>(A->i);
+	auto val = static_cast<double*>(A->x);
+
+	auto &colPointers = upperTriangularStructure.colPointers();
+	auto &rowIndices = upperTriangularStructure.rowIndices();
+	const auto basis = colPointers[0]; // 0 or 1 depending on the SparseData implementation.
+	for (int i = 0; i < colPointers.size(); ++i)
+		colptr[i] = colPointers[i] - basis;
+	for (int i = 0; i < rowIndices.size(); ++i)
+	rowind[i] = rowIndices[i] - basis;
 
 	L = cholmod_analyze(A, c);
-	cholmod_factorize(A, L, c);
-#endif // USE_CHOLMOD
+//	cholmod_factorize(A, L, c);
+#endif // WITH_CHOLMOD
 }
 
 CholmodImp::~CholmodImp()
 {
-#ifdef USE_CHOLMOD
+#ifdef WITH_CHOLMOD
 	auto c = getCholmodCommon();
 	cholmod_free_factor (&L, c) ; /* free matrices */
 	cholmod_free_sparse (&A, c) ;
-#endif // USE_CHOLMOD
+#endif // WITH_CHOLMOD
 }
 
 long CholmodImp::memorySize() const
 {
 	return 0;
 }
+
+void CholmodImp::factorize()
+{
+	auto c = getCholmodCommon();
+	if (!L)
+		L = cholmod_analyze(A, c);
+	cholmod_factorize(A, L, c);
+}
+
+template<typename Scalar>
+void CholmodImp::setData(const GenDBSparseMatrix <Scalar> &K)
+{
+	auto colptr = static_cast<int*>(A->p);
+	auto rowind = static_cast<int*>(A->i);
+	auto val = static_cast<Scalar*>(A->x);
+	auto &colPointers = K.colPointers();
+	auto &rowIndices = K.rowIndices();
+	const auto basis = colPointers[0]; // 0 or 1 depending on the SparseData implementation.
+
+	const auto &Kvalues = K.values();
+	for (size_t i = 0 ; i < Kvalues.size(); ++i)
+		val[i] = Kvalues[i];
+}
+
+template void CholmodImp::setData<double>(const GenDBSparseMatrix <double> &K);
+template void CholmodImp::setData(const GenDBSparseMatrix <std::complex<double>> &K);
 
 void test() {
 //	// Step 2: translate sparse matrix into cholmod format

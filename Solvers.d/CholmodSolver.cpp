@@ -80,6 +80,12 @@ template<typename Scalar>
 void CholmodSolver<Scalar>::factor()
 {
 	auto &cholmodImp = getImplementation();
+	std::cout << "Setting the data" << std::endl;
+	cholmodImp.setData(*this);
+	std::cout << "Factorizing." << std::endl;
+	cholmodImp.factorize();
+	std::cout << "Done." << std::endl;
+	throw "Blob";
 }
 
 
@@ -92,8 +98,8 @@ void CholmodSolver<Scalar>::parallelFactor()
 template<typename Scalar>
 CholmodImp &CholmodSolver<Scalar>::getImplementation()
 {
-//	if ( !impl )
-//		impl = std::make_unique<CholmodImp>();
+	if ( !impl )
+		impl = std::make_unique<CholmodImp>(*this, std::is_same<std::complex<double>, Scalar>::value);
 	return *impl;
 }
 

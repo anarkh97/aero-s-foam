@@ -77,6 +77,7 @@ public:
         virtual void addImaginary(const FullSquareMatrix &, const int *dofs);
         virtual void add(const FullSquareMatrixC &, const int *dofs);
         virtual void add(const GenFullM<Scalar> &knd, int fRow, int fCol);
+        /// \brief Assemble skipping the unconstrNum mapping.
         virtual void add(const GenAssembledFullM<Scalar> &kel, const int *dofs) ;
         virtual void addDiscreteMass(int dof, Scalar mass);
         virtual void add(int row_dof, int col_dof, Scalar s);
@@ -129,6 +130,10 @@ class LMPCons;
  *
  * \details The column by column storage is only a matter of vocabulary.
  * Effectively xunonz, rowu have the same structure as a Connectivity.
+ *
+ * Some users of the structure use a zero based indexing. Some others a one based indexing.
+ * The following convention can be assumed and must be respected by all users:
+ * xunonz[0] is either 1 for 1 based indexing (Fortran) or 0 for 0 based indexing (C/C++).
  */
 class SparseData {
  protected:
@@ -159,8 +164,14 @@ class SparseData {
     SparseData(const DofSetArray *_dsa, const int *glInternalMap,
                const Connectivity *cn, int expand);
 
-    // This constructor is for the Esmond sparse solver (BLKSparseMatrix)
-    SparseData(const Connectivity *cn, const EqNumberer *eqn, double trbm, int expand = 1);
+	// This constructor is for the Esmond sparse solver (BLKSparseMatrix)
+	/** \brief Form the sparse data for a square matrix in 1-based indexing.
+	 *
+	 * @param cn Node to node connectivity.
+	 * @param eqn Equation numbering for the nodes.
+	 * @param expand If false only the upper triangular part is formed.
+	 */
+	SparseData(const Connectivity *cn, const EqNumberer *eqn, double trbm, bool expand = true);
 
 	/** \brief Form the sparse data for a square matrix in 0-based indexing.
 	 *
@@ -179,6 +190,17 @@ class SparseData {
                const int *glbmap, int numModes, int ldm);
 
     virtual ~SparseData();
+
+	size_t nnz() const { return rowu.size(); }
+
+	size_t numCol() const { return xunonz.size()-1; }
+
+	bool usesOneBasedIndexing() const { return xunonz[0] == 1; }
+
+	const std::vector<int> &colPointers() const { return xunonz; }
+
+	const std::vector<int> &rowIndices() const { return rowu; }
+
     void clean_up();
 
 };

@@ -8,6 +8,7 @@ ADD_LIBRARY(solver
         SpoolesCore.C
         GoldfarbIdnani.C
         SolverFactoryCore.C
+		SolverFactory.C
         MultiDomainSolver.h MultiDomainSolver.C
 		CholmodSolver.cpp CholmodSolver.h
 		)
@@ -26,10 +27,11 @@ if(USE_CHOLMOD)
 				)
 		target_compile_definitions(solver PUBLIC WITH_CHOLMOD)
 		target_include_directories(solver PRIVATE ${CHOLMOD_INCLUDE_DIR})
+		target_link_libraries(solver PUBLIC ${CHOLMOD_LIBRARIES})
 	endif (CHOLMOD_INCLUDE_DIR AND CHOLMOD_LIBRARIES)
 endif(USE_CHOLMOD)
 
-TARGET_LINK_LIBRARIES(solver Eigen3::Eigen)
+TARGET_LINK_LIBRARIES(solver PUBLIC Eigen3::Eigen)
 
 #SET(INC_DIR ..)
 

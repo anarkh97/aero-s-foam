@@ -21,6 +21,7 @@
 #include <Driver.d/Communicator.h>
 #include <Utils.d/DistHelper.h>
 #include "CholmodSolver.h"
+#include <Solvers.d/SolverFactory.h>
 
 template<class Scalar>
 GenSolver<Scalar> *
@@ -132,8 +133,8 @@ GenSolverFactory<Scalar>::createSolver(const Connectivity *con, const EqNumberer
 					auto p = getCholmod<Scalar>(con, eqnum);
 					solver = p.first;
 					sparse = p.second;
-					throw "Not done yet.";
 				}
+				break;
 				case 19: { // Pardiso in MKL
 					throw "Not done yet.";
 				}
@@ -485,3 +486,8 @@ GenSolverFactory<Scalar>::createSolver(const Connectivity *con, const DofSetArra
 	}
 	return { solver, std::move(sparse) };
 }
+
+#include <complex>
+
+template class GenSolverFactory<double>;
+template class GenSolverFactory<std::complex<double>>;

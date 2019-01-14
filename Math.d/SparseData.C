@@ -695,7 +695,7 @@ SparseData::SparseData(const EqNumberer *eqn, const Connectivity *icn)
 }
 
 SparseData::SparseData(const Connectivity *cn, const EqNumberer *eqn, double trbm,
-                       int expand)
+                       bool expand)
 {
   neq  = eqn->size(); // Total number of equations
   numUncon = eqn->size();
@@ -745,7 +745,7 @@ SparseData::SparseData(const Connectivity *cn, const EqNumberer *eqn, double trb
   }
 
   // Allocate memory for rowu (row numbers)
-  rowu.resize(xunonz[neq]);
+  rowu.resize(xunonz[neq]-1);
 
   // Set the row numbers
   for (int i=0; i<neq; ++i) {
@@ -789,7 +789,7 @@ SparseData::SparseData(const Connectivity *cn, const EqNumberer *eqn, double trb
     for (int k=0; k < numUncon; k++)
        counter[k] = 0;
 
-    std::vector<int> new_rowu(new_xunonz[numUncon]);
+    std::vector<int> new_rowu(new_xunonz[numUncon]-1);
 
     // map the other side to rowu and unonz
     for (int k=0; k < numUncon; k++) {

@@ -5,11 +5,12 @@
 
 class PrismaticJointSpringCombo : public SuperElement
 {
-  public:
-    PrismaticJointSpringCombo(int*);
-    int getTopNumber() const override;
-    bool hasRot() const override { return true; }
-    PrioInfo examine(int sub, MultiFront*) override;
+public:
+	PrismaticJointSpringCombo(int*);
+	Category getCategory() const override { return Category::Structural; }
+	int getTopNumber() const override;
+	bool hasRot() const override { return true; }
+	PrioInfo examine(int sub, MultiFront*) override;
 };
 
 #endif

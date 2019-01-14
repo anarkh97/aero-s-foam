@@ -5,38 +5,39 @@
 #include <cstdio>
 
 class SloshTetra: public Element {
-
-        int nn[4];
+private:
+    int nn[4];
 public:
-        explicit SloshTetra(int*);
+    explicit SloshTetra(int*);
 
-        Element *clone() override;
+    Category getCategory() const override { return Category::Fluid; }
+    Element *clone() override;
 
-        void renum(const int *) override;
-        void renum(EleRenumMap&) override;
+    void renum(const int *) override;
+    void renum(EleRenumMap&) override;
 
-        FullSquareMatrix stiffness(const CoordSet&, double *kel, int flg) const override;
-        FullSquareMatrix massMatrix(const CoordSet&,double *mel, int cmflg) const override;
-        bool isSloshingElement() override { return true; }
-        double getMass(const CoordSet& cs) const override;
-        void markDofs(DofSetArray &) const override;
-        int* dofs(DofSetArray &, int *p) const override;
-         int numDofs() const override;
+    FullSquareMatrix stiffness(const CoordSet&, double *kel, int flg) const override;
+    FullSquareMatrix massMatrix(const CoordSet&,double *mel, int cmflg) const override;
+    bool isSloshingElement() override { return true; }
+    double getMass(const CoordSet& cs) const override;
+    void markDofs(DofSetArray &) const override;
+    int* dofs(DofSetArray &, int *p) const override;
+    int numDofs() const override;
 
-        int             numNodes() const override;
-        int * nodes(int *) const override;
-        int getTopNumber() const override;
-        PrioInfo examine(int sub, MultiFront *) override {
-          fprintf(stderr,"SloshTetra.h: PrioInfo examine is commented in Dec.d/ElemMFCheck.C\n");
-          return *(new PrioInfo);
-        };
+    int             numNodes() const override;
+    int * nodes(int *) const override;
+    int getTopNumber() const override;
+    PrioInfo examine(int sub, MultiFront *) override {
+        fprintf(stderr,"SloshTetra.h: PrioInfo examine is commented in Dec.d/ElemMFCheck.C\n");
+        return *(new PrioInfo);
+    };
 
 private:
 
-        double volume(double dOmega) const {return dOmega/6.0;}
-        double computeMetrics(const CoordSet &, double gN[4][3]) const;
-        void buildTetraStiff(double m[4][4], double gN[4][3], double dOmega) const;
-        
+    double volume(double dOmega) const {return dOmega/6.0;}
+    double computeMetrics(const CoordSet &, double gN[4][3]) const;
+    void buildTetraStiff(double m[4][4], double gN[4][3], double dOmega) const;
+
 };
 
 #endif

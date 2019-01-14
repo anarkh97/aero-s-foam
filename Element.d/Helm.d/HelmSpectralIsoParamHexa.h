@@ -20,6 +20,7 @@ public:
 	FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg=1) const override;
 	double  getMass(const CoordSet& cs) const override;
 
+	Category getCategory() const override { return Category::Acoustic; }
 	Element *clone() override;
 	void renum(const int *) override;
 	void renum(EleRenumMap&) override;

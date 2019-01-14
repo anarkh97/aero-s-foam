@@ -18,6 +18,7 @@ public:
 	explicit DiscreteMass6Dof(int*);
 	~DiscreteMass6Dof() override;
 
+	Category getCategory() const override { return Category::Structural; }
 	void setFrame(EFrame *elemframe) override;
 	void renum(const int *) override;
 	void renum(EleRenumMap&) override;

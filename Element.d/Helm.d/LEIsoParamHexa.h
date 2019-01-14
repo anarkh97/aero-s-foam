@@ -23,6 +23,7 @@ public:
 						   int gravflg, GeomState *gs) override;
 
 
+	Category getCategory() const override { return Category::Structural; }
 	Element *clone() override;
 	void renum(const int *) override;
 	void renum(EleRenumMap&) override;

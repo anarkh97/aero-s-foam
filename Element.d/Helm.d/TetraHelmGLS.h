@@ -10,6 +10,7 @@ class TetraHelmGLS: public HelmElement, public Element {
 public:
 	TetraHelmGLS(int*);
 
+	Category getCategory() const override { return Category::Acoustic; }
 	Element *clone() override;
 
 	void renum(const int *) override;

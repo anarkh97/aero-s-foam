@@ -5,16 +5,17 @@
 
 class WeldedJoint : public SuperElement
 {
-    EFrame *elemframe;
-    bool myframe;
-  public:
+	EFrame *elemframe;
+	bool myframe;
+public:
 	explicit WeldedJoint(int*);
-    ~WeldedJoint() override;
-    void setFrame(EFrame *_elemframe) override;
-    void buildFrame(CoordSet&) override;
-    int getTopNumber() const override;
-    bool hasRot() const override { return true; }
-    PrioInfo examine(int sub, MultiFront*) override;
+	~WeldedJoint() override;
+	void setFrame(EFrame *_elemframe) override;
+	void buildFrame(CoordSet&) override;
+	Category getCategory() const override { return Category::Structural; }
+	int getTopNumber() const override;
+	bool hasRot() const override { return true; }
+	PrioInfo examine(int sub, MultiFront*) override;
 };
 
 #endif

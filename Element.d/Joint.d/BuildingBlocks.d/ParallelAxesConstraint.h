@@ -9,10 +9,11 @@
 
 class ParallelAxesConstraint : public SuperElement
 {
-  public:
-    ParallelAxesConstraint(int*, int=0);
-    int getTopNumber() const override;
-    bool hasRot() const override { return true; }
+public:
+	ParallelAxesConstraint(int*, int=0);
+	Category getCategory() const override { return Category::Structural; }
+	int getTopNumber() const override;
+	bool hasRot() const override { return true; }
 };
 
 #endif

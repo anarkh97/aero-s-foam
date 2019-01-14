@@ -10,6 +10,7 @@ class SloshQuadGal: public Element {
 public:
 	SloshQuadGal(int*);
 
+	Category getCategory() const override { return Category::Fluid; }
 	Element *clone() override;
 
 	void renum(const int *) override;

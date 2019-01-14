@@ -5,10 +5,11 @@
 
 class SphericalJoint : public CommonPointConstraint
 {
-  public:
-    SphericalJoint(int*);
-    int getTopNumber() const override;
-    PrioInfo examine(int sub, MultiFront*) override;
+public:
+	SphericalJoint(int*);
+	Category getCategory() const override { return Category::Structural; }
+	int getTopNumber() const override;
+	PrioInfo examine(int sub, MultiFront*) override;
 };
 
 #endif

@@ -10,6 +10,7 @@ class HelmQuadGls: public HelmElement, public Element {
 public:
 	explicit HelmQuadGls(int*);
 
+	Category getCategory() const override { return Category::Acoustic; }
 	Element *clone() override;
 
 	void renum(const int *) override;

@@ -14,6 +14,7 @@ protected:
 public:
 	DotType3ConstraintElement(int*, int);
 	~DotType3ConstraintElement();
+	Category getCategory() const override { return Category::Structural; }
 	void setFrame(EFrame *) override;
 	void buildFrame(CoordSet&) override;
 	void setConstantTerm(double _d0) { d0 = _d0; }

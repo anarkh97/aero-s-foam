@@ -9,6 +9,7 @@ class Therm3DQuad: public Element {
 public:
 	explicit Therm3DQuad(int*);
 
+	Category getCategory() const override { return Category::Thermal; }
 	Element *clone() override;
 
 	void renum(const int *) override;

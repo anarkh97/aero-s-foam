@@ -9,11 +9,12 @@
 
 class PrismaticJoint : public SuperElement
 {
-  public:
-    PrismaticJoint(int*);
-    int getTopNumber() const override;
-    bool hasRot() const override { return true; }
-    PrioInfo examine(int sub, MultiFront*) override;
+public:
+	PrismaticJoint(int*);
+	Category getCategory() const override { return Category::Structural; }
+	int getTopNumber() const override;
+	bool hasRot() const override { return true; }
+	PrioInfo examine(int sub, MultiFront*) override;
 };
 
 #endif

@@ -808,13 +808,13 @@ FetiSubCornerHandler::recNumbering(FSCommPattern<int> *pat, int *fMaster)
 	else {
 		totNC = 0;
 		for(iNode = 0; iNode < nnodes; ++iNode) {
-			if ((deg[iNode] >= 0) && !(subPre->onWetInterface(iNode))
+			if ( ( (deg[iNode] >= 0) && !(subPre->onWetInterface(iNode)) )
 			    || subPre->isWetInterfaceCorner(iNode))
 				totNC++;
 		}
 		crnList.reserve(totNC);
 		for(iNode = 0; iNode < nnodes; ++iNode) {
-			if( (deg[iNode] >= 0) && !(subPre->onWetInterface(iNode))
+			if( ( (deg[iNode] >= 0) && !(subPre->onWetInterface(iNode)) )
 			    || subPre->isWetInterfaceCorner(iNode))
 				crnList.push_back(iNode);
 

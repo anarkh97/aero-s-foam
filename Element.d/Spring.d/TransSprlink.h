@@ -11,7 +11,8 @@ class TransSprlink : virtual public Element
 
 	explicit TransSprlink(int*);
 
-    Element *clone() override;
+	Category getCategory() const override { return Category::Structural; }
+	Element *clone() override;
 
     void renum(const int *) override;
 	void renum(EleRenumMap&) override;

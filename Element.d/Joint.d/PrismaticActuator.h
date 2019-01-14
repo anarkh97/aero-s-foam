@@ -5,12 +5,13 @@
 
 class PrismaticActuator : public SuperElement
 {
-  public:
+public:
 	explicit PrismaticActuator(int*);
-    void setProp(StructProp *p, bool myProp) override;
-    int getTopNumber() const override;
-    bool hasRot() const override { return true; }
-    PrioInfo examine(int sub, MultiFront*) override;
+	Category getCategory() const override { return Category::Structural; }
+	void setProp(StructProp *p, bool myProp) override;
+	int getTopNumber() const override;
+	bool hasRot() const override { return true; }
+	PrioInfo examine(int sub, MultiFront*) override;
 };
 
 #endif

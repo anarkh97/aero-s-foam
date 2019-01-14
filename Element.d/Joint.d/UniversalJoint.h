@@ -9,11 +9,12 @@
 
 class UniversalJoint : public SuperElement
 {
-  public:
-    UniversalJoint(int*);
-    int getTopNumber() const override;
-    bool hasRot() const override { return true; }
-    PrioInfo examine(int sub, MultiFront*) override;
+public:
+	UniversalJoint(int*);
+	Category getCategory() const override { return Category::Structural; }
+	int getTopNumber() const override;
+	bool hasRot() const override { return true; }
+	PrioInfo examine(int sub, MultiFront*) override;
 };
 
 #endif

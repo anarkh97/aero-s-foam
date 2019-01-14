@@ -5,11 +5,12 @@
 
 class SphericalJointSpringCombo : public SuperElement
 {
-  public:
-    SphericalJointSpringCombo(int*);
-    int getTopNumber() const override;
-    bool hasRot() const override { return true; }
-    PrioInfo examine(int sub, MultiFront*) override;
+public:
+	SphericalJointSpringCombo(int*);
+	Category getCategory() const override { return Category::Structural; }
+	int getTopNumber() const override;
+	bool hasRot() const override { return true; }
+	PrioInfo examine(int sub, MultiFront*) override;
 };
 
 #endif

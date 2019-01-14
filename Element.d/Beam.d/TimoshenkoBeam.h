@@ -20,6 +20,7 @@ public:
 
 	~TimoshenkoBeam() override;
 
+	Category getCategory() const override { return Category::Structural; }
 	TimoshenkoBeam *clone() override;
 
 	void renum(const int *) override;

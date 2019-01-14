@@ -375,18 +375,17 @@ class Element {
 public:
 	enum Category { Structural=0, Acoustic, Thermal, Fluid, Undefined };
 private:
-	Category category;
 	double _weight, _trueWeight;
 	int elementType;
-	bool includeStressNodes;
 protected:
 	StructProp *prop;	// structural properties for this element
 	bool myProp;
+	bool includeStressNodes; // TODO move this into the algorithm.
 	int glNum, subNum, stateOffset;
 	mutable std::vector<double> factors; // TODO Get rid of this! Element should not contain problem dependent data.
 	void lumpMatrix(FullSquareMatrix&) const;
 public:
-	Element() { prop = 0; _weight = 1.0; _trueWeight = 1.0; myProp = false; category = Undefined; includeStressNodes = false; };
+	Element() { prop = 0; _weight = 1.0; _trueWeight = 1.0; myProp = false; includeStressNodes = false; };
 	virtual ~Element() { if(myProp && prop) delete prop; }
 	const StructProp * getProperty() const { return prop; }
 	StructProp * getProperty() { return prop; }
@@ -638,8 +637,11 @@ public:
 	virtual FullSquareMatrixC complexDampingMatrix(CoordSet& cs, DComplex* c, int flg=1);
 	virtual FullSquareMatrixC complexMassMatrix(CoordSet& cs, DComplex* m, double mratio);
 
-	Category getCategory() { return category; }
-	void setCategory(Category _category) { category = _category; }
+	virtual Category getCategory() const = 0;//{ return category; }
+	void setCategory(Category _category) {
+		if(_category != getCategory())
+			throw "Bad category";
+	}
 	bool isDamped() { return (getCategory() != Thermal && !isSpring()) ? (prop && (prop->alphaDamp != 0.0 || prop->betaDamp != 0.0)) : false; }
 	bool isSDamped() { return (getCategory() != Thermal && !isSpring()) ? (prop && (prop->etaDamp != 0.0 )) : false; }
 

@@ -36,7 +36,8 @@ public:
 		dom = _dom;
 		el2 = 0;
 		iEle = -1;
-	} //HB
+	}
+	Category getCategory() const override { return Category::Acoustic; }
 	virtual int getNode(int) const = 0;
 
 	virtual const int *getNodes() const = 0;

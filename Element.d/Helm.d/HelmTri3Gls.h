@@ -10,6 +10,7 @@ class HelmTri3Gls: public HelmElement, public Element {
 public:
 	explicit HelmTri3Gls(int*);
 
+	Category getCategory() const override { return Category::Acoustic; }
 	Element *clone() override;
 
 	void renum(const int *) override;

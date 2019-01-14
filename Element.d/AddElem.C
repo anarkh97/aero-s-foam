@@ -16,7 +16,6 @@
 #include <Element.d/Shell.d/Therm3NoShell.h>
 #include <Element.d/Shell.d/Therm4NoShell.h>
 #include <Element.d/Quad4.d/FourNodeQuad.h>
-#include <Element.d/Quad4.d/Quad.h>
 #include <Element.d/Brick.d/EightNodeBrick.h>
 #include <Element.d/Tetra.d/Tetrahedral.h>
 #include <Element.d/Tetra10.d/TenNodeTetrahedral.h>

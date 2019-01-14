@@ -5,12 +5,13 @@
 #include <cstdio>
 
 class BarSloshFS: public Element {
-
+private:
 	int nn[2];
 public:
 
 	explicit BarSloshFS(int*);
 
+	Category getCategory() const override { return Category::Fluid; }
 	Element *clone() override;
 
 	void renum(const int *) override;

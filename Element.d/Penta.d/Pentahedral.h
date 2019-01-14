@@ -10,10 +10,11 @@ class Pentahedral: public Element
     double *cFrame;
     NLMaterial *mat;
 
-  public:
+public:
     explicit Pentahedral(int*);
     ~Pentahedral() override;
 
+    Category getCategory() const override { return Category::Structural; }
     Element *clone() override;
 
     void renum(const int *) override;
@@ -34,7 +35,7 @@ class Pentahedral: public Element
 
     void markDofs(DofSetArray &) const override;
     int* dofs(DofSetArray &, int *p) const override;
-     int numDofs() const override;
+    int numDofs() const override;
 
     int numNodes() const override;
     int* nodes(int *) const override;
@@ -48,12 +49,12 @@ class Pentahedral: public Element
     int getFace(int iFace, int *fn) override { return getDecFace(iFace, fn); }
 
     void setCompositeData(int _type, int nlays, double *lData, double *coefs, double *frame) override
-      { cCoefs = coefs; cFrame = frame; }
+    { cCoefs = coefs; cFrame = frame; }
 
-   double* setCompositeData2(int, int, double*, double*, CoordSet&, double) override
-      { fprintf(stderr," *** WARNING: Attempting to define composite attributes\n"
-                "              for Pentahedral el.\n"); return (double *) 0;
-      }
+    double* setCompositeData2(int, int, double*, double*, CoordSet&, double) override
+    { fprintf(stderr," *** WARNING: Attempting to define composite attributes\n"
+                     "              for Pentahedral el.\n"); return (double *) 0;
+    }
     void getCFrame(CoordSet &cs, double cFrame[3][3]) const override;
 
     void getVonMisesAniso(Vector &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,

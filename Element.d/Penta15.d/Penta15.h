@@ -14,6 +14,7 @@ public:
 	Penta15(int*);
 	~Penta15();
 
+	Category getCategory() const override { return Category::Structural; }
 	Element *clone() override;
 
 	void renum(const int *) override;

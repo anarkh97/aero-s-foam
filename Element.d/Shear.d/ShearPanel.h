@@ -11,6 +11,7 @@ class ShearPanel: public Element,
 public:
 	explicit ShearPanel(int*);
 
+	Category getCategory() const override { return Category::Structural; }
 	Element *clone() override;
 
 	void renum(const int *) override;

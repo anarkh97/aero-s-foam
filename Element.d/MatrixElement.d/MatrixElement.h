@@ -22,6 +22,7 @@ public:
 
 	Element* clone() override;
 
+	Category getCategory() const override { return Category::Undefined; }
 	int getTopNumber() const override;
 	void setDofs(DofSet *d);
 	void setStiffness(GenAssembledFullM<double> *k);

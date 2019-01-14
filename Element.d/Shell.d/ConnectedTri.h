@@ -9,6 +9,7 @@ class ConnectedTri : public Element {
 public:
 	ConnectedTri(int*);
 
+	Category getCategory() const override { return Category::Structural; }
 	void renum(const int *) override;
 	void renum(EleRenumMap&) override;
 

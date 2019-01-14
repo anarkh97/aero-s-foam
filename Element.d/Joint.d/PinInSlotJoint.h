@@ -9,11 +9,12 @@
 
 class PinInSlotJoint : public SuperElement
 {
-  public:
-    PinInSlotJoint(int*);
-    int getTopNumber() const override;
-    bool hasRot() const override { return true; }
-    PrioInfo examine(int sub, MultiFront*) override;
+public:
+	PinInSlotJoint(int*);
+	Category getCategory() const override { return Category::Structural; }
+	int getTopNumber() const override;
+	bool hasRot() const override { return true; }
+	PrioInfo examine(int sub, MultiFront*) override;
 };
 
 #endif

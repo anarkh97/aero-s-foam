@@ -16,6 +16,7 @@ class HelmPenta26: public HelmElement, public Element {
 public:
 	HelmPenta26(int*);
 
+	Category getCategory() const override { return Category::Acoustic; }
 	Element *clone() override;
 
 	void renum(const int *) override;

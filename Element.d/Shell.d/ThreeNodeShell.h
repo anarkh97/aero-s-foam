@@ -17,6 +17,7 @@ protected:
 public:
 	explicit ThreeNodeShell(int*, double _w=3);
 
+	Category getCategory() const override { return Category::Structural; }
 	Element *clone() override;
 
 	void renum(const int *) override;

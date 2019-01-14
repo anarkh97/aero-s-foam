@@ -99,7 +99,9 @@ public:
 	virtual void nodalSolution(CoordSet &cs, complex<double>* sol,
 	                           complex<double>(*nodalSol)[8]);
 	complex<double> *forceVector;
-// Element functions 
+// Element functions
+	Category getCategory() const override { return Category::Acoustic; }
+
 	void renum(const int *) override;
 	void renum(EleRenumMap&) override;
 	int numDofs() const override {
@@ -151,6 +153,7 @@ class DEMInterfaceElement: public Element, public DEMCoreInterfaceElement {
 public:
 	DEMInterfaceElement(DEMElement *_deme, DEMElement *_deme2, int _fi);
 
+	Category getCategory() const override { return Category::Undefined; }
 	void renum(const int *) override;
 
 	void renum(EleRenumMap&) override;

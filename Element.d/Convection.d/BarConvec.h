@@ -4,12 +4,13 @@
 #include <Element.d/Element.h>
 
 class BarConvec: public Element {
-
+private:
 	int nn[2];
 public:
 
 	explicit BarConvec(int*);
 
+	Category getCategory() const override { return Category::Thermal; }
 	Element *clone() override;
 
 	void renum(const int *) override;

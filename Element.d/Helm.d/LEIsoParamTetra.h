@@ -21,6 +21,7 @@ public:
 	double  getMass(const CoordSet& cs) const override;
 
 	int getTopNumber() const override;
+	Category getCategory() const override { return Category::Structural; }
 	Element *clone() override;
 	void renum(const int *) override;
 	void renum(EleRenumMap&) override;

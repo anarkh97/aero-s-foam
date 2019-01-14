@@ -19,6 +19,7 @@ public:
 
 	~FsiElement() override { delete [] nn; delete [] renumTable; };
 
+	Category getCategory() const override { return Category::Fluid; }
 	void setProp(StructProp *p) { };
 	bool isFsiElement() override { return true; }
 // JLchange: only valid for the case of one-one connection fsi

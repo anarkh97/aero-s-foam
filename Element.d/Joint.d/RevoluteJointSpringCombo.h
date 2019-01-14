@@ -5,11 +5,12 @@
 
 class RevoluteJointSpringCombo : public SuperElement
 {
-  public:
-    RevoluteJointSpringCombo(int*);
-    int getTopNumber() const override;
-    bool hasRot() const override { return true; }
-    PrioInfo examine(int sub, MultiFront*) override;
+public:
+	RevoluteJointSpringCombo(int*);
+	Category getCategory() const override { return Category::Structural; }
+	int getTopNumber() const override;
+	bool hasRot() const override { return true; }
+	PrioInfo examine(int sub, MultiFront*) override;
 };
 
 #endif

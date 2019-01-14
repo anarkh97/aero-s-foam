@@ -223,7 +223,7 @@ PrioInfo Element::examine(int sub, MultiFront *mf)
 void
 Element::getGravityForce(CoordSet&, double *, Vector &force, int, GeomState *)
 {
-  if(!isConstraintElement() && !isSpring() && category != Element::Thermal)
+  if(!isConstraintElement() && !isSpring() && getCategory() != Element::Thermal)
     fprintf(stderr," *** WARNING: Gravity force not implemented for element (%d), type %d\n", getGlNum()+1, elementType);
   force.zero();
 }
@@ -238,7 +238,7 @@ void
 Element::getGravityForceNodalCoordinateSensitivity(CoordSet& cs, double *gravityAcceleration,
                                                    GenFullM<double> &dGfdx, int gravflg, GeomState *geomState)
 {
-  if(!isConstraintElement() && !isSpring() && category != Element::Thermal)
+  if(!isConstraintElement() && !isSpring() && getCategory() != Element::Thermal)
     fprintf(stderr," *** WARNING: Gravity force sensitivity not implemented for element (%6d), type %3d\n", getGlNum()+1, elementType);
   dGfdx.zero();
 }

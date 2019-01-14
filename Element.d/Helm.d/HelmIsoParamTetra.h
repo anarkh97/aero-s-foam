@@ -21,6 +21,7 @@ public:
 	FullSquareMatrixC massMatrix(const CoordSet&, complex<double> *d) const override;
 	double  getMass(const CoordSet& cs) const override;
 
+	Category getCategory() const override { return Category::Acoustic; }
 	Element *clone() override;
 	void renum(const int *) override;
 	void renum(EleRenumMap&) override;

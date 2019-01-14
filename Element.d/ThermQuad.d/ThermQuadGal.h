@@ -9,6 +9,7 @@ class ThermQuadGal: public Element {
 public:
 	explicit ThermQuadGal(int*);
 
+	Category getCategory() const override { return Category::Thermal; }
 	Element *clone() override;
 
 	void renum(const int *) override;

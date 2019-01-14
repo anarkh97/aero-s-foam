@@ -13,7 +13,8 @@ public:
     PseudoTangentialMomentElement(int* _nn);
     ~PseudoTangentialMomentElement();
 
-    void setFrame(EFrame *) override;
+	Category getCategory() const override { return Category::Structural; }
+	void setFrame(EFrame *) override;
     bool hasRot() const override { return true; }
 
 protected:

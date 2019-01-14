@@ -5,11 +5,12 @@
 
 class PinInSlotJointSpringCombo : public SuperElement
 {
-  public:
-    PinInSlotJointSpringCombo(int*);
-    int getTopNumber() const override;
-    bool hasRot() const override { return true; }
-    PrioInfo examine(int sub, MultiFront*) override;
+public:
+	PinInSlotJointSpringCombo(int*);
+	Category getCategory() const override { return Category::Structural; }
+	int getTopNumber() const override;
+	bool hasRot() const override { return true; }
+	PrioInfo examine(int sub, MultiFront*) override;
 };
 
 #endif

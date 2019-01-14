@@ -17,6 +17,7 @@ public:
     explicit Brick32(int*);
 	~Brick32() override;
 
+	Category getCategory() const override { return Category::Structural; }
 	Element *clone() override;
 
 	void renum(const int *) override;

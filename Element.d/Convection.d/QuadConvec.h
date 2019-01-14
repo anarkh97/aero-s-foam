@@ -9,6 +9,7 @@ class QuadConvec: public Element {
 public:
 	QuadConvec(int*);
 
+	Category getCategory() const override { return Category::Thermal; }
 	Element *clone() override;
 
 	void renum(const int *) override;

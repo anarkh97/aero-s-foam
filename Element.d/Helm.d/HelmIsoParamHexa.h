@@ -8,33 +8,34 @@ using std::complex;
 
 class HelmIsoParamHexa: public HelmElement, public Element {
 
-        int order;
+	int order;
 	int *nn;
-        HelmIsoParamHexa(const HelmIsoParamHexa& e);
+	HelmIsoParamHexa(const HelmIsoParamHexa& e);
 
 public:
 	HelmIsoParamHexa(int,int*);
 
-        FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const override;
-        FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg=1) const override;
-        FullSquareMatrixC stiffness(const CoordSet&, complex<double> *d) const override;
-        FullSquareMatrixC massMatrix(const CoordSet&, complex<double> *d) const override;
-        double  getMass(const CoordSet& cs) const override;
+	FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const override;
+	FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg=1) const override;
+	FullSquareMatrixC stiffness(const CoordSet&, complex<double> *d) const override;
+	FullSquareMatrixC massMatrix(const CoordSet&, complex<double> *d) const override;
+	double  getMass(const CoordSet& cs) const override;
 
+	Category getCategory() const override { return Category::Acoustic; }
 	Element *clone() override;
 	void renum(const int *) override;
-        void renum(EleRenumMap&) override;
+	void renum(EleRenumMap&) override;
 	void markDofs(DofSetArray &) const override;
 	int getTopNumber() const override {return 195;}
 	int numTopNodes() const override {return order*order*order;}
-        int* dofs(DofSetArray &, int *p) const override;
-        int numDofs() const override { return order*order*order; }
-        int numNodes() const override;
-        int* nodes(int * = 0) const override;
+	int* dofs(DofSetArray &, int *p) const override;
+	int numDofs() const override { return order*order*order; }
+	int numNodes() const override;
+	int* nodes(int * = 0) const override;
 	void addFaces(PolygonSet *pset) override;
 
-        PrioInfo examine(int sub, MultiFront *mf) override;
-        int nDecFaces() const override { return 6;}
-        int getDecFace(int iFace, int *fn) override;
+	PrioInfo examine(int sub, MultiFront *mf) override;
+	int nDecFaces() const override { return 6;}
+	int getDecFace(int iFace, int *fn) override;
 };
 #endif

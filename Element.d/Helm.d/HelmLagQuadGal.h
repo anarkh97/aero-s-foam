@@ -23,6 +23,7 @@ public:
 	void edgeShapeFunctions(int n1, int n2, int *ng,
 	                        double **gw, double **N) override;
 
+	Category getCategory() const override { return Category::Acoustic; }
 	Element *clone() override;
 	void renum(const int *) override;
 	void renum(EleRenumMap&) override;

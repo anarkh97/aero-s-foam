@@ -8,7 +8,6 @@
 #include "CholmodImp.h"
 
 namespace {
-#ifdef WITH_CHOLMOD
 cholmod_common *getCholmodCommon() {
 	static cholmod_common c;
 	static bool is_initialized = [] {
@@ -17,13 +16,11 @@ cholmod_common *getCholmodCommon() {
 	} ();
 	return &c;
 }
-#endif // WITH_CHOLMOD
 }
 
 CholmodImp::CholmodImp(const SparseData &upperTriangularStructure, bool isComplex)
 	: isComplex(isComplex)
 {
-#ifdef WITH_CHOLMOD
 	n = upperTriangularStructure.numCol();
 	nnz = upperTriangularStructure.nnz();
 	auto c = getCholmodCommon();
@@ -52,16 +49,16 @@ CholmodImp::CholmodImp(const SparseData &upperTriangularStructure, bool isComple
 
 	L = cholmod_analyze(A, c);
 //	cholmod_factorize(A, L, c);
-#endif // WITH_CHOLMOD
 }
 
 CholmodImp::~CholmodImp()
 {
-#ifdef WITH_CHOLMOD
 	auto c = getCholmodCommon();
-	cholmod_free_factor (&L, c) ; /* free matrices */
-	cholmod_free_sparse (&A, c) ;
-#endif // WITH_CHOLMOD
+	if (A != nullptr)
+		cholmod_free_sparse (&A, c);
+	if (L != nullptr)
+		cholmod_free_factor (&L, c) ; /* free matrices */
+
 }
 
 long CholmodImp::memorySize() const
@@ -92,70 +89,43 @@ void CholmodImp::setData(const GenDBSparseMatrix <Scalar> &K)
 		val[i] = Kvalues[i];
 }
 
+template<typename Scalar>
+void CholmodImp::solve(const GenVector<Scalar> &rhs, GenVector<Scalar> &solution)
+{
+	auto c = getCholmodCommon();
+	if (b == nullptr)
+		b = cholmod_allocate_dense(n, 1, n, isComplex ? CHOLMOD_COMPLEX : CHOLMOD_REAL, c) ;
+	auto *chol_data = static_cast<Scalar *>(b->x);
+	for (int i = 0; i < rhs.size(); ++i)
+		chol_data[i] = rhs[i];
+	cholmod_dense* res = cholmod_solve(CHOLMOD_A, L, b, c) ;
+	chol_data = static_cast<Scalar *>(res->x);
+	for (int i = 0; i < rhs.size(); ++i)
+		solution[i] = chol_data[i];
+	cholmod_free_dense(&res, c) ;
+}
+
+template<typename Scalar>
+void CholmodImp::reSolve(Scalar *rhs)
+{
+	auto c = getCholmodCommon();
+	if (b == nullptr)
+		b = cholmod_allocate_dense(n, 1, n, isComplex ? CHOLMOD_COMPLEX : CHOLMOD_REAL, c) ;
+	auto *chol_data = static_cast<Scalar *>(b->x);
+	for (int i = 0; i < n; ++i)
+		chol_data[i] = rhs[i];
+	cholmod_dense* res = cholmod_solve(CHOLMOD_A, L, b, c) ;
+	chol_data = static_cast<Scalar *>(res->x);
+	for (int i = 0; i < n; ++i)
+		rhs[i] = chol_data[i];
+	cholmod_free_dense(&res, c) ;
+}
+
 template void CholmodImp::setData<double>(const GenDBSparseMatrix <double> &K);
 template void CholmodImp::setData(const GenDBSparseMatrix <std::complex<double>> &K);
 
-void test() {
-//	// Step 2: translate sparse matrix into cholmod format
-//	//----------------------------------------------------
-//
-//	cholmod_sparse* A = cholmod_allocate_sparse(
-//		n, n, nnz,    // Dimensions and number of non-zeros
-//		false,        // Sorted = false
-//		true,         // Packed = true
-//		1,            // stype (-1 = lower triangular, 1 = upper triangular)
-//		CHOLMOD_REAL, // Entries are real numbers
-//		&c
-//	);
-//
-//	int* colptr = (int*)A->p;
-//	int* rowind = (int*)A->i;
-//	double* val = (double*)A->x;
-//
-//	// Convert Geogram Matrix into CHOLMOD Matrix
-//	index_t count = 0 ;
-//	for(index_t i=0; i<n; ++i) {
-//		colptr[i] = int(count);
-//		NLRowColumn& Ri = MM.row[i];
-//		for(index_t jj=0; jj<Ri.size; ++jj) {
-//			const NLCoeff& C = Ri.coeff[jj];
-//			index_t j = C.index;
-//			if(j <= i) {
-//				val[count] = C.value;
-//				rowind[count] = int(j);
-//				++count;
-//			}
-//		}
-//	}
-//	geo_assert(count == nnz);
-//	colptr[n] = int(nnz);
-//
-//	/*
-//	geo_assert(cholmod_check_sparse(A,&c) != 0);
-//	if(n < 10) {
-//		cholmod_write_sparse(stdout,A,NULL,NULL,&c);
-//	}
-//	cholmod_print_sparse(A,"A",&c);
-//	*/
-//
-//	// Step 2: construct right-hand side
-//	cholmod_dense* b = cholmod_allocate_dense(n, 1, n, CHOLMOD_REAL, &c) ;
-//	Memory::copy(b->x, b_in, n * sizeof(double)) ;
-//
-//	// Step 3: factorize and solve
-//	cholmod_factor* L = cholmod_analyze(A, &c) ;
-//	geo_debug_assert(cholmod_check_factor(L,&c) != 0);
-//
-//	if(!cholmod_factorize(A, L, &c)) {
-//		std::cerr << "COULD NOT FACTORIZE !!!" << std::endl;
-//	}
-//
-//	cholmod_dense* x = cholmod_solve(CHOLMOD_A, L, b, &c) ;
-//	Memory::copy(x_out, x->x, n * sizeof(double)) ;
-//
-//	// Step 4: cleanup
-//	cholmod_free_factor(&L, &c) ;
-//	cholmod_free_sparse(&A, &c) ;
-//	cholmod_free_dense(&x, &c) ;
-//	cholmod_free_dense(&b, &c) ;
-}
+template void  CholmodImp::solve(const GenVector<double> &rhs, GenVector<double> &solution);
+template void  CholmodImp::solve(const GenVector<std::complex<double>> &rhs, GenVector<std::complex<double>> &solution);
+
+template void  CholmodImp::reSolve(double *x);
+template void  CholmodImp::reSolve(std::complex<double> *x);

@@ -6,7 +6,6 @@
 #include <memory>
 
 #include "CholmodSolver.h"
-#include "CholmodImp.h"
 #include <Math.d/DBSparseMatrix.h>
 
 
@@ -19,6 +18,7 @@ getCholmod(const Connectivity *cn, const EqNumberer *_dsa)
 	return {nullptr, nullptr};
 }
 #else // WITH_CHOLMOD
+#include "CholmodImp.h"
 
 class CholmodImp;
 
@@ -28,13 +28,15 @@ class CholmodSolver :
 public:
 	CholmodSolver(const Connectivity *cn, const EqNumberer *_dsa);
 
-	~CholmodSolver();
+	~CholmodSolver() = default;
 
 	int neqs() const override;
 
 	void solve(const Scalar *rhs, Scalar *solution) override;
 
-	long size() const;
+	void reSolve(Scalar *rhs) override;
+
+	long size() const override;
 
 	void factor() override;
 
@@ -48,14 +50,8 @@ template <typename Scalar>
 CholmodSolver<Scalar>::CholmodSolver(const Connectivity *cn, const EqNumberer *_dsa)  :
 	GenDBSparseMatrix<Scalar>(cn, _dsa)
 {
-
 }
 
-template <typename Scalar>
-CholmodSolver<Scalar>::~CholmodSolver()
-{
-
-}
 
 template<typename Scalar>
 int CholmodSolver<Scalar>::neqs() const
@@ -73,7 +69,8 @@ long CholmodSolver<Scalar>::size() const
 template<typename Scalar>
 void CholmodSolver<Scalar>::solve(const Scalar *rhs, Scalar *solution)
 {
-//	TODO
+	GenStackVector<Scalar> b(const_cast<Scalar *>(rhs), size()), x(solution, size());
+	impl->solve(b, x);
 }
 
 template<typename Scalar>
@@ -85,7 +82,7 @@ void CholmodSolver<Scalar>::factor()
 	std::cout << "Factorizing." << std::endl;
 	cholmodImp.factorize();
 	std::cout << "Done." << std::endl;
-	throw "Blob";
+//	throw "Blob";
 }
 
 
@@ -101,6 +98,12 @@ CholmodImp &CholmodSolver<Scalar>::getImplementation()
 	if ( !impl )
 		impl = std::make_unique<CholmodImp>(*this, std::is_same<std::complex<double>, Scalar>::value);
 	return *impl;
+}
+
+template<typename Scalar>
+void CholmodSolver<Scalar>::reSolve(Scalar *rhs)
+{
+	impl->reSolve(rhs);
 }
 
 template class CholmodSolver<double>;

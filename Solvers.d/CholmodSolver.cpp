@@ -32,6 +32,10 @@ public:
 
 	int neqs() const override;
 
+	void unify(FSCommunicator *communicator) override {
+		GenDBSparseMatrix<Scalar>::unify(communicator);
+	}
+
 	void solve(const Scalar *rhs, Scalar *solution) override;
 
 	void reSolve(Scalar *rhs) override;
@@ -77,12 +81,8 @@ template<typename Scalar>
 void CholmodSolver<Scalar>::factor()
 {
 	auto &cholmodImp = getImplementation();
-	std::cout << "Setting the data" << std::endl;
 	cholmodImp.setData(*this);
-	std::cout << "Factorizing." << std::endl;
 	cholmodImp.factorize();
-	std::cout << "Done." << std::endl;
-//	throw "Blob";
 }
 
 

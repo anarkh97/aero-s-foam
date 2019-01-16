@@ -9,6 +9,7 @@ class HelmPenta: public HelmElement, public Element {
 public:
 	HelmPenta(int*);
 
+	Category getCategory() const override { return Category::Acoustic; }
 	Element *clone() override;
 
 	void renum(const int *) override;
@@ -28,7 +29,7 @@ public:
 
 	void addFaces(PolygonSet *pset) override;
 
-	int getTopNumber() override;
+	int getTopNumber() const override;
 
 	PrioInfo examine(int sub, MultiFront *mf) override;
 };

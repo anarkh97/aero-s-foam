@@ -73,7 +73,6 @@ protected:
 	int *locToGlActuatorMap = nullptr;
 	int *locToGlUserDispMap = nullptr;
 	int *locToGlUserForceMap = nullptr;
-	int crnDofSize = 0;
 	int *crnPerNeighb = nullptr;
 #ifdef DISTRIBUTED
 	// for distributed output of single nodes
@@ -148,18 +147,15 @@ public:
 	const DofSetArray * getDsa() const override { return dsa; }
 	const ConstrainedDSA * get_c_dsa() const override { return c_dsa; }
 	double getShiftVal() const override { return geoSource->shiftVal(); }
-public:
 
 	void addFsiElements();
 	void addSingleFsi(LMPCons *localFsi);
 	void addNodeXYZ(double *centroid, double* nNodes);
 
-public:
-	void setCorners(int nCorners, int *crnList);
+	void setCorners(gsl::span<const lc_node_idx> crnList) override;
 
 	const bool* getInternalMasterFlag();
 
-public:
 	void setDofPlusCommSize(FSCommStructure *) const;
 
 	// for timing file
@@ -222,7 +218,6 @@ public:
 	void makeDSA();
 	void makeCDSA();
 	void makeCCDSA();
-	void mergeInterfaces();
 
 #ifdef HB_COUPLED_PRECOND
 	Connectivity* precNodeToNode;
@@ -330,8 +325,6 @@ public:
 	                     Connectivity *subToEdge);
 	void deleteKcc();
 	void multQt(int glMPCnum, const Scalar *x, Scalar *result) const;
-
-	void gatherDOFListPlus(FSCommPattern<int> *pat);
 
 	friend class GenDistrDomain<Scalar>;
 	friend class GenDecDomain<Scalar>;

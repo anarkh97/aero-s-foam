@@ -14,6 +14,11 @@ MatrixElement::~MatrixElement()
 { 
 }
 
+int
+MatrixElement::getTopNumber() const {
+  return -1;
+}
+
 Element *
 MatrixElement::clone()
 {

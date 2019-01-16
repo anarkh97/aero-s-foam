@@ -298,11 +298,11 @@ HelmPenta26::markDofs(DofSetArray &dsa) const
 }
 
 // Treat as Penta6 (MECH)
-//int HelmPenta26::getTopNumber() { return(124); } 
+//int HelmPenta26::getTopNumber() const { return(124); }
 //int HelmPenta26::numTopNodes() { return(6); }
 
 int
-HelmPenta26::getTopNumber() { return(194); } 
+HelmPenta26::getTopNumber() const { return(194); }
 int
 HelmPenta26::numTopNodes() const { return(26); }
 

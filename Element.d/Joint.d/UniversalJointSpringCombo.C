@@ -18,7 +18,7 @@ UniversalJointSpringCombo::UniversalJointSpringCombo(int* _nn)
 }
 
 int 
-UniversalJointSpringCombo::getTopNumber() 
+UniversalJointSpringCombo::getTopNumber() const
 { 
   return 106; 
 }

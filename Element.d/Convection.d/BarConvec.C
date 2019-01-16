@@ -135,7 +135,7 @@ BarConvec::markDofs(DofSetArray& dsa) const
 }
 
 int
-BarConvec::getTopNumber()
+BarConvec::getTopNumber() const
 {
   return 147;//1;
 }

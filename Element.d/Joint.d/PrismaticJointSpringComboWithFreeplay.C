@@ -18,7 +18,7 @@ PrismaticJointSpringComboWithFreeplay::PrismaticJointSpringComboWithFreeplay(int
 }
 
 int 
-PrismaticJointSpringComboWithFreeplay::getTopNumber() 
+PrismaticJointSpringComboWithFreeplay::getTopNumber() const
 { 
   return 106; 
 }

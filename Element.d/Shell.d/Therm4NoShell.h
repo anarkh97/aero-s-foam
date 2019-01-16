@@ -10,7 +10,7 @@ public:
 	explicit Therm4NoShell(int *nodenums);
 
 	Element* clone() override;
-	int getTopNumber() override;
+	int getTopNumber() const override;
 	PrioInfo examine(int sub, MultiFront *) override;
 	bool hasRot() const override {return true;}
 	// aero functions

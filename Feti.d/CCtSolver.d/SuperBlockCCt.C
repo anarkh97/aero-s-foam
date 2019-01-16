@@ -11,10 +11,12 @@
 extern Domain * domain;
 
 template<class Scalar>
-SuperBlockCCtSolver<Scalar>::SuperBlockCCtSolver(Connectivity *_blockToMpc, Connectivity *_mpcToMpc, Connectivity *mpcToSub, 
-                                                 Connectivity *_mpcToCpu, int _numSubsWithMpcs,
+SuperBlockCCtSolver<Scalar>::SuperBlockCCtSolver(const Connectivity *_blockToMpc, const Connectivity *_mpcToMpc,
+                                                 const Connectivity *mpcToSub,
+                                                 const Connectivity *_mpcToCpu, int _numSubsWithMpcs,
                                                  std::vector<FetiSub<Scalar> *> subsWithMpcs,
-                                                 FetiInfo *_finfo, FSCommunicator *_fetiCom, bool super_flag, bool sub_flag)
+                                                 FetiInfo *_finfo, FSCommunicator *_fetiCom, bool super_flag,
+                                                 bool sub_flag)
         : CCtSolver<Scalar>(std::move(subsWithMpcs))
 {
   filePrint(stderr," ... Building block CC^t for preconditioning MPCs ...\n");
@@ -392,7 +394,7 @@ SuperBlockCCtSolver<Scalar>::makeSuperBlocks()
 
 template<class Scalar>
 void
-SuperBlockCCtSolver<Scalar>::createSuperBlockCCt(Connectivity *mpcToSub)
+SuperBlockCCtSolver<Scalar>::createSuperBlockCCt(const Connectivity *mpcToSub)
 {
   int i;
   // ------------------------------------------------------------
@@ -830,8 +832,9 @@ template<class Scalar>
 void
 SuperBlockCCtSolver<Scalar>::createBlockMpcToMpcConnectivity()
 {
-  blockMpcToMpc = new Connectivity * [nMpcBlocks];
-  for(int i=0;i<nMpcBlocks;i++) { blockMpcToMpc[i] = 0; }
+  blockMpcToMpc = new const Connectivity * [nMpcBlocks];
+  for(int i=0;i<nMpcBlocks;i++)
+    blockMpcToMpc[i] = 0;
   execParal(nExtMpcBlocksOnMyCPU, this, &SuperBlockCCtSolver<Scalar>::createOneBlockMpcToMpcConnectivity);
 }
 

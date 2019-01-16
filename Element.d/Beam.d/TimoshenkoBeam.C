@@ -598,7 +598,7 @@ TimoshenkoBeam::getCorotator(CoordSet &cs, double *kel, int, int fitAlgBeam) {
 }
 
 int
-TimoshenkoBeam::getTopNumber() {
+TimoshenkoBeam::getTopNumber() const {
 	return 107;//1;
 }
 

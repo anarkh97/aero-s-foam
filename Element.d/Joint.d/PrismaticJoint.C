@@ -19,7 +19,7 @@ PrismaticJoint::PrismaticJoint(int* _nn)
 }
 
 int 
-PrismaticJoint::getTopNumber() 
+PrismaticJoint::getTopNumber() const
 { 
   return 106; 
 }

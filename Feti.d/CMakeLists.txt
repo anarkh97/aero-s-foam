@@ -30,7 +30,9 @@ ADD_LIBRARY(Feti
 		FetiBaseClass.cpp FetiBaseClass.h
 		CornerSelector.cpp CornerSelector.h
 		MultiLevelFetiDP.cpp
-		DecomposedSystem.cpp DecomposedSystem.h)
+		DecomposedSystem.cpp DecomposedSystem.h
+		SetOfSubs.cpp SetOfSubs.h
+		)
 
 TARGET_LINK_LIBRARIES(Feti Eigen3::Eigen)
 

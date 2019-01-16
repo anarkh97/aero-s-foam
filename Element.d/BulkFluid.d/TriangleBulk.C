@@ -159,7 +159,7 @@ TriangleBulk::markDofs(DofSetArray &dsa) const
 }
 
 int
-TriangleBulk::getTopNumber()
+TriangleBulk::getTopNumber() const
 {
   return 149;
 }

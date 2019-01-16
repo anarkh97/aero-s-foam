@@ -235,7 +235,7 @@ HelmPenta::markDofs(DofSetArray &dsa) const
 }
 
 int
-HelmPenta::getTopNumber() { return(190); }
+HelmPenta::getTopNumber() const { return(190); }
 
 void
 HelmPenta::addFaces(PolygonSet *pset)

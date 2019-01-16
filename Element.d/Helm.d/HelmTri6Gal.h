@@ -11,6 +11,7 @@ class HelmTri6Gal: public HelmElement, public Element {
 public:
 	HelmTri6Gal(int*);
 
+	Category getCategory() const override { return Category::Acoustic; }
 	Element *clone() override;
 
 	void renum(const int *) override;
@@ -35,7 +36,7 @@ public:
 					  Matrix22 *dxdxi, double *det);
 	void getNormalDeriv(CoordSet&,ComplexD *uel, int ns, int *s, ComplexD*,
 						double kappa, double *waveDir) override;
-	int getTopNumber() override {return 138;}
+	int getTopNumber() const override {return 138;}
 };
 #endif
 

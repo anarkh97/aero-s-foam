@@ -43,7 +43,7 @@ public:
 
 	bool isSafe() const override { return false; }
 
-	int getTopNumber() override { return 101; }
+	int getTopNumber() const override { return 101; }
 
 	void extractDeformations(GeomState &geomState, CoordSet &cs, double *vld,
 							 int &nlflag) override { nlflag = 2; }

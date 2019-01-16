@@ -17,7 +17,7 @@ CylindricalJoint::CylindricalJoint(int* _nn)
 }
 
 int 
-CylindricalJoint::getTopNumber() 
+CylindricalJoint::getTopNumber() const
 { 
   return 106; 
 }

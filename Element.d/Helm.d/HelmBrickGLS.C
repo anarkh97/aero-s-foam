@@ -299,7 +299,7 @@ HelmBrickGLS::markDofs(DofSetArray &dsa) const
 }
 
 int
-HelmBrickGLS::getTopNumber()
+HelmBrickGLS::getTopNumber() const
 {
   return 144;//3;
 }

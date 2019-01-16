@@ -20,8 +20,8 @@ namespace Rom {
 template <typename Scalar>
 class GenDistrGalerkinProjectionSolver : public GenParallelSolver<Scalar> {
 public:
-  virtual void solve(const GenDistrVector<Scalar> &, GenDistrVector<Scalar> &);
-  virtual void reSolve(GenDistrVector<Scalar> &);
+  void solve(const GenDistrVector<Scalar> &, GenDistrVector<Scalar> &) override;
+  void reSolve(GenDistrVector<Scalar> &) override;
  
   int numRBM() override { return 0; }
   void getRBMs(Scalar *) override {}

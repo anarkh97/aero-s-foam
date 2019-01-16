@@ -352,3 +352,254 @@ FetiBaseSub::makeIMaps(const DofSetArray *dof_set_array)
 
 	return glInternalMap;
 }
+
+
+void
+FetiBaseSub::sendDOFList(FSCommPattern<int> *pat) const {
+	bool isCoupled =  false; // Elsewhere comes from solverInfo.
+
+	Connectivity &sharedNodes = *(scomm->sharedNodes);
+	auto c_dsa = get_c_dsa();
+	for (int iSub = 0; iSub < scomm->numNeighb; ++iSub) {
+		FSSubRecInfo<int> sInfo = pat->getSendBuffer(subNumber, scomm->subNums[iSub]);
+		for (int iNode = 0; iNode < sharedNodes.num(iSub); ++iNode) {
+			if ((isCoupled && isWetInterfaceNode(sharedNodes[iSub][iNode])) &&
+			    (subNumber == scomm->subNums[iSub]) && (getFetiInfo().fsi_corner == 0))
+				sInfo.data[iNode] = wetInterfaceDofs[wetInterfaceNodeMap[sharedNodes[iSub][iNode]]].list();
+			else
+				sInfo.data[iNode] = (*c_dsa)[sharedNodes[iSub][iNode]].list();
+		}
+	}
+}
+
+
+void
+FetiBaseSub::gatherDOFListPlus(FSCommPattern<int> *pat)
+{
+	auto c_dsa = this->get_c_dsa();
+	int iSub, iNode, i;
+	Connectivity &sharedNodes = *(scomm->sharedNodes);
+	std::vector<std::vector<DofSet>> boundaryDOFs(scomm->numNeighb); // needs to be a local variable
+	int nbdofs = 0;
+	for (iSub = 0; iSub < scomm->numNeighb; ++iSub) {
+		FSSubRecInfo<int> rInfo = pat->recData(scomm->subNums[iSub], subNumber);
+		boundaryDOFs[iSub].resize(sharedNodes.num(iSub));
+		for (iNode = 0; iNode < sharedNodes.num(iSub); ++iNode) {
+			boundaryDOFs[iSub][iNode] = DofSet(rInfo.data[iNode]); // temporarily store neighb c_dsa in boundaryDOFs
+			DofSet shared_bdofs = boundaryDOFs[iSub][iNode] & (*c_dsa)[sharedNodes[iSub][iNode]];
+			nbdofs += shared_bdofs.count();
+		}
+	}
+
+	std::vector<int> boundDofs(nbdofs);
+	std::vector<int> boundDofPointer(scomm->numNeighb + 1);
+	boundDofPointer[0] = 0;
+	nbdofs = 0;
+	for (iSub = 0; iSub < scomm->numNeighb; ++iSub) {
+		for (iNode = 0; iNode < sharedNodes.num(iSub); ++iNode) {
+			boundaryDOFs[iSub][iNode] &= (*c_dsa)[sharedNodes[iSub][iNode]]; // ~> shared_bdofs
+			int bcount = c_dsa->number(sharedNodes[iSub][iNode],
+			                           boundaryDOFs[iSub][iNode], &boundDofs[nbdofs]);
+			nbdofs += bcount;
+		}
+		boundDofPointer[iSub + 1] = nbdofs;
+	}
+
+	scomm->sharedDOFsPlus = std::make_unique<Connectivity>(scomm->numNeighb,
+	                                                       std::move(boundDofPointer), std::move(boundDofs));
+
+	weightPlus.assign(c_dsa->size(), 1);
+	for (auto n : scomm->sharedDOFsPlus->allTargets())
+		weightPlus[n] += 1;
+
+}
+
+void FetiBaseSub::setCorners(gsl::span<const lc_node_idx> cNum) {
+	int i;
+
+	// numCRN     : physical # of corner nodes
+	// crnDofSize : number of degrees of freedom associated with a corner
+	numCRNdof     = 0;
+	numCRN        = 0;
+	crnDofSize    = 0;
+
+	auto dsa = getDsa();
+	auto c_dsa = get_c_dsa();
+	int numdofs = dsa->size();
+	auto numnodes = c_dsa->numNodes();
+	cornerMap.assign(numdofs, -1);
+
+	DofSet interestingDofs;
+	if(getFetiInfo().corners == FetiInfo::allCorners3 ||
+	   getFetiInfo().corners == FetiInfo::noEndCorners3 ||
+	   getFetiInfo().corners == FetiInfo::interface3)
+		interestingDofs.mark(DofSet::XYZdisp | DofSet::Temp | DofSet::Helm | DofSet::IntPress);
+	else
+		interestingDofs.mark(DofSet::XYZdisp | DofSet::XYZrot | DofSet::Temp | DofSet::Helm | DofSet::IntPress);
+
+	DofSet fluidDofs;
+	fluidDofs.mark(DofSet::Helm);
+	DofSet structureDofs;
+	structureDofs.mark(DofSet::XYZdisp | DofSet::XYZrot);
+
+	int nInterest = interestingDofs.count();
+	int nFluidInterest = fluidDofs.count();
+	int nStructureInterest = structureDofs.count();
+
+	bool isCoupled = false; // TODO Merge with the BaseSub version and get the right info
+	auto onWetInterfaceFluid = [](auto nd) { return false; };
+	auto onWetInterfaceStructure = [](auto nd) { return false; };
+	for (auto thisNode: cNum) {
+
+		if(isCoupled && (getFetiInfo().fsi_corner == 0))
+			if(wetInterfaceNodeMap[thisNode] != -1) continue; // skip wet interface nodes
+
+		if((*c_dsa)[thisNode].contains(interestingDofs.list()) != 0) {
+			// no wet interface corner dofs
+			if (!(isCoupled) || getFetiInfo().fsi_corner == 0) {
+				numCRN++;
+				int cdofs[9], dofs[9];//DofSet::max_known_nonL_dof
+				c_dsa->number(thisNode, interestingDofs, cdofs);
+				dsa->number(thisNode, interestingDofs, dofs);
+				for(int iDof = 0; iDof < nInterest; ++iDof)
+					if(cdofs[iDof] >= 0) cornerMap[dofs[iDof]] = numCRNdof++;
+			}
+			// wet interface fluid corner dofs
+			if(isCoupled && (getFetiInfo().fsi_corner == 1)) {
+				if (!(onWetInterface(thisNode))) {
+					numCRN++;
+					int cdofs[9], dofs[9];//DofSet::max_known_nonL_dof
+					c_dsa->number(thisNode, interestingDofs, cdofs);
+					dsa->number(thisNode, interestingDofs, dofs);
+					for(int iDof = 0; iDof < nInterest; ++iDof)
+						if (cdofs[iDof] >= 0) cornerMap[dofs[iDof]] = numCRNdof++;
+				}
+				if (onWetInterfaceFluid(thisNode)) {
+					numCRN++;
+					int cdofs[9], dofs[9];//DofSet::max_known_nonL_dof
+					c_dsa->number(thisNode, fluidDofs, cdofs);
+					dsa->number(thisNode, fluidDofs, dofs);
+					for(int iDof = 0; iDof < nFluidInterest; ++iDof)
+						if (cdofs[iDof] >= 0) cornerMap[dofs[iDof]] = numCRNdof++;
+				}
+			}
+			// wet interface fluid and structure dofs
+			if(isCoupled && (getFetiInfo().fsi_corner == 2)) {
+				numCRN++;
+				int cdofs[9], dofs[9];//DofSet::max_known_nonL_dof
+				c_dsa->number(thisNode, interestingDofs, cdofs);
+				dsa->number(thisNode, interestingDofs, dofs);
+				for(int iDof = 0; iDof < nInterest; ++iDof)
+					if(cdofs[iDof] >= 0) cornerMap[dofs[iDof]] = numCRNdof++;
+			}
+			// wet interface fluid and a few structure dofs
+			if(isCoupled && (getFetiInfo().fsi_corner == 3)) {
+				if (!(onWetInterface(thisNode))) {
+					numCRN++;
+					int cdofs[9], dofs[9];//DofSet::max_known_nonL_dof
+					c_dsa->number(thisNode, interestingDofs, cdofs);
+					dsa->number(thisNode, interestingDofs, dofs);
+					for(int iDof = 0; iDof < nInterest; ++iDof)
+						if (cdofs[iDof] >= 0) cornerMap[dofs[iDof]] = numCRNdof++;
+				}
+				if (onWetInterfaceFluid(thisNode) || onWetInterfaceStructure(thisNode)) {
+					numCRN++;
+					int cdofs[9], dofs[9];//DofSet::max_known_nonL_dof
+					if (onWetInterfaceFluid(thisNode) && onWetInterfaceStructure(thisNode)) {
+						c_dsa->number(thisNode, interestingDofs, cdofs);
+						dsa->number(thisNode, interestingDofs, dofs);
+						for(int iDof = 0; iDof < nInterest; ++iDof)
+							if (cdofs[iDof] >= 0) cornerMap[dofs[iDof]] = numCRNdof++;
+					}
+					else {
+						if (onWetInterfaceFluid(thisNode)) {
+							c_dsa->number(thisNode, fluidDofs, cdofs);
+							dsa->number(thisNode, fluidDofs, dofs);
+							for(int iDof = 0; iDof < nFluidInterest; ++iDof)
+								if (cdofs[iDof] >= 0) cornerMap[dofs[iDof]] = numCRNdof++;
+						}
+						else {
+							c_dsa->number(thisNode, structureDofs, cdofs);
+							dsa->number(thisNode, structureDofs, dofs);
+							for(int iDof = 0; iDof < nStructureInterest; ++iDof)
+								if (cdofs[iDof] >= 0) cornerMap[dofs[iDof]] = numCRNdof++;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// list of corner nodes and a dofset associated with it
+	cornerNodes.resize(numCRN);
+	cornerDofs.resize(numCRN);
+	// Create a variable at the beginning to be DofSet::XYZrot, XYZrot, Temp
+
+	isCornerNode.assign(numnodes, false);
+
+	numCRN = 0;
+	for (auto thisNode: cNum) {
+		if(isCoupled)
+			if(wetInterfaceNodeMap[thisNode] != -1) continue; // skip wet interface nodes
+		if((*c_dsa)[thisNode].contains(interestingDofs.list())) {
+			if (!(isCoupled) || (getFetiInfo().fsi_corner == 0)) {
+				cornerNodes[numCRN] = thisNode;
+				isCornerNode[thisNode] = true;
+				cornerDofs[numCRN] = ( (*c_dsa)[thisNode] & interestingDofs );
+				numCRN++;
+			}
+			if(isCoupled && (getFetiInfo().fsi_corner == 1)) {
+				if (!(onWetInterface(thisNode))) {
+					cornerNodes[numCRN] = thisNode;
+					isCornerNode[thisNode] = true;
+					cornerDofs[numCRN] = ( (*c_dsa)[thisNode] & interestingDofs );
+					numCRN++;
+				}
+				if (onWetInterfaceFluid(thisNode)) {
+					cornerNodes[numCRN] = thisNode;
+					isCornerNode[thisNode] = true;
+					cornerDofs[numCRN] = ( (*c_dsa)[thisNode] & fluidDofs );
+					numCRN++;
+				}
+			}
+			if(isCoupled && (getFetiInfo().fsi_corner == 2)) {
+				cornerNodes[numCRN] = thisNode;
+				isCornerNode[thisNode] = true;
+				cornerDofs[numCRN] = ( (*c_dsa)[thisNode] & interestingDofs );
+				numCRN++;
+			}
+			if(isCoupled && (getFetiInfo().fsi_corner == 3)) {
+				if (!(onWetInterface(thisNode))) {
+					cornerNodes[numCRN] = thisNode;
+					isCornerNode[thisNode] = true;
+					cornerDofs[numCRN] = ( (*c_dsa)[thisNode] & interestingDofs );
+					numCRN++;
+				}
+				if (onWetInterfaceFluid(thisNode) || onWetInterfaceStructure(thisNode)) {
+					cornerNodes[numCRN] = thisNode;
+					isCornerNode[thisNode] = true;
+					if (onWetInterfaceFluid(thisNode) && onWetInterfaceStructure(thisNode))
+						cornerDofs[numCRN] = ( (*c_dsa)[thisNode] & interestingDofs );
+					else {
+						if (onWetInterfaceFluid(thisNode))
+							cornerDofs[numCRN] = ( (*c_dsa)[thisNode] & fluidDofs );
+						else
+							cornerDofs[numCRN] = ( (*c_dsa)[thisNode] & structureDofs );
+					}
+					numCRN++;
+				}
+			}
+		}
+	}
+
+}
+
+void
+FetiBaseSub::mergeInterfaces()
+{
+	// mpc list should already have been set before now
+	boundDofFlag = scomm->mergeTypeSpecificLists(); // merge types 0, 1 and 2 (std, wet and mpc)
+	auto abd = scomm->allBoundDofs();
+	totalInterfSize = scomm->totalInterfSize();
+	allBoundDofs.assign(abd.begin(), abd.end());
+}

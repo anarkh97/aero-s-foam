@@ -4,30 +4,31 @@
 #include <Element.d/Element.h>
 
 class ThermIsoParamTetra: public Element {
-
-        int order;
+public:
+	int order;
 	int *nn;
-        ThermIsoParamTetra(const ThermIsoParamTetra& e);
+	ThermIsoParamTetra(const ThermIsoParamTetra& e);
 
 public:
 	ThermIsoParamTetra(int,int*);
 
-        FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const override;
-        FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg=1) const override;
-        double  getMass(const CoordSet& cs) const override;
+	FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const override;
+	FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg=1) const override;
+	double  getMass(const CoordSet& cs) const override;
 
+	Category getCategory() const override { return Category::Thermal; }
 	Element *clone() override;
 	void renum(const int *) override;
-        void renum(EleRenumMap&) override;
+	void renum(EleRenumMap&) override;
 	void markDofs(DofSetArray &) const override;
-        int* dofs(DofSetArray &, int *p) const override;
-        int numDofs() const override { return (order*(order+1)*(order+2))/6; }
-        int numNodes() const override;
-        int* nodes(int * = 0) const override;
+	int* dofs(DofSetArray &, int *p) const override;
+	int numDofs() const override { return (order*(order+1)*(order+2))/6; }
+	int numNodes() const override;
+	int* nodes(int * = 0) const override;
 
-        PrioInfo examine(int sub, MultiFront *mf) override;
-        int getTopNumber() override;
+	PrioInfo examine(int sub, MultiFront *mf) override;
+	int getTopNumber() const override;
 
-        Corotator * getCorotator(CoordSet &, double*, int, int) override { return 0; }
+	Corotator * getCorotator(CoordSet &, double*, int, int) override { return 0; }
 };
 #endif

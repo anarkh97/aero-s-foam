@@ -7,6 +7,7 @@
 
 
 #include <vector>
+#include <gsl/span>
 #include "FetiSub.h"
 
 class FetiSubCornerHandler;
@@ -22,7 +23,7 @@ class CornerSelector
 {
 	int glNumSub;
 	int nSub;
-	Connectivity *grToSub;
+	std::unique_ptr<const Connectivity> grToSub;
 	int *glSubGroup;
 	std::vector<FetiSubCornerHandler*> cornerHandler;
 	FSCommPattern<int> *cpat;
@@ -34,11 +35,16 @@ class CornerSelector
 	                   Connectivity &cNConnect, Connectivity &subToRotCrn,
 	                   int *glCrnGroup);
 public:
-	CornerSelector(int nGlobSub, int nLocSub, std::vector<FetiSubCornerHandler *> handlers,
+	CornerSelector(int nGlobSub, int nLocSub,
+	               std::vector<FetiSubCornerHandler *> handlers,
 	               FSCommPattern<int> *commPattern, FSCommunicator *communicator);
 	~CornerSelector();
+	/** \brief Pick the corners for FETI-DP.
+	 *
+	 * @return The total number of corners picked in the complete problem.
+	 */
 	int makeCorners();
-	Connectivity *getGrToSub() { return grToSub; }
+	std::unique_ptr<const Connectivity> yieldGrToSub() { return std::move(grToSub); }
 	auto &handlers() { return cornerHandler; }
 };
 
@@ -64,7 +70,7 @@ public:
 	                     const std::vector<gl_sub_idx> &nsb,
 	                     const ConstrainedDSA *c_dsa, FetiBaseSub *_subPre);
 	FetiSubCornerHandler(FetiBaseSub *sub);
-	~FetiSubCornerHandler();
+	~FetiSubCornerHandler() = default;
 	void markMultiDegNodes();
 	void dispatchSafeNodes(FSCommPattern<int> *);
 	void markSafeNodes(FSCommPattern<int> *);
@@ -85,16 +91,16 @@ public:
 	void resendNumbers(FSCommPattern<int> *pat);
 	void checkNumbers(FSCommPattern<int> *pat);
 
-	int *getCorners() { return crnList; }
+	gsl::span<const lc_node_idx> getCorners() const { return crnList; }
 	int getNumCorners() { return totNC; }
 
 protected:
 	int glSubNum;
 	int nnodes;
-	int *deg;
-	int *crnList;
+	std::vector<int> deg;
+	std::vector<lc_node_idx> crnList;
 	int totNC;
-	int *weight;
+	std::vector<int> weight;
 	std::vector<bool> isCorner;
 	std::vector<bool> isSafe;
 	std::vector<bool> glSafe;

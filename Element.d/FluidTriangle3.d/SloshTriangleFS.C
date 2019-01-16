@@ -144,7 +144,7 @@ SloshTriangleFS::markDofs(DofSetArray &dsa) const
 }
 
 int
-SloshTriangleFS::getTopNumber()
+SloshTriangleFS::getTopNumber() const
 {
   return 153;//4;
 }

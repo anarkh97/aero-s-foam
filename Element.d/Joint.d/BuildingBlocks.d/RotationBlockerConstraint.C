@@ -18,7 +18,7 @@ RotationBlockerConstraint::buildFrame(CoordSet& cs)
 }
 
 int 
-RotationBlockerConstraint::getTopNumber() 
+RotationBlockerConstraint::getTopNumber() const
 { 
   return 106; 
 }

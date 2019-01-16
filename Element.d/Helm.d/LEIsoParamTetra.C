@@ -11,6 +11,7 @@
 #include <Math.d/matrix.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Utils.d/dofset.h>
+#include "LEIsoParamTetra.h"
 
 
 LEIsoParamTetra::LEIsoParamTetra(int o, int* nodenums) {
@@ -191,5 +192,10 @@ int LEIsoParamTetra::getDecFace(int iFace, int *fn) {
     fn[i] = nn[tmp];
   }
   return ordersq;
+}
+
+int LEIsoParamTetra::getTopNumber() const
+{
+ return -1;
 }
 

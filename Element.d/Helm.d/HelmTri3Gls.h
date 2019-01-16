@@ -10,6 +10,7 @@ class HelmTri3Gls: public HelmElement, public Element {
 public:
 	explicit HelmTri3Gls(int*);
 
+	Category getCategory() const override { return Category::Acoustic; }
 	Element *clone() override;
 
 	void renum(const int *) override;
@@ -29,7 +30,7 @@ public:
 	int * nodes(int *) const override;
 
 	void addFaces(PolygonSet *pset) override;
-	int getTopNumber() override;
+	int getTopNumber() const override;
 	PrioInfo examine(int sub, MultiFront *) override;
 
 	virtual double getHelmCoef() { return coef; }

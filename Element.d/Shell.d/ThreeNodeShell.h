@@ -17,6 +17,7 @@ protected:
 public:
 	explicit ThreeNodeShell(int*, double _w=3);
 
+	Category getCategory() const override { return Category::Structural; }
 	Element *clone() override;
 
 	void renum(const int *) override;
@@ -48,7 +49,7 @@ public:
 	void getFlLoad(CoordSet &, const InterpPoint &,
 	               double *flF, double *resF, GeomState *gs) override;
 
-	int getTopNumber() override;
+	int getTopNumber() const override;
 	int nDecFaces() const override { return 1;}
 	int getDecFace(int iFace, int *fn) override { for(int i; i<3; i++) fn[i] = nn[i]; return 3; }
 

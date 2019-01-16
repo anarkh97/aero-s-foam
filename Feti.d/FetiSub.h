@@ -5,6 +5,7 @@
 #ifndef FEM_FETUSUB_H
 #define FEM_FETUSUB_H
 #include <vector>
+#include <gsl/span>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 
@@ -92,6 +93,10 @@ public:
 	/** \brief Make the subdomain determine its master flag, i.e. whether it is the primary holder of a variable. */
 	void computeMasterFlag(const Connectivity &mpcToSub);
 
+	void mergeInterfaces();
+
+	virtual void setCorners(gsl::span<const lc_node_idx> cNum);
+
 	/// \brief Obtain the number of MPC constraints.
 	int numMPCs() const  { return numMPC; }
 	int numMPCs_primal() const  { return numMPC_primal; }
@@ -105,6 +110,10 @@ public:
 	const std::vector<int> &getLocalCornerNodes() const { return cornerNodes; };
 
 	int numWetInterfaceDofs() const { return numWIdof; }
+
+	/// \brief Send to neighbors the list of DOFs on the shared nodes
+	void sendDOFList(FSCommPattern<int> *pat) const;
+	void gatherDOFListPlus(FSCommPattern<int> *pat);
 
 	virtual const CoordSet& getNodeSet() const = 0;
 
@@ -135,7 +144,7 @@ public:
 
 
 
-	const auto &getCornerEqNums() const { return cornerEqNums; }
+	gsl::span<const int> getCornerEqNums() const { return cornerEqNums; }
 	int getGroup() const { return group; }
 
 	SComm *getSComm() { return scomm; }
@@ -159,7 +168,7 @@ public:
 	int getLocalMPCIndex(int globalMpcIndex) const;
 	/// \copydoc
 	int getGlobalMPCIndex(int localMpcIndex) const;
-	void makeLocalMpcToGlobalMpc(Connectivity *mpcToMpc);
+	void makeLocalMpcToGlobalMpc(const Connectivity *mpcToMpc);
 
 	void addMPCsToGlobalZstar(FullM *globalZstar, int startRow, int startCol, int numCol);
 	void addSPCsToGlobalZstar(FullM *globalZstar, int &zRow, int zColOffset);
@@ -170,7 +179,7 @@ public:
 	bool isWetInterfaceDof(int d) const { return (wetInterfaceMap.size() > 0) ? (wetInterfaceMap[d] > -1) : false; }
 	void GramSchmidt(double *Q, bool *isUsed, DofSet desired, int nQPerNeighb, bool isPrimalAugmentation);
 
-	void setLocalMpcToBlock(Connectivity *mpcToBlock, Connectivity *blockToMpc);
+	void setLocalMpcToBlock(const Connectivity *mpcToBlock, const Connectivity *blockToMpc);
 	void findEdgeNeighbors();
 	void zeroEdgeDofSize();
 
@@ -210,6 +219,7 @@ protected:
 	std::vector<int> glCornerNodes; //!< \brief Corner nodes in global numbering.
 	int numCRN = 0;
 	int numCRNdof = 0;
+	int crnDofSize = 0;
 	std::vector<std::vector<DofSet>> boundaryDOFs;
 	std::vector<int> edgeDofSizeTmp;   // XXXX
 	std::vector<int> edgeDofSize;      //<! \brief Number of edge DOF per neighbor.
@@ -252,7 +262,7 @@ protected:
 	std::vector<int> makeBMaps(const DofSetArray *dofsetarray=0);
 	std::vector<int> makeIMaps(const DofSetArray *dofsetarray=0);
 public:
-	void setGroup(Connectivity *subToGroup) { this->group = (*subToGroup)[subNum()][0]; }
+	void setGroup(const Connectivity *subToGroup) { this->group = (*subToGroup)[subNum()][0]; }
 	void setNumGroupRBM(int *ngrbmGr);
 	void getNumGroupRBM(int *ngrbmGr);
 	void makeLocalToGroupMPC(Connectivity *groupToMPC);
@@ -275,7 +285,7 @@ public:
 	GlobalToLocalMap globalToLocalMPC_primal;
 	///@}
 
-	int *cornerMap = nullptr;
+	std::vector<int> cornerMap;
 
 	void sendNumNeighbGrbm(FSCommPattern<int> *pat);
 	void recvNumNeighbGrbm(FSCommPattern<int> *pat);
@@ -518,7 +528,7 @@ public:
 
 	void sendMpcStatus(FSCommPattern<int> *mpcPat, int flag);
 	void subtractMpcRhs(Scalar *interfvec);
-	void insertBlockMpcResidual(Scalar *subv, GenVector<Scalar> **mpcv, Connectivity *mpcToBlock,
+	void insertBlockMpcResidual(Scalar *subv, GenVector<Scalar> **mpcv, const Connectivity *mpcToBlock,
 	                            SimpleNumberer **blockMpcEqNums);
 	void extractBlockMpcResidual(int block, Scalar *subv, GenVector<Scalar> *mpcv,
 	                             SimpleNumberer *blockMpcEqNums);
@@ -568,8 +578,8 @@ public:
 	void assembleBlockCCtsolver(int iBlock, GenSolver<Scalar> *CCtsolver, SimpleNumberer *blockMpcEqNums);
 	void assembleLocalCCtsolver();
 	void setCCtCommSize(FSCommPattern<Scalar> *cctPat);
-	void sendNeighbCCtsolver(FSCommPattern<Scalar> *cctPat, Connectivity *mpcToSub);
-	void recNeighbCCtsolver(FSCommPattern<Scalar> *cctPat, Connectivity *mpcToSub);
+	void sendNeighbCCtsolver(FSCommPattern<Scalar> *cctPat, const Connectivity *mpcToSub);
+	void recNeighbCCtsolver(FSCommPattern<Scalar> *cctPat, const Connectivity *mpcToSub);
 	void factorLocalCCtsolver();
 	void zeroLocalCCtsolver();
 

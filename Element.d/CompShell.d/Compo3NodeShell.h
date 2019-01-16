@@ -6,7 +6,7 @@
 class GeomState;
 
 class Compo3NodeShell : public Element {
-
+private:
 	int      nn[3];
 	int      type;
 	int numLayers;
@@ -20,6 +20,7 @@ class Compo3NodeShell : public Element {
 public:
 	explicit Compo3NodeShell(int*);
 
+	Category getCategory() const override { return Category::Structural; }
 	Element *clone() override;
 
 	void renum(const int *) override;
@@ -48,7 +49,7 @@ public:
 	void markDofs(DofSetArray &) const override;
 	int* dofs(DofSetArray &, int *p) const override;
 	int numDofs() const override;
-	int getTopNumber() override;
+	int getTopNumber() const override;
 
 	int numNodes() const override;
 	int* nodes(int *) const override;

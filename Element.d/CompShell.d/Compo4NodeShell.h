@@ -9,7 +9,7 @@ class Compo4NodeShell : public SuperElement
     Compo4NodeShell(int *nodenums);
 
     Element* clone() override;
-    int getTopNumber() override;
+    int getTopNumber() const override;
     bool isShell() const override { return true; }
 
     // aero functions

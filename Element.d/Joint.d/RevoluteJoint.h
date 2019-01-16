@@ -9,11 +9,12 @@
 
 class RevoluteJoint : public SuperElement
 {
-  public:
-    RevoluteJoint(int*);
-    int getTopNumber() override;
-    bool hasRot() const override { return true; }
-    PrioInfo examine(int sub, MultiFront*) override;
+public:
+	RevoluteJoint(int*);
+	Category getCategory() const override { return Category::Structural; }
+	int getTopNumber() const override;
+	bool hasRot() const override { return true; }
+	PrioInfo examine(int sub, MultiFront*) override;
 };
 
 #endif

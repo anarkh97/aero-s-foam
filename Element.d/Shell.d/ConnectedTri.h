@@ -9,6 +9,7 @@ class ConnectedTri : public Element {
 public:
 	ConnectedTri(int*);
 
+	Category getCategory() const override { return Category::Structural; }
 	void renum(const int *) override;
 	void renum(EleRenumMap&) override;
 
@@ -27,7 +28,7 @@ public:
 	void getFlLoad(CoordSet &, const InterpPoint &,
 	                       double *flF, double *resF, GeomState *gs) override;
 	PrioInfo examine(int sub, MultiFront *) override;
-	int getTopNumber() override;
+	int getTopNumber() const override;
 
 };
 

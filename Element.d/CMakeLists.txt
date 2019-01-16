@@ -90,7 +90,6 @@ Convection.d/convecquad.f
 Convection.d/QuadConvec.C
 Convection.d/trianarea.f
 Convection.d/TriangleConvec.C
-CtcVirtualElt.d/CtcVirtualElt.C
 DiscreteMass.d/DiscreteMass6Dof.C
 FelippaShell.d/EffMembraneTriangleInstance.cpp
 FelippaShell.d/AndesBendingTriangleInstance.cpp
@@ -282,7 +281,6 @@ Quad4.d/q4shpe.f
 Quad4.d/qgauss.f
 Quad4.d/quad2d.f
 Quad4.d/quad4m.f
-Quad4.d/Quad.C
 Quad4.d/sands2.f
 Quad4.d/strainvmc.f
 Quad4.d/strainvm.f

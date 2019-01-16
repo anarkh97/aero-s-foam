@@ -579,7 +579,7 @@ ThreeNodeShell::getFlLoad(CoordSet &, const InterpPoint &ip, double *flF,
 }
 
 int
-ThreeNodeShell::getTopNumber()
+ThreeNodeShell::getTopNumber() const
 {
   return 108;
 }

@@ -600,7 +600,7 @@ Triangle3::markDofs(DofSetArray &dsa) const
 }
 
 int
-Triangle3::getTopNumber()
+Triangle3::getTopNumber() const
 {
   return 104;//4;
 }

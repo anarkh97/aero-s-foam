@@ -14,7 +14,7 @@ class GenDistBlockSky : public GenBlockSky<Scalar>
   Scalar *nlines;
 
  public:
-   GenDistBlockSky(Connectivity *cn, EqNumberer *dsa, double trbm, 
+   GenDistBlockSky(const Connectivity *cn, EqNumberer *dsa, double trbm,
                    int fRow, int numRows);
    virtual ~GenDistBlockSky();
    void parallelFactor();

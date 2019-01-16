@@ -235,7 +235,7 @@ HelmQuadGls::markDofs(DofSetArray &dsa) const
 
 
 int
-HelmQuadGls::getTopNumber()
+HelmQuadGls::getTopNumber() const
 {
   return 131; //2;
 }

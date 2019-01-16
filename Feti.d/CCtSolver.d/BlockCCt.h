@@ -7,8 +7,12 @@ template<class Scalar>
 class BlockCCtSolver : public CCtSolver<Scalar>
 {
   public:
-    BlockCCtSolver(Connectivity *blockToMpc, Connectivity *mpcToMpc, Connectivity *mpcToSub,
-                   Connectivity *mpcToCpu, int numSubsWithMpcs, std::vector<FetiSub<Scalar> *> subsWithMpcs,
+    BlockCCtSolver(const Connectivity *blockToMpc,
+                   const Connectivity *mpcToMpc,
+                   const Connectivity *mpcToSub,
+                   const Connectivity *mpcToCpu,
+                   int numSubsWithMpcs,
+                   std::vector<FetiSub<Scalar> *> subsWithMpcs,
                    int *subMap, FetiInfo *finfo, FSCommunicator *fetiCom);
     ~BlockCCtSolver();
     void reSolve(GenDistrVector<Scalar> &v);
@@ -24,20 +28,20 @@ class BlockCCtSolver : public CCtSolver<Scalar>
     std::vector<GenSolver<Scalar> *> blockCCtsolver;// array[nMpcBlocks] of pointer on the BlockCCtsolver of myCPU
     std::vector<GenSparseMatrix<Scalar> *> blockCCtsparse;
     std::vector<SimpleNumberer *> blockMpcEqNums;
-    Connectivity *blockToMpc;
-    Connectivity *blockToSub;
-    Connectivity *mpcToBlock;
+    const Connectivity *blockToMpc;
+    const Connectivity *blockToSub;
+    const Connectivity *mpcToBlock;
     std::vector<Connectivity *> blockMpcToMpc;
-    Connectivity *blockToMpcCpu;   //HB: for each block, give the CPUs that have a 
+    const Connectivity *blockToMpcCpu;   //HB: for each block, give the CPUs that have a
                                    //    lmpc CCt contribution to it
-    Connectivity *blockToCpu;
-    Connectivity *cpuToBlock;
+    const Connectivity *blockToCpu;
+    const Connectivity *cpuToBlock;
     mutable std::vector<GenVector<Scalar> *> mpcv; // This make this solver non re-entrant.
     FSCommPattern<Scalar> *blockCCtPat;
     FSCommPattern<Scalar> *mpcvPat1, *mpcvPat2;
     int myCPU, numCPUs;
 
-    void createBlockMpcToMpcConnectivity(int iBlock, Connectivity *mpcToMpc);
+    void createBlockMpcToMpcConnectivity(int iBlock, const Connectivity *mpcToMpc);
     void deleteBlockMpcToMpcConnectivity(int iBlock);
     void createBlockCCtsolver(int iBlock);
     void deleteBlockCCtsolver(int iBlock);

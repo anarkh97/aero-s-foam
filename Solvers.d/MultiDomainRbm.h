@@ -29,7 +29,7 @@ class MultiDomainRbm
   private:
     void computeRbms();
     void setBodyRBMoffset(int iSub, int *zColOffset, Connectivity *subToBody);
-    void assembleGtG(int iGroup, int *groups, Connectivity *groupToSub, GenSparseMatrix<Scalar> *GtGsparse);
+    void assembleGtG(int iGroup, const int *groups, const Connectivity *groupToSub, GenSparseMatrix<Scalar> *GtGsparse);
     void getGlobalRBM(int iSub, int &iRBM, GenDistrVector<Scalar> &R);
     void singularValueDecomposition(FullM &A, FullM &U, int ncol, int nrow, int &rank, double tol, FullM *V = 0);
 };

@@ -11,8 +11,9 @@ class ConstantDistanceConstraint : public DistanceConstraintElement
 {
 public:
 	ConstantDistanceConstraint(int*, int=0);
+	Category getCategory() const override { return Category::Structural; }
 	void buildFrame(CoordSet&) override;
-	int getTopNumber() override;
+	int getTopNumber() const override;
 };
 
 #endif

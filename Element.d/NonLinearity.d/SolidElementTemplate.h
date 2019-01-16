@@ -13,7 +13,7 @@ class AutoShapeFunction : public ShapeFunction
 {
 public:
 	AutoShapeFunction() : ShapeFunction(3*NumberOfNodes) {}
-	void getLocalDerivatives(Tensor *localDerivatives, double xi[3]);
+	void getLocalDerivatives(Tensor *localDerivatives, double xi[3]) override;
 	void getValues(Tensor *val, double xi[3]) override {}
 	Tensor *getValInstance() override { return 0; }
 	double interpolateScalar(double *_q, double _xi[3]) override;

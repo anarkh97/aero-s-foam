@@ -16,6 +16,7 @@ class HelmBrick32: public HelmElement, public Element {
 public:
 	explicit HelmBrick32(int*);
 
+	Category getCategory() const override { return Category::Acoustic; }
 	Element *clone() override;
 
 	void renum(const int *) override;
@@ -35,7 +36,7 @@ public:
 
 	void addFaces(PolygonSet *pset) override;
 
-	int getTopNumber() override;
+	int getTopNumber() const override;
 	int numTopNodes() const override;
 
 	PrioInfo examine(int sub, MultiFront *mf) override;

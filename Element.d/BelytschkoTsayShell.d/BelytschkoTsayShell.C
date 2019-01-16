@@ -705,7 +705,7 @@ BelytschkoTsayShell::getFlLoad(CoordSet& cs, const InterpPoint& ip, double *flF,
 }
 
 int
-BelytschkoTsayShell::getTopNumber()
+BelytschkoTsayShell::getTopNumber() const
 {
   return 188;
 }

@@ -849,7 +849,7 @@ Tetrahedral::numDofs() const
 }
 
 int
-Tetrahedral::getTopNumber()
+Tetrahedral::getTopNumber() const
 {
   return 123;
 }

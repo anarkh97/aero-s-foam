@@ -524,7 +524,7 @@ Brick20::numDofs() const
 }
 
 int
-Brick20::getTopNumber()
+Brick20::getTopNumber() const
 {
   return 172;
 }

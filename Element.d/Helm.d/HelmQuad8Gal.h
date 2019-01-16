@@ -9,6 +9,7 @@ class HelmQuad8Gal: public HelmElement, public Element {
 public:
 	explicit HelmQuad8Gal(int*);
 
+	Category getCategory() const override { return Category::Acoustic; }
 	Element *clone() override;
 
 	void renum(const int *) override;
@@ -25,7 +26,7 @@ public:
 
 	int numNodes() const override;
 	int * nodes(int *) const override;
-	int getTopNumber() override { return(132); }
+	int getTopNumber() const override { return(132); }
 	void addFaces(PolygonSet *pset) override;
 
 };

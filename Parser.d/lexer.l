@@ -505,6 +505,9 @@ TRAIL [a-zA-Z]*
 
 "mump"[a-zA-Z]*|"MUMP"[a-zA-Z]*    { yylval.ival = 9; return SOLVERTYPE; }
 
+"native_cholmod"                   { yylval.ival = 18; return SOLVERTYPE; }
+"pardiso"|"PARDISO"                { yylval.ival = 19; return SOLVERTYPE; }
+
 "purelydiag"[a-zA-Z]*|"PURELYDIAG"[a-zA-Z]* { yylval.ival = 10; return SOLVERTYPE; }
 
 "dbsgal"[a-zA-Z]*|"DBSGAL"[a-zA-Z]* { yylval.ival = 12; return SOLVERTYPE; }

@@ -8,7 +8,7 @@ class RigidSolid : public SuperElement
 public:
 	explicit RigidSolid(int, int*);
 	void buildFrame(CoordSet& cs) override;
-	int getTopNumber() override;
+	int getTopNumber() const override;
 	int numTopNodes() const override;
 	bool isRigidElement() const override { return true; }
 	bool isSafe() const override;

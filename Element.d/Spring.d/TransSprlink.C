@@ -126,7 +126,7 @@ TransSprlink::markDofs(DofSetArray& dsa) const
 }
 
 int
-TransSprlink::getTopNumber()
+TransSprlink::getTopNumber() const
 {
   return 121;
 }

@@ -688,7 +688,7 @@ ShearPanel::markDofs(DofSetArray &dsa) const
 }
 
 int
-ShearPanel::getTopNumber()
+ShearPanel::getTopNumber() const
 {
   return 118; // 2
 }

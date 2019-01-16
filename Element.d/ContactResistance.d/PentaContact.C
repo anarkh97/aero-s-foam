@@ -161,7 +161,7 @@ PentaContact::markDofs(DofSetArray &dsa) const
 }
 
 int
-PentaContact::getTopNumber()
+PentaContact::getTopNumber() const
 {
   return 124;
 }

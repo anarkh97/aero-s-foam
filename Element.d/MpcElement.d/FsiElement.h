@@ -19,6 +19,7 @@ public:
 
 	~FsiElement() override { delete [] nn; delete [] renumTable; };
 
+	Category getCategory() const override { return Category::Fluid; }
 	void setProp(StructProp *p) { };
 	bool isFsiElement() override { return true; }
 // JLchange: only valid for the case of one-one connection fsi
@@ -41,7 +42,7 @@ public:
 	int* nodes(int *) const override;
 	int  numInternalNodes() const override { return 0; }
 
-	int  getTopNumber() override { return 502; }
+	int  getTopNumber() const override { return 502; }
 	int numTopNodes() const override { return nnodes; }
 
 	PrioInfo examine(int sub, MultiFront *mf) override;

@@ -12,11 +12,17 @@ find_path(CHOLMOD_INCLUDE_DIR
   $ENV{CHOLMODDIR}
   ${INCLUDE_INSTALL_DIR}
   PATH_SUFFIXES
+  include
   suitesparse
+  suitesparse/include
   ufsparse
+  ufsparse/include
 )
 
-find_library(CHOLMOD_LIBRARY cholmod PATHS $ENV{CHOLMODDIR} ${LIB_INSTALL_DIR})
+find_library(CHOLMOD_LIBRARY cholmod PATHS $ENV{CHOLMODDIR} ${LIB_INSTALL_DIR}
+        PATH_SUFFIXES
+        lib
+        suitespare/lib)
 set(CHOLMOD_LIBRARIES ${CHOLMOD_LIBRARY})
 
 if(CHOLMOD_LIBRARIES)

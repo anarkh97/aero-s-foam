@@ -19,7 +19,7 @@ TetraHelmGal::TetraHelmGal(int* nodenums) {
 
 
 int
-TetraHelmGal::getTopNumber()
+TetraHelmGal::getTopNumber() const
 {
     return 141;//5;
 }

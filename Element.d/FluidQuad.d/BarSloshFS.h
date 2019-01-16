@@ -5,12 +5,13 @@
 #include <cstdio>
 
 class BarSloshFS: public Element {
-
+private:
 	int nn[2];
 public:
 
 	explicit BarSloshFS(int*);
 
+	Category getCategory() const override { return Category::Fluid; }
 	Element *clone() override;
 
 	void renum(const int *) override;
@@ -29,7 +30,7 @@ public:
 		fprintf(stderr,"BarSloshFS.h: PrioInfo examine is commented in Dec.d/ElemMFCheck.C.");
 		return *(new PrioInfo);
 	};
-	int getTopNumber() override;
+	int getTopNumber() const override;
 };
 
 #endif

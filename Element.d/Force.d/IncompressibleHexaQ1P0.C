@@ -11,7 +11,7 @@ IncompressibleHexaQ1P0::IncompressibleHexaQ1P0(int* _nn)
 {}
 
 int
-IncompressibleHexaQ1P0::getTopNumber()
+IncompressibleHexaQ1P0::getTopNumber() const
 {
   return 117;
 }

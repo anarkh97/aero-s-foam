@@ -17,7 +17,7 @@ RevoluteJoint::RevoluteJoint(int* _nn)
 }
 
 int 
-RevoluteJoint::getTopNumber() 
+RevoluteJoint::getTopNumber() const
 { 
   return 106; 
 }

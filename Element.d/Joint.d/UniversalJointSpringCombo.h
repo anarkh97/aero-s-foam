@@ -5,11 +5,12 @@
 
 class UniversalJointSpringCombo : public SuperElement
 {
-  public:
-    UniversalJointSpringCombo(int*);
-    int getTopNumber() override;
-    bool hasRot() const override { return true; }
-    PrioInfo examine(int sub, MultiFront*) override;
+public:
+	UniversalJointSpringCombo(int*);
+	Category getCategory() const override { return Category::Structural; }
+	int getTopNumber() const override;
+	bool hasRot() const override { return true; }
+	PrioInfo examine(int sub, MultiFront*) override;
 };
 
 #endif

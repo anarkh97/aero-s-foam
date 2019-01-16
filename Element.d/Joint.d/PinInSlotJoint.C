@@ -17,7 +17,7 @@ PinInSlotJoint::PinInSlotJoint(int* _nn)
 }
 
 int 
-PinInSlotJoint::getTopNumber() 
+PinInSlotJoint::getTopNumber() const
 { 
   return 106; 
 }

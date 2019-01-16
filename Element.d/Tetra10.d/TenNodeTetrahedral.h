@@ -17,6 +17,7 @@ public:
 	TenNodeTetrahedral(int*);
 	~TenNodeTetrahedral();
 
+	Category getCategory() const override { return Category::Structural; }
 	Element *clone() override;
 
 	void renum(const int *) override;
@@ -43,7 +44,7 @@ public:
 	int numNodes() const override;
 	int* nodes(int *) const override;
 
-	int getTopNumber() override;
+	int getTopNumber() const override;
 
 	PrioInfo examine(int sub, MultiFront *) override;
 	int nDecFaces() const override { return 4; }

@@ -80,7 +80,7 @@ RigidSolid::buildFrame(CoordSet& cs)
 }
 
 int 
-RigidSolid::getTopNumber()
+RigidSolid::getTopNumber() const
 { 
   switch(nnodes) {
     case 4 : return 123; // 4-node tetra

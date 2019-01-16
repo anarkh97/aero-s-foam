@@ -153,11 +153,11 @@ protected:
 	void singleCoarseAssembly();
 	void singleCoarseAssembleG(int isub);
 	void singleCoarseAssembleMPCs(int iSub);
-	Connectivity * getCoarseToSubConnect();
+	Connectivity getCoarseToSubConnect() const;
 
-	Connectivity * makeSingleConnect(Connectivity *coarseConnect,
-	                                 Connectivity *coarseToSub,
-	                                 Connectivity *subToCoarse, int gOffset);
+	Connectivity * makeSingleConnect(const Connectivity *coarseConnect,
+	                                 const Connectivity *coarseToSub,
+	                                 const Connectivity *subToCoarse, int gOffset);
 	void singleCoarseSolve(const GenDistrVector<Scalar> &rhs, GenDistrVector<Scalar> &u) const;
 	void setAllOffsets(int iSub, int gOffset);
 	void getSRMult(int iSub, GenDistrVector<Scalar> *r, GenDistrVector<Scalar> *lambda,
@@ -342,10 +342,11 @@ class GenFetiDPSolver : public FetiBaseClass<Scalar>
 	bool proportional;
 
 public:
-	GenFetiDPSolver(int nsub, int glNumSub, std::vector<FetiSub<Scalar>*> subdomains, Connectivity *subToSub,
-	                FetiInfo *finfo, FSCommunicator *fetiCom, int *glToLoc, Connectivity *mpcToSub, Connectivity *mpcToSub_primal,
-	                Connectivity *mpcToMpc, Connectivity *mpcToCpu, Connectivity *cpuToSub,
-	                Connectivity *bodyToSub = 0, std::vector<std::unique_ptr<GenSolver<Scalar>>> sysMatrices = {},
+	GenFetiDPSolver(int nsub, int glNumSub, std::vector<FetiSub<Scalar> *> subdomains, const Connectivity *subToSub,
+	                FetiInfo *finfo, FSCommunicator *fetiCom, int *glToLoc, const Connectivity *mpcToSub,
+	                const Connectivity *mpcToSub_primal,
+	                Connectivity *mpcToMpc, const Connectivity *mpcToCpu, const Connectivity *cpuToSub,
+	                const Connectivity *bodyToSub = 0, std::vector<std::unique_ptr<GenSolver<Scalar>>> sysMatrices = {},
 	                GenSparseMatrix<Scalar> **sysMat = 0, Rbm **rbms = 0, bool rbmFlag = 0,
 	                bool geometricRbms = true, int verboseFlag = 0);
 	virtual ~GenFetiDPSolver();
@@ -431,10 +432,10 @@ private:
 	int *ngrbmGr = nullptr;
 	int nGroups = 0, nGroups1 = 0;
 	int *groups = nullptr;
-	Connectivity *groupToSub = nullptr, *bodyToSub = nullptr, *subToGroup = nullptr;
+	const Connectivity *groupToSub = nullptr, *bodyToSub = nullptr, *subToGroup = nullptr;
 	GenSolver<Scalar> *GtGtilda = nullptr;
 	GenSparseMatrix<Scalar> *GtGsparse = nullptr;
-	Connectivity *subToBody = nullptr;
+	const Connectivity *subToBody = nullptr;
 	/// Statistic variables.
 	mutable int nSubIterDual = 0, nSubIterPrimal = 0, nMatVecProd = 0, nRebuildGtG = 0, nRebuildCCt = 0;
 	mutable int nLinesearch = 0, nLinesearchIter = 0, nStatChDual = 0, nStatChPrimal = 0;
@@ -446,7 +447,7 @@ private:
 	CCtSolver<Scalar> *CCtsolver = nullptr;
 	bool mpcPrecon;  // mpc preconditioner flag, true = use generalized preconditioner with CCt
 	// false = use scaling method (diagonal CCt) or no preconditioning
-	Connectivity *mpcToCpu = nullptr;
+	const Connectivity *mpcToCpu = nullptr;
 	int numSubsWithMpcs = 0;
 	int *mpcSubMap = nullptr;
 	void singularValueDecomposition(FullM &A, FullM &U, int ncol, int nrow, int &rank, double tol, FullM *V = 0);

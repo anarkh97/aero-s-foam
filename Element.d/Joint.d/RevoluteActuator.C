@@ -30,7 +30,7 @@ RevoluteActuator::setProp(StructProp *p, bool myProp)
 }
 
 int 
-RevoluteActuator::getTopNumber() 
+RevoluteActuator::getTopNumber() const
 { 
   return 106; 
 }

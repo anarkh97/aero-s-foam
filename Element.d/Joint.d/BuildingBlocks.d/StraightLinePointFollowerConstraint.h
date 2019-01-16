@@ -9,10 +9,11 @@
 
 class StraightLinePointFollowerConstraint : public SuperElement
 {
-  public:
-    StraightLinePointFollowerConstraint(int*, int=0);
-    int getTopNumber() override;
-    bool hasRot() const override { return true; }
+public:
+	StraightLinePointFollowerConstraint(int*, int=0);
+	Category getCategory() const override { return Category::Structural; }
+	int getTopNumber() const override;
+	bool hasRot() const override { return true; }
 };
 
 #endif

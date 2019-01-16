@@ -155,7 +155,6 @@ void GenDBSparseMatrix<Scalar>::add(const GenFullM<Scalar> &kel, gsl::span<const
         for (int j = 0; j < kndof; ++j) {                       // Loop over columns.
             if(dofs[i] > dofs[j]) continue;                 // Work with upper symmetric half.
             if(unconstrNum[dofs[j]] == -1) continue;        // Skip constrained dofs
-            if(dofs[j] == -1) continue;                     // Skip irrelevant dofs, EC, 20070820
             int mstart = xunonz[unconstrNum[dofs[j]]];
             int mstop  = xunonz[unconstrNum[dofs[j]]+1];
             for (int m=mstart; m<mstop; ++m) {
@@ -168,6 +167,25 @@ void GenDBSparseMatrix<Scalar>::add(const GenFullM<Scalar> &kel, gsl::span<const
     }
 }
 
+template<class Scalar>
+void GenDBSparseMatrix<Scalar>::add(const GenAssembledFullM<Scalar> &kel, const int *dofs) {
+    int kndof = kel.dim();
+    for (int i = 0; i < kndof; ++i) {                     // Loop over rows.
+        if (dofs[i] == -1) continue;                   // Skip constrained dofs
+        for (int j = 0; j < kndof; ++j) {                       // Loop over columns.
+            if(dofs[i] > dofs[j]) continue;                 // Work with upper symmetric half.
+            if(dofs[j] == -1) continue;                     // Skip irrelevant dofs
+            int mstart = xunonz[dofs[j]];
+            int mstop  = xunonz[dofs[j]+1];
+            for (int m=mstart; m<mstop; ++m) {
+                if( rowu[m-1] == (dofs[i] + 1) ) {
+                    unonz[m-1] += kel[i][j];
+                    break;
+                }
+            }
+        }
+    }
+}
 
 template<class Scalar>
 void
@@ -267,10 +285,10 @@ GenDBSparseMatrix<Scalar>::GenDBSparseMatrix(const Connectivity *cn, const DofSe
 
 template<class Scalar>
 GenDBSparseMatrix<Scalar>::GenDBSparseMatrix(const Connectivity *cn, const EqNumberer *eqNums)
- : SparseData(cn, eqNums,1.0E-6,0)
+ : SparseData(cn, eqNums,1.0E-6,false)
 {
   // ... Allocate memory for matrix value vector unonz
-  unonz.resize(xunonz[numUncon]);
+  unonz.resize(xunonz[numUncon]-xunonz[0]);
 
   // ... INITIALIZE THE VECTOR CONTAINING THE SPARSE MATRIX TO ZERO
   zeroAll();

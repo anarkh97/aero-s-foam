@@ -703,11 +703,9 @@ SparseData::SparseData(const Connectivity *cn, const EqNumberer *eqn, double trb
   unconstrNum.resize(neq);
   constrndNum.resize(neq);
 
-  int un = 0;
   for (int i=0; i<neq; ++i) {
-     unconstrNum[i] = un;
+     unconstrNum[i] = i;
      constrndNum[i] = -1;
-     un = un+1;
   }
 
   // We build a temporary dof to Node table.

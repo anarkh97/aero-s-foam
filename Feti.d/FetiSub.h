@@ -5,6 +5,7 @@
 #ifndef FEM_FETUSUB_H
 #define FEM_FETUSUB_H
 #include <vector>
+#include <gsl/span>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 
@@ -143,7 +144,7 @@ public:
 
 
 
-	const auto &getCornerEqNums() const { return cornerEqNums; }
+	gsl::span<const int> getCornerEqNums() const { return cornerEqNums; }
 	int getGroup() const { return group; }
 
 	SComm *getSComm() { return scomm; }

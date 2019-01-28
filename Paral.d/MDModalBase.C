@@ -288,68 +288,85 @@ void MDModalBase::outputModal(SysState<Vector>& state, Vector& extF, int tIndex,
         case OutputInfo::ModalMatrices:
         case OutputInfo::ModalMass:
           if(time == 0) {
-            filePrint(oinfo[i].filptr, "* Mr: Reduced mass matrix\n");
-            filePrint(oinfo[i].filptr, "%d %d\n", numFlex, numFlex);
-            for(iMode = 0; iMode < numFlex; ++iMode){
-              for(int jMode = 0; jMode < numFlex; ++jMode){
-                switch(modalParams.type) {
-                  case ModalParams::Undefined :
-                  case ModalParams::Eigen : {
-                    filePrint(oinfo[i].filptr, "% *.*E", w, p, (iMode==jMode) ? ops.M->diag(iMode) : 0.);
-                  } break;
-                  case ModalParams::Mnorm : {
-                    filePrint(oinfo[i].filptr, "% *.*E", w, p, (iMode==jMode) ? ops.M->diag(iMode) : 0.);
-                  } break;
-                  case ModalParams::Inorm : {
-                    filePrint(oinfo[i].filptr, "% *.*E", w, p, (*ops.M)[iMode+numModes*jMode]);
-                  } break;
-                  default :
-                    break;
+            switch(modalParams.type) {
+              case ModalParams::Undefined :
+              case ModalParams::Eigen :
+              case ModalParams::Mnorm : {
+                filePrint(oinfo[i].filptr, "* Mr: Diagonal reduced-order mass matrix\n");
+                filePrint(oinfo[i].filptr, "%s\n", (modalParams.type == ModalParams::Mnorm) ? "mnorm" : "eigen");
+                filePrint(oinfo[i].filptr, "%d\n", numFlex);
+                for(iMode = 0; iMode < numFlex; ++iMode) {
+                  filePrint(oinfo[i].filptr, "% *.*E", w, p, ops.M->diag(iMode));
                 }
-              }
-              filePrint(oinfo[i].filptr, "\n");
+                filePrint(oinfo[i].filptr, "\n");
+              } break;
+              case ModalParams::Inorm : {
+                filePrint(oinfo[i].filptr, "* Mr: Full reduced-order mass matrix\n");
+                filePrint(oinfo[i].filptr, "%s\n", "inorm");
+                filePrint(oinfo[i].filptr, "%d %d\n", numFlex, numFlex);
+                for(iMode = 0; iMode < numFlex; ++iMode) {
+                  for(int jMode = 0; jMode < numFlex; ++jMode) {
+                    filePrint(oinfo[i].filptr, "% *.*E", w, p, (*ops.M)[iMode+numModes*jMode]);
+                  }
+                  filePrint(oinfo[i].filptr, "\n");
+                }
+              } break;
             }
           }
           if(oinfo[i].type != OutputInfo::ModalMatrices) break;
 
         case OutputInfo::ModalStiffness:
           if(time == 0) {
-            filePrint(oinfo[i].filptr, "* Kr: Reduced stiffness matrix\n");
-            filePrint(oinfo[i].filptr, "%d %d\n", numFlex, numFlex);
-            for(iMode = 0; iMode < numFlex; ++iMode){
-              for(int jMode = 0; jMode < numFlex; ++jMode) {
-                switch(modalParams.type) {
-                  case ModalParams::Undefined :
-                  case ModalParams::Eigen : {
-                    filePrint(oinfo[i].filptr, "% *.*E", w, p, (iMode==jMode) ? ops.K->diag(iMode) : 0.);
-                  } break;
-                  default : {
-                    filePrint(oinfo[i].filptr, "% *.*E", w, p, (*ops.K)[iMode+numModes*jMode]);
-                  } break;
+            switch(modalParams.type) {
+              case ModalParams::Undefined :
+              case ModalParams::Eigen : {
+                filePrint(oinfo[i].filptr, "* Mr: Diagonal reduced-order stiffness matrix\n");
+                filePrint(oinfo[i].filptr, "%s\n", "eigen");
+                filePrint(oinfo[i].filptr, "%d\n", numFlex);
+                for(iMode = 0; iMode < numFlex; ++iMode) {
+                  filePrint(oinfo[i].filptr, "% *.*E", w, p, ops.K->diag(iMode));
                 }
-              }
-              filePrint(oinfo[i].filptr, "\n");
+                filePrint(oinfo[i].filptr, "\n");
+              } break;
+              case ModalParams::Inorm : {
+                filePrint(oinfo[i].filptr, "* Mr: Full reduced-order stiffness matrix\n");
+                filePrint(oinfo[i].filptr, "%s\n", (modalParams.type == ModalParams::Mnorm) ? "mnorm" : "inorm");
+                filePrint(oinfo[i].filptr, "%d %d\n", numFlex, numFlex);
+                for(iMode = 0; iMode < numFlex; ++iMode) {
+                  for(int jMode = 0; jMode < numFlex; ++jMode) {
+                    filePrint(oinfo[i].filptr, "% *.*E", w, p, (*ops.K)[iMode+numModes*jMode]);
+                  }
+                  filePrint(oinfo[i].filptr, "\n");
+                }
+              } break;
             }
           }
           if(oinfo[i].type != OutputInfo::ModalMatrices) break;
 
         case OutputInfo::ModalDamping:
           if(time == 0) {
-            filePrint(oinfo[i].filptr, "* Dr: Reduced mass matrix\n");
-            filePrint(oinfo[i].filptr, "%d %d\n", numFlex, numFlex);
-            for(iMode = 0; iMode < numFlex; ++iMode){
-              for(int jMode = 0; jMode < numFlex; ++jMode){
-                switch(modalParams.type) {
-                  case ModalParams::Undefined :
-                  case ModalParams::Eigen : {
-                    filePrint(oinfo[i].filptr, "% *.*E", w, p, (ops.C && iMode==jMode) ? ops.C->diag(iMode) : 0.);
-                  } break;
-                  default: {
-                    filePrint(oinfo[i].filptr, "% *.*E", w, p, (ops.C) ? (*ops.C)[iMode+numModes*jMode] : 0.);
-                  } break;
+            switch(modalParams.type) {
+              case ModalParams::Undefined :
+              case ModalParams::Eigen : {
+                filePrint(oinfo[i].filptr, "* Mr: Diagonal reduced-order damping matrix\n");
+                filePrint(oinfo[i].filptr, "%s\n", "eigen");
+                filePrint(oinfo[i].filptr, "%d\n", numFlex);
+                for(iMode = 0; iMode < numFlex; ++iMode) {
+                  filePrint(oinfo[i].filptr, "% *.*E", w, p, (ops.C) ? ops.C->diag(iMode) : 0);
                 }
-              }
-              filePrint(oinfo[i].filptr, "\n");
+                filePrint(oinfo[i].filptr, "\n");
+              } break;
+              case ModalParams::Inorm : {
+                filePrint(oinfo[i].filptr, "* Mr: Full reduced-order damping matrix\n");
+                filePrint(oinfo[i].filptr, "%s\n", (modalParams.type == ModalParams::Mnorm) ? "mnorm" : "inorm");
+                filePrint(oinfo[i].filptr, "%d %d\n", numFlex, numFlex);
+                for(iMode = 0; iMode < numFlex; ++iMode) {
+                  for(int jMode = 0; jMode < numFlex; ++jMode) {
+                    filePrint(oinfo[i].filptr, "% *.*E", w, p, (ops.C) ? (*ops.C)[iMode+numModes*jMode] : 0);
+                  }
+                  filePrint(oinfo[i].filptr, "\n");
+                }
+              } break;
             }
           }
           break;

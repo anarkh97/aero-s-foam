@@ -10,6 +10,7 @@ class HEVibQuadGal: public Element {
 public:
 	explicit HEVibQuadGal(int*);
 
+	Category getCategory() const override { return Category::Fluid; }
 	Element *clone() override;
 
 	void renum(const int *) override;
@@ -25,7 +26,7 @@ public:
 
 	int numNodes() const override;
 	int * nodes(int *) const override;
-	int getTopNumber() override;
+	int getTopNumber() const override;
 
 	bool isHEVFluidElement() override { return true; }
 

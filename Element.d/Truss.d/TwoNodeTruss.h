@@ -12,6 +12,7 @@ class TwoNodeTruss : public virtual Element,
 public:
 	explicit TwoNodeTruss(int*);
 	Element *clone() override;
+	Category getCategory() const override { return Category::Structural; }
 	void renum(const int *) override;
 	void renum(EleRenumMap&) override;
 	FullSquareMatrix stiffness(const CoordSet&,double *kel, int flg) const override;
@@ -41,7 +42,7 @@ public:
 	int numNodes() const override;
 	int* nodes(int *) const override;
 	Corotator* getCorotator(CoordSet &cs, double *kel,int,int) override;
-	int getTopNumber() override;
+	int getTopNumber() const override;
 	void getThermalForce(CoordSet &cs, Vector &ndTemps,
 	                     Vector &ThermalForce, int glflag,
 	                     GeomState *gs) override;

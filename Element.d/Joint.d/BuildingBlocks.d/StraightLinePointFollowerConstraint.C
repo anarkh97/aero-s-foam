@@ -32,7 +32,7 @@ StraightLinePointFollowerConstraint::StraightLinePointFollowerConstraint(int* _n
 }
 
 int 
-StraightLinePointFollowerConstraint::getTopNumber() 
+StraightLinePointFollowerConstraint::getTopNumber() const
 { 
   return 106; 
 }

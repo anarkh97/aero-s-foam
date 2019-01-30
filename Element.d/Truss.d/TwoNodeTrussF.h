@@ -11,6 +11,7 @@ class TwoNodeTrussF : public virtual Element {
 	BarFCorotator *myCorot;
 public:
 	explicit TwoNodeTrussF(int*);
+	Category getCategory() const override { return Category::Structural; }
 	Element *clone() override;
 	void renum(const int *) override;
 	void renum(EleRenumMap&) override;
@@ -30,7 +31,7 @@ public:
 	int numNodes() const override;
 	int* nodes(int *) const override;
 	Corotator* getCorotator(CoordSet &cs, double *kel,int,int) override;
-	int getTopNumber() override;
+	int getTopNumber() const override;
 	void getThermalForce(CoordSet &cs, Vector &ndTemps,
 						 Vector &ThermalForce, int glflag,
 						 GeomState *gs) override;

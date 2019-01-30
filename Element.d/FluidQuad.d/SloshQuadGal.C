@@ -168,7 +168,7 @@ SloshQuadGal::markDofs(DofSetArray &dsa) const
 }
 
 int
-SloshQuadGal::getTopNumber()
+SloshQuadGal::getTopNumber() const
 {
   return 110; // 2
 }

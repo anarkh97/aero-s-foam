@@ -32,12 +32,12 @@ class DiagParallelSolver : public GenParallelSolver<Scalar>
 		       GenSolver<Scalar> **_sol, Connectivity *cpuToSub, FSCommunicator *);
     virtual ~DiagParallelSolver() { delete vPat; for(int i=0; i<nSub; ++i) delete solver[i]; delete [] solver; }
     
-    void reSolve(GenDistrVector<Scalar> &);
-    void squareRootMult(GenDistrVector<Scalar> &);
-    void inverseSquareRootMult(GenDistrVector<Scalar> &);
+    void reSolve(GenDistrVector<Scalar> &) override;
+    void squareRootMult(GenDistrVector<Scalar> &) override;
+    void inverseSquareRootMult(GenDistrVector<Scalar> &) override;
     double getSolutionTime() const override { return times.solve; }
-    void solve(const GenDistrVector<Scalar> &, GenDistrVector<Scalar> &);
-    Timings& getTimers() { return times; }
+    void solve(const GenDistrVector<Scalar> &, GenDistrVector<Scalar> &) override;
+    Timings& getTimers() override { return times; }
 };
 
 template<class Scalar>

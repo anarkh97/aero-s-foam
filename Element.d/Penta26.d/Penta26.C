@@ -505,7 +505,7 @@ Penta26::numDofs() const
 }
 
 int
-Penta26::getTopNumber()
+Penta26::getTopNumber() const
 {
   return 192;
 }

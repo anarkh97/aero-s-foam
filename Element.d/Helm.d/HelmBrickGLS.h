@@ -11,6 +11,7 @@ class HelmBrickGLS: public HelmElement, public Element {
 public:
 	HelmBrickGLS(int*);
 
+	Category getCategory() const override { return Category::Acoustic; }
 	Element *clone() override;
 
 	void renum(const int *) override;
@@ -31,7 +32,7 @@ public:
 
 	void addFaces(PolygonSet *pset) override;
 
-	int getTopNumber() override;
+	int getTopNumber() const override;
 
 	double helmCoef() override { return coef; }
 

@@ -452,7 +452,7 @@ TwoNodeTruss::getCorotator(CoordSet &cs, double *kel, int, int)
 }
 
 int
-TwoNodeTruss::getTopNumber()
+TwoNodeTruss::getTopNumber() const
 {
   return 101;
 }

@@ -36,7 +36,7 @@ DSCsolver::~DSCsolver()
 
 
 DSCsolver::DSCsolver(Connectivity *cn, EqNumberer *eqNums, int s_number)
- : SparseData(eqNums,cn,1.0E-6)
+ : SparseData(eqNums, cn)
 {
  unonz = 0; adj = 0; xadj = 0;
 #ifdef DISTRIBUTED

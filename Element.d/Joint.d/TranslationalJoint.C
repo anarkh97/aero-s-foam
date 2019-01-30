@@ -17,7 +17,7 @@ TranslationalJoint::TranslationalJoint(int* _nn)
 }
 
 int 
-TranslationalJoint::getTopNumber() 
+TranslationalJoint::getTopNumber() const
 { 
   return 106; 
 }

@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <memory>
+#include <map>
 
 #include <Utils.d/DistHelper.h>
 
@@ -15,7 +16,6 @@
 #include <Element.d/Shell.d/Therm3NoShell.h>
 #include <Element.d/Shell.d/Therm4NoShell.h>
 #include <Element.d/Quad4.d/FourNodeQuad.h>
-#include <Element.d/Quad4.d/Quad.h>
 #include <Element.d/Brick.d/EightNodeBrick.h>
 #include <Element.d/Tetra.d/Tetrahedral.h>
 #include <Element.d/Tetra10.d/TenNodeTetrahedral.h>
@@ -171,7 +171,9 @@ extern std::map<int,double> fieldWeightList;
 #include <Element.d/FluidTetra.d/HEVibTetra.h> 
 
 #include <Element.d/BelytschkoTsayShell.d/BelytschkoTsayShell.h>
-
+#include <Driver.d/Domain.h>
+#include <Parser.d/AuxDefs.h>
+#include <Utils.d/SolverInfo.h>
 #include <numeric>
 
 extern SolverInfo &solInfo;

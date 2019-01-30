@@ -18,7 +18,7 @@ ConstantDistanceConstraint::buildFrame(CoordSet& cs)
 }
 
 int 
-ConstantDistanceConstraint::getTopNumber() 
+ConstantDistanceConstraint::getTopNumber() const
 { 
   return 106; 
 }

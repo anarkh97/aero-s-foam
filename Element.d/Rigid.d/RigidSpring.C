@@ -17,7 +17,7 @@ RigidSpring::RigidSpring(int* _nn)
 }
 
 int
-RigidSpring::getTopNumber()
+RigidSpring::getTopNumber() const
 {
   return 101;
 }

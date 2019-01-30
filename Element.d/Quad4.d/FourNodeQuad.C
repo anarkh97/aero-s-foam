@@ -588,7 +588,7 @@ FourNodeQuad::markDofs(DofSetArray &dsa) const
 }
 
 int
-FourNodeQuad::getTopNumber()
+FourNodeQuad::getTopNumber() const
 {
   return 102;
 }

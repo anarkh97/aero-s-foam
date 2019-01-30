@@ -869,7 +869,7 @@ NLMembrane4::NLMembrane4(int *nodenums)
 }
 
 int
-NLMembrane4::getTopNumber()
+NLMembrane4::getTopNumber() const
 {
   return 102;
 }

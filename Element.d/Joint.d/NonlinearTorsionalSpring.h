@@ -12,22 +12,23 @@
 
 class NonlinearTorsionalSpring : public AngleType1ConstraintElement
 {
-    int m_axis1, m_axis2;
-    int propIndex; // 0: use StructProp::k1, 1: use StructProp::k2, 2: use StructProp::k3
-    double offset2;
-    int quadrant;
+	int m_axis1, m_axis2;
+	int propIndex; // 0: use StructProp::k1, 1: use StructProp::k2, 2: use StructProp::k3
+	double offset2;
+	int quadrant;
 
-  public:
-    NonlinearTorsionalSpring(int*, int, int, int=0, int=0, int=1);
-    void setProp(StructProp *p, bool _myProp) override;
-    void update(GeomState *refState, GeomState& gState, CoordSet& cs, double t) override;
+public:
+	NonlinearTorsionalSpring(int*, int, int, int=0, int=0, int=1);
+	Category getCategory() const override { return Category::Structural; }
+	void setProp(StructProp *p, bool _myProp) override;
+	void update(GeomState *refState, GeomState& gState, CoordSet& cs, double t) override;
 
-    int numStates() override;
-    void initStates(double *) override;
-    void updateStates(GeomState *refState, GeomState &curState, CoordSet &C0, double dt) override;
+	int numStates() override;
+	void initStates(double *) override;
+	void updateStates(GeomState *refState, GeomState &curState, CoordSet &C0, double dt) override;
 
-    bool isSpring() const override { return true; }
-    bool hasRot() const override { return true; }
+	bool isSpring() const override { return true; }
+	bool hasRot() const override { return true; }
 };
 
 #endif

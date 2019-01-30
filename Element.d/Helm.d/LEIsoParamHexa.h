@@ -23,12 +23,13 @@ public:
 						   int gravflg, GeomState *gs) override;
 
 
+	Category getCategory() const override { return Category::Structural; }
 	Element *clone() override;
 	void renum(const int *) override;
 	void renum(EleRenumMap&) override;
 
 	void markDofs(DofSetArray &) const override;
-	int getTopNumber() override {return 195;}
+	int getTopNumber() const override {return 195;}
 	int numTopNodes() const override {return order*order*order;}
 	int* dofs(DofSetArray &, int *p) const override;
 	int numDofs() const override { return 3*order*order*order; }

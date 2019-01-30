@@ -96,19 +96,17 @@ FetiBaseSub::setSComm(SComm *sc)
 }
 
 
-void FetiBaseSub::setLocalMpcToBlock(Connectivity *mpcToBlock, Connectivity *blockToMpc)
+void FetiBaseSub::setLocalMpcToBlock(const Connectivity *mpcToBlock, const Connectivity *blockToMpc)
 {
 	if(numMPC > 0) {
 		int i, j;
 
-		int *ptr = new int[numMPC+1]; for(i=0; i<=numMPC; ++i) ptr[i] = i;
-		int *tgt = new int[numMPC]; for(i=0; i<numMPC; ++i) tgt[i] = localToGlobalMPC[i];
-		Connectivity *localToGlobalMpc = new Connectivity(numMPC, ptr, tgt);
-		localMpcToBlock = localToGlobalMpc->transcon(mpcToBlock);
-		delete localToGlobalMpc;
+		std::vector<int> ptr(numMPC+1); for(i=0; i<=numMPC; ++i) ptr[i] = i;
+		std::vector<int> tgt(numMPC); for(i=0; i<numMPC; ++i) tgt[i] = localToGlobalMPC[i];
+		localMpcToBlock = Connectivity(numMPC, std::move(ptr), std::move(tgt)).transcon(mpcToBlock);
 
-		int *target = new int[localMpcToBlock->numConnect()];
-		int *pointer = new int[numMPC+1];
+		std::vector<int> target(localMpcToBlock->numConnect());
+		std::vector<int> pointer(numMPC+1);
 		int count = 0;
 		for(i=0; i<numMPC; ++i) {
 			pointer[i] = count;
@@ -119,7 +117,7 @@ void FetiBaseSub::setLocalMpcToBlock(Connectivity *mpcToBlock, Connectivity *blo
 			}
 		}
 		pointer[numMPC] = count;
-		localMpcToBlockMpc = new Connectivity(numMPC, pointer, target);
+		localMpcToBlockMpc = new Connectivity(numMPC, std::move(pointer), std::move(target));
 
 		// HB & PJSA: for assembleBlockCCtsolver & extractBlockMpcResidual
 		blockToLocalMpc = localMpcToBlock->alloc_reverse();
@@ -142,27 +140,26 @@ void FetiBaseSub::setLocalMpcToBlock(Connectivity *mpcToBlock, Connectivity *blo
 		}
 
 		int size = totalInterfSize;
-		int *point = new int[size + 1];
-		ResizeArray<int> *targ = new ResizeArray<int>(0, numMPC);
+		std::vector<int> point(size + 1);
+		std::vector<int> targ;
+		targ.reserve(numMPC);
 		count = 0;
 		for(i=0; i<size; ++i) {
 			point[i] = count;
 			if(boundDofFlag[i] == 2) {
 				int li = -1 - scomm->boundDofT(SComm::all,i);
-				(*targ)[count++] = li;
+				targ.push_back(li);
 			}
 		}
 		point[size] = count;
-		Connectivity *boundDofToMpc = new Connectivity(size, point, targ->data(false));
-		mpcToBoundDof = boundDofToMpc->alloc_reverse();
-		delete boundDofToMpc;
-		delete targ;
+		Connectivity boundDofToMpc(size, std::move(point), std::move(targ));
+		mpcToBoundDof = boundDofToMpc.alloc_reverse();
 	}
 	else {
-		localMpcToBlock    = 0;
-		localMpcToBlockMpc = 0;
-		mpcToBoundDof      = 0;
-		blockToLocalMpc    = 0;
+		localMpcToBlock    = nullptr;
+		localMpcToBlockMpc = nullptr;
+		mpcToBoundDof      = nullptr;
+		blockToLocalMpc    = nullptr;
 		blockToBlockMpc.reset();
 	}
 }
@@ -175,7 +172,7 @@ int FetiBaseSub::getGlobalMPCIndex(int localMpcIndex) const {
 	return localToGlobalMPC[localMpcIndex];
 }
 
-void FetiBaseSub::makeLocalMpcToGlobalMpc(Connectivity *mpcToMpc)
+void FetiBaseSub::makeLocalMpcToGlobalMpc(const Connectivity *mpcToMpc)
 {
 	// PJSA: make a different localMpcToGlobalMpc that includes connections inside neighbors
 	int i, j;
@@ -1953,10 +1950,9 @@ FetiSub<Scalar>::sendDiag(GenSparseMatrix<Scalar> *s, FSCommPattern<Scalar> *vPa
 template<class Scalar>
 void
 FetiSub<Scalar>::multFcB(Scalar *p) {
-	int i, k;
 	if (Src->numCol() == 0) return;
 	if ((totalInterfSize == 0) || (localLen() == 0)) {
-		for (i = 0; i < Src->numCol(); ++i) fcstar[i] = 0.0;
+		for (int i = 0; i < Src->numCol(); ++i) fcstar[i] = 0.0;
 		return;
 	}
 
@@ -1970,7 +1966,7 @@ FetiSub<Scalar>::multFcB(Scalar *p) {
 
 	// for coupled_dph add fcstar += Kcw Bw uw
 	if (numWIdof) {
-		for (i = 0; i < scomm->lenT(SComm::wet); ++i)
+		for (int i = 0; i < scomm->lenT(SComm::wet); ++i)
 			localw[scomm->wetDofNb(i)] = p[scomm->mapT(SComm::wet, i)];
 		if (Kcw) Kcw->mult(localw.data(), fcstar.data(), -1.0, 1.0);
 		if (Kcw_mpc) Kcw_mpc->multSubWI(localw.data(), fcstar.data());
@@ -1978,12 +1974,12 @@ FetiSub<Scalar>::multFcB(Scalar *p) {
 
 	// fcstar += Bc^(s)^T p
 	bool *mpcFlag = (bool *) dbg_alloca(sizeof(bool) * numMPC);
-	for (i = 0; i < numMPC; ++i) mpcFlag[i] = true;
-	for (i = 0; i < scomm->lenT(SComm::mpc); ++i) {
+	for (int i = 0; i < numMPC; ++i) mpcFlag[i] = true;
+	for (int i = 0; i < scomm->lenT(SComm::mpc); ++i) {
 		int locMpcNb = scomm->mpcNb(i);
 		if (mpcFlag[locMpcNb]) {
 			const auto &m = mpc[locMpcNb];
-			for (k = 0; k < m->nterms; k++) {
+			for (int k = 0; k < m->nterms; k++) {
 				int dof = (m->terms)[k].dof;
 				if ((dof >= 0) && (cornerMap[dof] >= 0))
 					fcstar[cornerMap[dof]] += p[scomm->mapT(SComm::mpc, i)] * (m->terms)[k].coef;
@@ -3146,7 +3142,7 @@ FetiSub<Scalar>::makeQ() {
 						this->makeEdgeVectorsPlus(false);  // build augmentation for structure dofs
 					} else {
 						// TODO Make this in an alternative way, i.e. constructor of the solver???
-						filePrintOnce(stderr, "Warning: Not checking for thermal or Helmholtz correctly\n", nullptr);
+//						filePrintOnce(stderr, "Warning: Not checking for thermal or Helmholtz correctly\n", nullptr);
 						bool isThermalSub = false; // Was packedEset[0]->getCategory() == Element::Thermal
 						bool isUndefinedSub = false; // Was packedEset[0]->getCategory() == Element::Undefined)
 						bool isHelmholtz = false; // Was isFluid(0)
@@ -4683,7 +4679,7 @@ FetiSub<Scalar>::setCCtCommSize(FSCommPattern<Scalar> *cctPat) {
 
 template<class Scalar>
 void
-FetiSub<Scalar>::sendNeighbCCtsolver(FSCommPattern<Scalar> *cctPat, Connectivity *mpcToSub) {
+FetiSub<Scalar>::sendNeighbCCtsolver(FSCommPattern<Scalar> *cctPat, const Connectivity *mpcToSub) {
 	int i, j, k;
 	for (i = 0; i < scomm->numT(SComm::mpc); ++i) {
 		int neighb = scomm->neighbT(SComm::mpc, i);
@@ -4709,7 +4705,7 @@ FetiSub<Scalar>::sendNeighbCCtsolver(FSCommPattern<Scalar> *cctPat, Connectivity
 
 template<class Scalar>
 void
-FetiSub<Scalar>::recNeighbCCtsolver(FSCommPattern<Scalar> *cctPat, Connectivity *mpcToSub) {
+FetiSub<Scalar>::recNeighbCCtsolver(FSCommPattern<Scalar> *cctPat, const Connectivity *mpcToSub) {
 	int i, j, k;
 	for (i = 0; i < scomm->numT(SComm::mpc); ++i) {
 		int neighb = scomm->neighbT(SComm::mpc, i);
@@ -4836,8 +4832,10 @@ FetiSub<Scalar>::extractBlockMpcResidual(int block, Scalar *subv, GenVector<Scal
 
 template<class Scalar>
 void
-FetiSub<Scalar>::insertBlockMpcResidual(Scalar *subv, GenVector<Scalar> **mpcv, Connectivity *mpcToBlock,
-                                             SimpleNumberer **blockMpcEqNums) {
+FetiSub<Scalar>::insertBlockMpcResidual(Scalar *subv, GenVector<Scalar> **mpcv,
+                                        const Connectivity *mpcToBlock,
+                                        SimpleNumberer **blockMpcEqNums)
+{
 	// extracts the mpc residual components from mpcv and inserts them in the interface vector subv
 	int i, j, k;
 	for (i = 0; i < numMPC; ++i) {
@@ -5203,12 +5201,12 @@ FetiSub<Scalar>::gatherDOFList(FSCommPattern<int> *pat) {
 		if (isbneighb) nbneighb++;
 	}
 
-	int *boundDofs = new int[nbdofs];
-	int *boundDofPointer = new int[nbneighb + 1];
+	std::vector<int> boundDofs(nbdofs);
+	std::vector<int> boundDofPointer(nbneighb + 1);
 	boundDofPointer[0] = 0;
 	std::vector<int> boundNeighbs(nbneighb);
-	int *wetDofs = new int[nwdofs];
-	int *wetDofPointer = new int[nwneighb + 1];
+	std::vector<int> wetDofs(nwdofs);
+	std::vector<int> wetDofPointer(nwneighb + 1);
 	wetDofPointer[0] = 0;
 	std::vector<int> wetNeighbs(nwneighb);
 	nbdofs = 0;
@@ -5235,7 +5233,7 @@ FetiSub<Scalar>::gatherDOFList(FSCommPattern<int> *pat) {
 			}
 			FetiBaseSub::boundaryDOFs[iSub][iNode] &= (*FetiBaseSub::getCCDSA())[sharedNodes[iSub][iNode]]; // ~> shared_rdofs
 			int bcount = FetiBaseSub::getCCDSA()->number(sharedNodes[iSub][iNode],
-			                                             FetiBaseSub::boundaryDOFs[iSub][iNode], boundDofs + nbdofs);
+			                                             FetiBaseSub::boundaryDOFs[iSub][iNode], boundDofs.data() + nbdofs);
 			nbdofs += bcount;
 			isbneighb = true; // make every "sharedNode" neighbor a "std sharedDOF neighb" also (simplifies augmentation)
 		}
@@ -5258,7 +5256,7 @@ FetiSub<Scalar>::gatherDOFList(FSCommPattern<int> *pat) {
 
 	if (!getFetiInfo().bmpc)
 		FetiBaseSub::scomm->setTypeSpecificList(SComm::std, std::move(boundNeighbs), std::move(stdSharedDOFs) );
-	auto wetSharedDOFs = std::make_unique<Connectivity>(nwneighb, wetDofPointer, wetDofs);
+	auto wetSharedDOFs = std::make_unique<Connectivity>(nwneighb, std::move(wetDofPointer), std::move(wetDofs));
 	FetiBaseSub::scomm->setTypeSpecificList(SComm::wet, wetNeighbs, std::move(wetSharedDOFs) );
 
 

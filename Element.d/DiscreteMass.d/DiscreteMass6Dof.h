@@ -18,6 +18,7 @@ public:
 	explicit DiscreteMass6Dof(int*);
 	~DiscreteMass6Dof() override;
 
+	Category getCategory() const override { return Category::Structural; }
 	void setFrame(EFrame *elemframe) override;
 	void renum(const int *) override;
 	void renum(EleRenumMap&) override;
@@ -27,7 +28,7 @@ public:
 	int* dofs(DofSetArray&, int*) const override;
 	void markDofs(DofSetArray&) const override;
 	bool hasRot() const override { return true; }
-	int getTopNumber() override { return 506; }
+	int getTopNumber() const override { return 506; }
 
 	FullSquareMatrix stiffness(const CoordSet&,double *kel, int flg) const override;
 	int getMassType() const override { return 0; } // lumped only

@@ -558,7 +558,7 @@ TenNodeTetrahedral::numDofs() const
 }
 
 int
-TenNodeTetrahedral::getTopNumber()
+TenNodeTetrahedral::getTopNumber() const
 {
   return 125;
 }

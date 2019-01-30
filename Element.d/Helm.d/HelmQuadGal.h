@@ -9,6 +9,7 @@ class HelmQuadGal: public HelmElement, public Element {
 public:
 	explicit HelmQuadGal(int*);
 
+	Category getCategory() const override { return Category::Acoustic; }
 	Element *clone() override;
 
 	void renum(const int *) override;
@@ -27,7 +28,7 @@ public:
 	int numNodes() const override;
 	int * nodes(int *) const override;
 
-	int getTopNumber() override;
+	int getTopNumber() const override;
 
 	PrioInfo examine(int sub, MultiFront *) override;
 

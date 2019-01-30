@@ -168,7 +168,7 @@ HEVibQuadGal::markDofs(DofSetArray &dsa) const
 }
 
 int
-HEVibQuadGal::getTopNumber()
+HEVibQuadGal::getTopNumber() const
 {
   return 110; // 2
 }

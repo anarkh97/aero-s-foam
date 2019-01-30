@@ -17,7 +17,7 @@ UniversalJoint::UniversalJoint(int* _nn)
 }
 
 int 
-UniversalJoint::getTopNumber() 
+UniversalJoint::getTopNumber() const
 { 
   return 106; 
 }

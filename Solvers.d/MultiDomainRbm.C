@@ -19,9 +19,9 @@ MultiDomainRbm<Scalar>::computeRbms()
 {
   int i, nGroups, nGroups1;
   int *groups = 0, *ngrbmGr = 0;
-  Connectivity *groupToSub;
+  const Connectivity *groupToSub;
   Connectivity subToGroup;
-  auto bodyToSub = decDomain->getGroupToSub();
+  auto bodyToSub = decDomain->getGroupToSub().get();
   if(!bodyToSub) {
     int nsubGl = decDomain->getGlobalNumSub();
     int *pointer = new int[nsubGl+1];
@@ -362,7 +362,8 @@ MultiDomainRbm<Scalar>::setBodyRBMoffset(int iSub, int *zColOffset, Connectivity
 
 template<class Scalar>
 void
-MultiDomainRbm<Scalar>::assembleGtG(int iGroup, int *groups, Connectivity *groupToSub, GenSparseMatrix<Scalar> *GtGsparse)
+MultiDomainRbm<Scalar>::assembleGtG(int iGroup, const int *groups, const Connectivity *groupToSub,
+                                    GenSparseMatrix<Scalar> *GtGsparse)
 {
   // assembles groups in parallel, subdomains with same group sequentially 
   // threadsafe implementation - avoids simultaneous writing to same memory

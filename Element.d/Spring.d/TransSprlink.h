@@ -11,7 +11,8 @@ class TransSprlink : virtual public Element
 
 	explicit TransSprlink(int*);
 
-    Element *clone() override;
+	Category getCategory() const override { return Category::Structural; }
+	Element *clone() override;
 
     void renum(const int *) override;
 	void renum(EleRenumMap&) override;
@@ -27,7 +28,7 @@ class TransSprlink : virtual public Element
     int* nodes(int*) const override;
     Corotator* getCorotator(CoordSet&, double*, int, int) override;
 
-    int getTopNumber() override;
+    int getTopNumber() const override;
     bool isSafe() const override { return false; }
     bool isSpring() const override { return true; }
     PrioInfo examine(int sub, MultiFront*) override;

@@ -17,7 +17,7 @@ PrismaticJointSpringCombo::PrismaticJointSpringCombo(int* _nn)
 }
 
 int 
-PrismaticJointSpringCombo::getTopNumber() 
+PrismaticJointSpringCombo::getTopNumber() const
 { 
   return 106; 
 }

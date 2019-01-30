@@ -125,12 +125,13 @@ class Elemset;
 
 class Element;
 
+
 class EqNumberer {
 protected:
-	int numnodes{};    // total number of nodes
-	std::vector<int> node_offset;    // Where the nodes are
-	std::vector<int> node_num_dofs; // Number of dofs associated with a node
-	std::vector<int> renummap;        // Renumbering mapping of the nodes
+	int numnodes{};                 //!< \brief total number of nodes (Now redundant with vector sizes)
+	std::vector<int> node_offset;   //!< \brief First DOF # associated with a node.
+	std::vector<int> node_num_dofs; //!< \brief Number of dofs associated with a node.
+	std::vector<int> renummap;      //!< \brief Renumbering mapping of the nodes.
 
 public:
 	EqNumberer() {}
@@ -162,8 +163,8 @@ public:
 
 /** \brief Set of DOFs that appear with the nodes of a problem, associating a unique number to each.
  * \details The DofSetArray keeps track of all the DOFs that are present in each node.
- * The construction does not follow a RAII principle. Instead there is a construction phase and then
- * a use phase.
+ * The construction does not follow a RAII principle.
+ * Instead there is a construction phase and then a use phase. It would be good to get to a RAII approach.
  */
 class DofSetArray : public EqNumberer {
 protected:
@@ -209,12 +210,13 @@ public:
 
 	const DofSet &operator[](int i) const { return dofs[i]; }
 
+	/// \brief Get the unconstrained index for a full set dof index or -1 if it is constrained.
 	int getRCN(int dof) const { return rowcolnum[dof]; }
-
+	/// \brief Get the constrained index for a full set dof index or -1 if it is unconstrained.
 	int invRCN(int dof) const { return invrowcol[dof]; }
-
+	/// \brief Get direct access to the vector mapping from full to unconstrained
 	auto &getUnconstrNum() const { return rowcolnum; }
-
+	/// \brief Get direct access to the vector mapping from full to constrained
 	auto &getConstrndNum() const { return invrowcol; }
 
 	int *makeDofTypeArray(); // creates and returns dofType array

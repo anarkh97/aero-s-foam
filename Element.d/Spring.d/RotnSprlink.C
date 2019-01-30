@@ -112,7 +112,7 @@ RotnSprlink::markDofs(DofSetArray& dsa) const
 }
 
 int
-RotnSprlink::getTopNumber()
+RotnSprlink::getTopNumber() const
 {
   return 122;
 }

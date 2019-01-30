@@ -8,6 +8,7 @@ class DistanceConstraintElement : public ConstraintFunctionElement<Simo::Distanc
 {
 public:
 	DistanceConstraintElement(int* _nn, double f0, int type = 0);
+	Category getCategory() const override { return Category::Structural; }
 	double getVelocityConstraintRhs(GeomState*, GeomState&, CoordSet&, double) override;
 	double getAccelerationConstraintRhs(GeomState*, GeomState&, CoordSet&, double) override;
 

@@ -12,7 +12,7 @@
 class BlockAlloc {
 	int index = 0;
 	int blLen;
-	std::vector<std::unique_ptr<char>> allBlocks;
+	std::vector<std::unique_ptr<char[]>> allBlocks;
 public:
 	BlockAlloc(int l = 4096, int initnb = 16) : blLen(l)
 	{ }

@@ -19,7 +19,7 @@ TranslationalJointSpringCombo::TranslationalJointSpringCombo(int* _nn)
 }
 
 int 
-TranslationalJointSpringCombo::getTopNumber() 
+TranslationalJointSpringCombo::getTopNumber() const
 { 
   return 106; 
 }

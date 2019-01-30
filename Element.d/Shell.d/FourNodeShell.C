@@ -44,7 +44,7 @@ FourNodeShell::clone()
 }
 
 int
-FourNodeShell::getTopNumber()
+FourNodeShell::getTopNumber() const
 {
   return 188;
 }

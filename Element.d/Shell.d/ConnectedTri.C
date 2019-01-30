@@ -133,7 +133,7 @@ ConnectedTri::computeDisp(CoordSet&cs, State &state, const InterpPoint &ip,
 }
 
 int
-ConnectedTri::getTopNumber()
+ConnectedTri::getTopNumber() const
 {
  return 4;
 }

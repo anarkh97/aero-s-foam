@@ -10,6 +10,7 @@ public:
 
 	explicit Therm2NodeBar(int*);
 
+	Category getCategory() const override { return Category::Thermal; }
 	Element *clone() override;
 
 	void renum(const int *) override;
@@ -26,7 +27,7 @@ public:
 	int             numNodes() const override;
 	int*             nodes(int * ) const override;
 
-	int 		getTopNumber() override;
+	int getTopNumber() const override;
 	PrioInfo examine(int sub, MultiFront *) override;
 	void computeTemp(CoordSet&cs, State &state, double gp[2], double*res) override;
 	void getFlFlux(double gp[2], double *flF, double *resF) override;

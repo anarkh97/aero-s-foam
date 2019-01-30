@@ -407,7 +407,7 @@ EulerBeam::getCorotator(CoordSet &cs, double *kel, int, int fitAlgBeam) {
 }
 
 int
-EulerBeam::getTopNumber() {
+EulerBeam::getTopNumber() const {
 	return 106;
 }
 

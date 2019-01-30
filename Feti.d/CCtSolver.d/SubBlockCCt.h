@@ -7,19 +7,19 @@ template<class Scalar>
 class SubBlockCCtSolver : public CCtSolver<Scalar>
 {
   public:
-    SubBlockCCtSolver(Connectivity *mpcToMpc, Connectivity *mpcToSub, 
+    SubBlockCCtSolver(const Connectivity *mpcToMpc, const Connectivity *mpcToSub,
                       int numSubsWithMpcs, std::vector<FetiSub<Scalar> *> subsWithMpcs,
-                      FSCommunicator *fetiCom, Connectivity *cpuToSub);
+                      FSCommunicator *fetiCom, const Connectivity *cpuToSub);
     ~SubBlockCCtSolver();
     void reSolve(GenDistrVector<Scalar> &v);
     void zeroAll();
     void assemble();
     void factor();
   private:
-    Connectivity *mpcToSub;
+    const Connectivity *mpcToSub;
     FSCommPattern<Scalar> *mpcvPat;
     FSCommPattern<Scalar> *cctPat;
-    Connectivity *cpuToSub;
+    const Connectivity *cpuToSub;
     int myCPU;
     void solveLocalCCt(int iSub, GenDistrVector<Scalar> &v);
     void sendMpcInterfaceVec(int iSub, GenDistrVector<Scalar> &v);

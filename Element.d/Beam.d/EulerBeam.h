@@ -18,6 +18,7 @@ public:
 
 	explicit EulerBeam(int*);
 
+	Category getCategory() const override { return Category::Structural; }
 	Element *clone() override;
 
 	void renum(const int *) override;
@@ -43,7 +44,7 @@ public:
 	int*   nodes(int *) const override;
 
 	Corotator *getCorotator(CoordSet &, double*, int, int) override;
-	int getTopNumber() override;
+	int getTopNumber() const override;
 
 	void setPressure(PressureBCond *_pbc) override { pbc = _pbc; }
 	PressureBCond* getPressure() override { return pbc; }

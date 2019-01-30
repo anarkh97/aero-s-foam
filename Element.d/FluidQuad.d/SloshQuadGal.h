@@ -10,6 +10,7 @@ class SloshQuadGal: public Element {
 public:
 	SloshQuadGal(int*);
 
+	Category getCategory() const override { return Category::Fluid; }
 	Element *clone() override;
 
 	void renum(const int *) override;
@@ -25,7 +26,7 @@ public:
 
 	int numNodes() const override;
 	int * nodes(int *) const override;
-	int getTopNumber() override;
+	int getTopNumber() const override;
 	PrioInfo examine(int sub, MultiFront *) override {
 		fprintf(stderr,"SloshQuadGal.h: PrioInfo examine is commented in Dec.d/ElemMFCheck.C");
 		return *(new PrioInfo);

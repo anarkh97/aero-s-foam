@@ -39,7 +39,7 @@ public:
 	int subtype = 1;  //!< Solver subtype 1 is direct sparse ... 9 is mumps  10 is diag
 	double trbm = 1e-16;         //!< algebraic rbm tolerance
 	double trbm2 = 1e-16;        //!< algebraic rbm tolerance used for sparse/skyline when GRBM is activated
-	int sparse_renum = 0;  //!< renumbering scheme for BLKSparseMatrix: 0 = esmond MMD (default), 1 = metis ND
+	int sparse_renum = 1;  //!< renumbering scheme for BLKSparseMatrix: 0 = esmond MMD, 1 = metis ND (default)
 	int sparse_maxsup = 100;
 	int sparse_defblk = 30;
 	bool pivot = false;  //!< true if pivoting is to be used in spooles/mumps solvers

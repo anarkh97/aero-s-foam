@@ -5,11 +5,12 @@
 
 class RevoluteDriver : public SuperElement
 {
-  public:
-    RevoluteDriver(int*);
-    int getTopNumber() override;
-    bool hasRot() const override { return true; }
-    PrioInfo examine(int sub, MultiFront*) override;
+public:
+	RevoluteDriver(int*);
+	Category getCategory() const override { return Category::Structural; }
+	int getTopNumber() const override;
+	bool hasRot() const override { return true; }
+	PrioInfo examine(int sub, MultiFront*) override;
 };
 
 #endif

@@ -619,7 +619,7 @@ Brick32::numDofs() const
 }
 
 int
-Brick32::getTopNumber()
+Brick32::getTopNumber() const
 {
   return 191;
 }

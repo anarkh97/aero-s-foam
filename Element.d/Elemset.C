@@ -265,26 +265,4 @@ Elemset::hasDamping()
   return bool(dampingFlag);
 }
 
-#ifdef SALINAS
-#include <Element.d/CtcVirtualElt.d/CtcVirtualElt.h>
-void
-Elemset::elemadd(int num, int etype, int nnodes, int*n)
-{
-   Element *ele;
-
-   switch(etype)
-   {
-     case 64: // CKT virtual Elements for contact =64
-       ele = new (ba) CtcVirtualElt(nnodes,n);
-       break;
-     default:
-       std::cerr << "Element Type " << etype << " is not Supported." << std::endl;
-       exit(-1);
-       return;
-   }
-
- elemadd(num, ele);
-
-}
-#endif
 

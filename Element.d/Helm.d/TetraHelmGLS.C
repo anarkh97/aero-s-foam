@@ -49,7 +49,7 @@ TetraHelmGLS::renum(EleRenumMap& table)
 }
 
 int
-TetraHelmGLS::getTopNumber()
+TetraHelmGLS::getTopNumber() const
 {
 	return 140;//5;
 }

@@ -14,11 +14,12 @@ class FSCommunicator;
 #include <Solvers.d/SolverFactory.h>
 
 template<class Scalar>
-BlockCCtSolver<Scalar>::BlockCCtSolver(Connectivity *_blockToMpc, Connectivity *mpcToMpc, Connectivity *mpcToSub, 
-                                       Connectivity *_mpcToCpu, int _numSubsWithMpcs,
+BlockCCtSolver<Scalar>::BlockCCtSolver(const Connectivity *_blockToMpc, const Connectivity *mpcToMpc,
+                                       const Connectivity *mpcToSub,
+                                       const Connectivity *_mpcToCpu, int _numSubsWithMpcs,
                                        std::vector<FetiSub<Scalar> *> subsWithMpcs,
                                        int *_subMap, FetiInfo *_finfo, FSCommunicator *_fetiCom)
-		: CCtSolver<Scalar>(std::move(subsWithMpcs))
+    : CCtSolver<Scalar>(std::move(subsWithMpcs))
 {
   filePrint(stderr," ... Building block CC^t for preconditioning MPCs ...\n");
   blockToMpc = _blockToMpc;
@@ -182,7 +183,7 @@ BlockCCtSolver<Scalar>::reSolve(GenDistrVector<Scalar> &v)
 
 template<class Scalar>
 void
-BlockCCtSolver<Scalar>::createBlockMpcToMpcConnectivity(int iBlock, Connectivity *mpcToMpc)
+BlockCCtSolver<Scalar>::createBlockMpcToMpcConnectivity(int iBlock, const Connectivity *mpcToMpc)
 {
   int j, k;
   int size = blockToMpc->num(iBlock);

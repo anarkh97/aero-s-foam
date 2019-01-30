@@ -12,9 +12,9 @@ template<class Scalar>
 class SuperBlockCCtSolver : public CCtSolver<Scalar>
 {
   public:
-    SuperBlockCCtSolver(Connectivity *blockToMpc, Connectivity *mpcToMpc, Connectivity *mpcToSub, 
-                      Connectivity *mpcToCpu, int numSubsWithMpcs, std::vector<FetiSub<Scalar> *> subsWithMpcs,
-                      FetiInfo *finfo, FSCommunicator *fetiCom, bool super_flag = true, bool sub_flag = false);
+    SuperBlockCCtSolver(const Connectivity *blockToMpc, const Connectivity *mpcToMpc, const Connectivity *mpcToSub,
+                        const Connectivity *mpcToCpu, int numSubsWithMpcs, std::vector<FetiSub<Scalar> *> subsWithMpcs,
+                        FetiInfo *finfo, FSCommunicator *fetiCom, bool super_flag = true, bool sub_flag = false);
     ~SuperBlockCCtSolver();
     void reSolve(GenDistrVector<Scalar> &v);
     void zeroAll();
@@ -27,14 +27,14 @@ class SuperBlockCCtSolver : public CCtSolver<Scalar>
     int nMpcBlocksOnMyCPU;
     GenSolver<Scalar> **blockCCtsolver;// array[nMpcBlocks] of pointer on the BlockCCtsolver of myCPU
     GenSparseMatrix<Scalar> **blockCCtsparse;
-    Connectivity *mpcToMpc;
-    Connectivity *blockToMpc;
-    Connectivity *blockToSub;
-    Connectivity *mpcToBlock;
-    Connectivity **blockMpcToMpc;
+    const Connectivity *mpcToMpc;
+    const Connectivity *blockToMpc;
+    const Connectivity *blockToSub;
+    const Connectivity *mpcToBlock;
+    const Connectivity **blockMpcToMpc;
     std::unique_ptr<Connectivity> blockToMpcCpu;
-    Connectivity *blockToCpu;
-    Connectivity *cpuToBlock;
+    const Connectivity *blockToCpu;
+    const Connectivity *cpuToBlock;
     GenVector<Scalar> **mpcv;
     FSCommPattern<Scalar> *blockCCtPat;
     FSCommPattern<Scalar> *mpcvPat1, *mpcvPat2;
@@ -42,8 +42,8 @@ class SuperBlockCCtSolver : public CCtSolver<Scalar>
 
     int *nBigBlocksperMPI;                // nb of "big" blocks on myCPU
     int *nSmallBlocksperMPI;              // nb of "small" blocks on myCPU
-    Connectivity *MPITosuperBlock;        // for each CPU give the (super) blocks Id they will store & solve
-    Connectivity *mpcCpuToBlock;          // for each CPU, give the lmpc block whose have 
+    const Connectivity *MPITosuperBlock;        // for each CPU give the (super) blocks Id they will store & solve
+    const Connectivity *mpcCpuToBlock;          // for each CPU, give the lmpc block whose have
                                           //    lmpc CCt contribution from this CPU   
     SimpleNumberer **blockMpcEqNums;      // array[nMpcBlock] of pointer to the EqNum of each blocks created on myCPU 
     int **GlMpcToLlBlkMpcNumMap;          // array[nMpcBlock] of pointer to the lmpc global Id to local block Id mapping 
@@ -64,7 +64,7 @@ class SuperBlockCCtSolver : public CCtSolver<Scalar>
     double estimateBlockCost(compStruct &renumber, double *blockCost, double *blockBandWidth);
     double estimateBlockCost(double *blockCost, double *blockBandWidth);
     void makeSuperBlocks();
-    void createSuperBlockCCt(Connectivity *mpcToSub);
+    void createSuperBlockCCt(const Connectivity *mpcToSub);
     void makeBlockCCtCommPattern();
     void setBlockCCtCommSize(int iBlock);
     void factorSmallBlockCCtsolver(int iBlock, int *blockOffset);

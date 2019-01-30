@@ -141,7 +141,7 @@ QuadConvec::markDofs(DofSetArray &dsa) const
 }
 
 int
-QuadConvec::getTopNumber()
+QuadConvec::getTopNumber() const
 {
   return 188;//148;//2;
 }

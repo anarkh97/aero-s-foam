@@ -739,7 +739,7 @@ Compo3NodeShell::getCorotator(CoordSet &cs, double *kel, int fitAlgShell, int)
 }
 
 int
-Compo3NodeShell::getTopNumber()
+Compo3NodeShell::getTopNumber() const
 {
   return 120;
 }

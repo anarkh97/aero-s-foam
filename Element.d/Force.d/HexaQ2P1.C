@@ -14,7 +14,7 @@ HexaQ2P1::HexaQ2P1(int* _nn)
 {}
 
 int
-HexaQ2P1::getTopNumber()
+HexaQ2P1::getTopNumber() const
 {
   return 172;
 }

@@ -529,7 +529,7 @@ Pentahedral::numDofs() const
 }
 
 int
-Pentahedral::getTopNumber()
+Pentahedral::getTopNumber() const
 {
   return 124;
 }

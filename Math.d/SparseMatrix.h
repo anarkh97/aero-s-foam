@@ -34,6 +34,8 @@ class GenSMV {
 
 template<class Scalar>
 class GenSparseMatrix {
+		// TODO Get this out of here! Single use object that should be built
+		// by the class using it (ScalarBlockDiagPrec)
         GenSolver<Scalar>* meansolver;
         int *firstdof;
         Scalar* scalarfactors;
@@ -75,6 +77,7 @@ public:
         virtual void addImaginary(const FullSquareMatrix &, const int *dofs);
         virtual void add(const FullSquareMatrixC &, const int *dofs);
         virtual void add(const GenFullM<Scalar> &knd, int fRow, int fCol);
+        /// \brief Assemble skipping the unconstrNum mapping.
         virtual void add(const GenAssembledFullM<Scalar> &kel, const int *dofs) ;
         virtual void addDiscreteMass(int dof, Scalar mass);
         virtual void add(int row_dof, int col_dof, Scalar s);
@@ -123,21 +126,32 @@ public:
 
 class LMPCons;
 
+/** \brief Structure data of a sparse matrix arranged in a column by column storage.
+ *
+ * \details The column by column storage is only a matter of vocabulary.
+ * Effectively xunonz, rowu have the same structure as a Connectivity.
+ *
+ * Some users of the structure use a zero based indexing. Some others a one based indexing.
+ * The following convention can be assumed and must be respected by all users:
+ * xunonz[0] is either 1 for 1 based indexing (Fortran) or 0 for 0 based indexing (C/C++).
+ */
 class SparseData {
  protected:
   std::vector<int> unconstrNum;
   std::vector<int> constrndNum;
-  std::vector<int> xunonz;
-  std::vector<int> rowu;
-  std::vector<int> colu;
-  int numConstrained;
-  int numUncon;
-  int neq;
-  int myMem_rowu;
- public: 
-    SparseData();
+  std::vector<int> xunonz; //!< \brief Pointer into rowu for the start of each column.
+  std::vector<int> rowu; //!< Row index of each term.
+  std::vector<int> colu; //!< Column index for  an entry
+  int numConstrained = 0;
+  int numUncon = 0;
+  int neq = 0;
+ public:
+    SparseData() = default;
     // Constructors for data structures of type CuCSparse and CuCComplexSparse
+
+    /// \brief Form the sparse data for constrained to unconstrained DOFs. Generates 0-based indexing.
     SparseData(const Connectivity *con, const DofSetArray *dsa, const int *bc);
+	/// \brief Form the sparse data for constrained to unconstrained DOFs. Generates 0-based indexing.
     SparseData(const Connectivity *con, const DofSetArray *dsa, const DofSetArray *c_dsa);
     SparseData(const Connectivity *con, const DofSetArray *dsa, const int *glbmap, const int *glimap);
 
@@ -150,11 +164,21 @@ class SparseData {
     SparseData(const DofSetArray *_dsa, const int *glInternalMap,
                const Connectivity *cn, int expand);
 
-    // This constructor is for the Esmond sparse solver (BLKSparseMatrix)
-    SparseData(const Connectivity *cn, const EqNumberer *eqn, double trbm, int expand = 1);
+	// This constructor is for the Esmond sparse solver (BLKSparseMatrix)
+	/** \brief Form the sparse data for a square matrix in 1-based indexing.
+	 *
+	 * @param cn Node to node connectivity.
+	 * @param eqn Equation numbering for the nodes.
+	 * @param expand If false only the upper triangular part is formed.
+	 */
+	SparseData(const Connectivity *cn, const EqNumberer *eqn, double trbm, bool expand = true);
 
-    // MLX This constructor is for the Padma sparse solver
-    SparseData(const EqNumberer *eqn, const Connectivity *cn, double trbm);
+	/** \brief Form the sparse data for a square matrix in 0-based indexing.
+	 *
+	 * @param eqn Equation numbering for the nodes.
+	 * @param cn Node to node connectivity.
+	 */
+    SparseData(const EqNumberer *eqn, const Connectivity *cn);
 
     // KHP: for storing mpcs.
     // ML: Can we make the LMPConst const? Can't implicitely cast LMPCons ** to const LMPConst **
@@ -166,10 +190,18 @@ class SparseData {
                const int *glbmap, int numModes, int ldm);
 
     virtual ~SparseData();
-    void clean_up();
 
-  private:
-    void initialize();
+	size_t nnz() const { return rowu.size(); }
+
+	size_t numCol() const { return xunonz.size()-1; }
+
+	bool usesOneBasedIndexing() const { return xunonz[0] == 1; }
+
+	const std::vector<int> &colPointers() const { return xunonz; }
+
+	const std::vector<int> &rowIndices() const { return rowu; }
+
+    void clean_up();
 
 };
 

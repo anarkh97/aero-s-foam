@@ -51,6 +51,7 @@ public:
     BelytschkoTsayShell(int*);
     ~BelytschkoTsayShell();
 
+    Category getCategory() const override { return Category::Structural; }
     void setProp(StructProp *p, bool _myProp) override;
     void setMaterial(NLMaterial *) override;
     void setPressure(PressureBCond *_pbc) override;
@@ -91,7 +92,7 @@ public:
     void getFlLoad(CoordSet&, const InterpPoint&, double*, double *,
                    GeomState*) override;
 
-    int getTopNumber() override;
+    int getTopNumber() const override;
     void computePressureForce(CoordSet&, Vector& elPressureForce,
                               GeomState* gs, int cflg, double t) override;
 

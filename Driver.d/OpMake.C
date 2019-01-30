@@ -15,6 +15,9 @@
 #include <Utils.d/Memory.h>
 #include <Driver.d/GeoSource.h>
 #include <Solvers.d/MappedAssembledSolver.h>
+#include <Solvers.d/PCGSolver.h>
+#include <Solvers.d/BCGSolver.h>
+#include <Solvers.d/CRSolver.h>
 #include <Driver.d/Dynam.h>
 #include <Sfem.d/Sfem.h>
 #include <Sfem.d/SfemBlockMatrix.h>

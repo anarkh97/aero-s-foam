@@ -19,7 +19,7 @@ PinInSlotJointSpringCombo::PinInSlotJointSpringCombo(int* _nn)
 }
 
 int 
-PinInSlotJointSpringCombo::getTopNumber() 
+PinInSlotJointSpringCombo::getTopNumber() const
 { 
   return 106; 
 }

@@ -45,6 +45,7 @@ public:
 	void addImaginary(const FullSquareMatrix &, const int *dofs) override;
 	void add(const GenFullM<Scalar> &knd, int fRow, int fCol) override;
 	void add(const GenFullM<Scalar> &knd, gsl::span<const int> dofs);
+	void add(const GenAssembledFullM<Scalar> &kel, const int *dofs) override;
 	void addBoeing(int, const int *, const int *, const double *, int *, Scalar multiplier);
 	void addDiscreteMass(int dof, Scalar diMass) override;
 	void add(int, int, Scalar) override;
@@ -69,6 +70,8 @@ public:
 	{ std::cerr << "int*  GenDBSparseMatrix::getFirstDof() called" << std::endl; firstdof.resize(1); firstdof[0]=0; return firstdof.data(); }
 	int getBlockSize() override
 	{std::cerr << "dim() = " << dim() << std::endl; return dim();}
+
+	const std::vector<Scalar> &values() const { return unonz; }
 };
 
 typedef GenDBSparseMatrix<double> DBSparseMatrix;

@@ -238,7 +238,7 @@ HelmBrick::markDofs(DofSetArray &dsa) const
 }
 
 int
-HelmBrick::getTopNumber()
+HelmBrick::getTopNumber() const
 {
   return 145;//3;
 }

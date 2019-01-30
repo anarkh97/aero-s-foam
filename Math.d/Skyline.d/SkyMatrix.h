@@ -27,7 +27,7 @@ class SkyData {
                         //<! \brief from a SkyData constructor and other times,
                         //<! \brief it is allocated in the ConstrainedDSA class.
    int myRCN;           //<! \brief 0=not allocated, 1=allocated memory
-   const int *rowColNum;//<! \brief unconstrained row/col numbers
+   const int *rowColNum;//<! \brief Mapping vector from full DOF indices to unconstrained.
 
    int neq;             //<! \brief # of equations
    int numUncon;        //<! \brief # unconstrained dofs

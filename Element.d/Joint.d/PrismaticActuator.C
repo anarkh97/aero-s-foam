@@ -30,7 +30,7 @@ PrismaticActuator::setProp(StructProp *p, bool myProp)
 }
 
 int 
-PrismaticActuator::getTopNumber() 
+PrismaticActuator::getTopNumber() const
 { 
   return 106; 
 }

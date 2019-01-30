@@ -17,7 +17,7 @@ PlanarJoint::PlanarJoint(int* _nn)
 }
 
 int 
-PlanarJoint::getTopNumber() 
+PlanarJoint::getTopNumber() const
 { 
   return 106; 
 }

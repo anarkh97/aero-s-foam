@@ -23,6 +23,7 @@ public:
 	void edgeShapeFunctions(int n1, int n2, int *ng,
 	                        double **gw, double **N) override;
 
+	Category getCategory() const override { return Category::Acoustic; }
 	Element *clone() override;
 	void renum(const int *) override;
 	void renum(EleRenumMap&) override;
@@ -32,7 +33,7 @@ public:
 	int numNodes() const override { return order*order; }
 	int * nodes(int *) const override;
 	void addFaces(PolygonSet *pset) override;
-	int getTopNumber() override {return 163;}
+	int getTopNumber() const override {return 163;}
 
 	PrioInfo examine(int sub, MultiFront *mf) override;
 };

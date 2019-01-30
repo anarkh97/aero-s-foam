@@ -281,7 +281,7 @@ HEVibTetra::buildTetraStiff(double TetraStiff[4][4], double gN[4][3], double dOm
 }
 
 int
-HEVibTetra::getTopNumber()
+HEVibTetra::getTopNumber() const
 {
 	return 150;//5;
 }

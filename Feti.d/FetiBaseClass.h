@@ -184,7 +184,7 @@ protected:
 	int verboseFlag;
 	FSCommunicator *fetiCom = nullptr;
 	int myCPU, numCPUs;
-	Connectivity *subToSub = nullptr, *mpcToSub = nullptr, *mpcToSub_primal = nullptr;
+	const Connectivity *subToSub = nullptr, *mpcToSub = nullptr, *mpcToSub_primal = nullptr;
 	Connectivity *edgeToSub = nullptr, *subToEdge = nullptr;
 	Connectivity *coarseConnect = nullptr;  // first level coarse prob. connectivity
 	compStruct *renum = nullptr;
@@ -194,7 +194,7 @@ protected:
 	int gOffset;
 	int mOffset;
 	// TODO Find ownership (and of many other variables)
-	Connectivity *cpuToSub = nullptr;
+	const Connectivity *cpuToSub = nullptr;
 	int glNumMpc = 0, glNumMpc_primal = 0;
 	int *glSubToLoc = nullptr;
 	double epsilon2;

@@ -7,7 +7,7 @@ class RigidSolid6Dof : public SuperElement
 {
   public:
     RigidSolid6Dof(int, int*);
-    int getTopNumber() override;
+    int getTopNumber() const override;
     int numTopNodes() const override;
     bool isRigidElement() const override { return true; }
     bool hasRot() const override { return true; }

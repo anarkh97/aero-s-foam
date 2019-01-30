@@ -145,6 +145,11 @@ public:
 	template <typename RangeT>
 	static Connectivity fromLinkRange(const RangeT &range);
 
+	// TODO Implement so that it replaces Connectivity(SommerElement  **, int, int maxn)
+	// as the range of nodes can be limited to maxn by the rangeOfRanges.
+	template <typename RangeOfRanges>
+	static Connectivity fromRangeOfRanges(const RangeOfRanges &rangeOfRanges);
+
 
 	Connectivity() { size = 0; }
 	/** \brief Constructor for any object that is equipped with the methods of a set.
@@ -172,10 +177,10 @@ public:
 	Connectivity(Connectivity &&) = default;
 	Connectivity &operator=(Connectivity &&) = default;
 	Connectivity &operator=(const Connectivity &) = default;
-	size_t write(BinFileHandler& f);
-	size_t writeg(BinFileHandler& f);
+	size_t write(BinFileHandler& f) const;
+	size_t writeg(BinFileHandler& f) const;
+	size_t write(FILE* f) const;
 	size_t read(FILE* f);
-        size_t write(FILE* f);
 
 	void countlink(int from, int to); //DEC
 	void addlink(int from, int to); //DEC
@@ -222,18 +227,18 @@ public:
 	Connectivity* alloc_reverse() const
 	{ return new Connectivity{BaseConnectivity<Connectivity>::reverse()}; } // creates t->s from s->t
 
-	Connectivity* transconOne(Connectivity*);
-	int getTargetValue(int i) { return target[i]; }
+	Connectivity* transconOne(const Connectivity*) const;
+	int getTargetValue(int i) const { return target[i]; }
 
-	void findPseudoDiam(int *n1, int *n2, int *mask=0);
-	int  rootLS(int root, int *xls, int *ls, int &w, int *mask=0);
+	void findPseudoDiam(int *n1, int *n2, int *mask=0) const;
+	int  rootLS(int root, int *xls, int *ls, int &w, int *mask=0) const;
 
-	long long memsize() {return ((long long)size + getNumTarget() + 1)*sizeof(int);}
+	long long memsize() const {return ((long long)size + getNumTarget() + 1)*sizeof(int);}
 
 	// Create a rooted level structure
-	int *renumSloan(int *mask, int &firstNum, int *ren = 0);
-	int *renumRCM(int *mask, int &firstNum, int *ren = 0);
-	compStruct renumByComponent(int);
+	int *renumSloan(int *mask, int &firstNum, int *ren = 0) const;
+	int *renumRCM(int *mask, int &firstNum, int *ren = 0) const;
+	compStruct renumByComponent(int) const;
 	void print(FILE * = stderr, int node=-1) const;
 	int findMaxDist(int *) const;
 	int findProfileSize(EqNumberer *eqNumber, int unroll=1) const;
@@ -242,9 +247,10 @@ public:
 	auto &tgt() const { return target; }
 	/** \brief Create a connectivity that appends a given connectivity at the end of this one.
 	 * \details The number of sources is the sum of both. */
-	Connectivity *alloc_append(Connectivity *cn) const;
-	// Create a copy of this connectivity without...
-	Connectivity *collapse();
+	Connectivity append(const Connectivity &cn) const;
+	/** \brief creates a connectivity that represents the grouping
+	of a reflexive connectivity into subconnected groups. */
+	Connectivity connexGroups();
 	Connectivity *subSection(bool *);
 	Connectivity *trim(Connectivity *);
 	void sortTargets();
@@ -263,11 +269,11 @@ public:
 	Connectivity combineAll(int addSize, int *cmap);
 
 	double estimateComponentCost(EqNumberer *eqn, compStruct &cs, double *cost, double *bandwidth,
-	                             double coef=400, int unroll=1);
+	                             double coef=400, int unroll=1) const;
 	double estimateCost(EqNumberer *eqn, double &cost, double &bandwidth,
-	                    double coef=400, int unroll=1);
+	                    double coef=400, int unroll=1) const;
 
-	Connectivity * SCOTCH_graphPart(int partnbr);
+	Connectivity * SCOTCH_graphPart(int partnbr) const;
 };
 
 

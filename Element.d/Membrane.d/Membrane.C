@@ -387,7 +387,7 @@ Membrane::markDofs(DofSetArray &dsa) const
 }
 
 int
-Membrane::getTopNumber()
+Membrane::getTopNumber() const
 {
   return 108;
 }

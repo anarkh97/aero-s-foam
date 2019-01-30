@@ -10,6 +10,7 @@ public:
 
 	explicit LinSpring(int*);
 
+	Category getCategory() const override { return Category::Structural; }
 	Element *clone() override;
 
 	void renum(const int *) override;
@@ -26,7 +27,7 @@ public:
 	int * nodes(int *) const override;
 	bool isSafe() const override {return true;}
 	bool isSpring() const override {return true;}
-	int getTopNumber() override {return 111;}
+	int getTopNumber() const override {return 111;}
 	PrioInfo examine(int sub, MultiFront *) override;
 	Corotator *getCorotator(CoordSet &, double*, int, int) override;
 };

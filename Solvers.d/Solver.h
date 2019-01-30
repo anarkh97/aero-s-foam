@@ -34,7 +34,7 @@ class GenSolver {
     GenSolver() { solveTime = 0.0; memUsed = 0.0; print_nullity = true; }
     virtual ~GenSolver() = 0;
 
-    // Rbm functions
+    /// \brief Get the number of Rigid Body Modes (singularities for complex problems).
     virtual int numRBM() const;
 
     // Functions to return the rigid body modes
@@ -42,7 +42,7 @@ class GenSolver {
     virtual void getRBMs(Vector *rbms);
     virtual void getRBMs(VectorSet &rbms);
 
-    // Get number of equations
+    /// \brief Get number of equations
     virtual int neqs() const =0;
     virtual int dim() const;
 
@@ -54,7 +54,7 @@ class GenSolver {
     virtual void solve(const DistrBlockVector<Scalar> &rhs, DistrBlockVector<Scalar> &solution)
              {std::cerr << "GenSolver::solve(DistrBlockVector<Scalar> NOT implemented" << std::endl; } 
 
-    // reSolve functions overwrite the rhs vector with the solution
+    /// \brief In place solve function: overwrites the rhs vector with the solution.
     virtual void reSolve(Scalar *rhs);
     virtual void reSolve(Vector &rhs);
     virtual void reSolve(ComplexVector &rhs);
@@ -100,6 +100,7 @@ class GenSolver {
     // function to return memory used
     virtual double getMemoryUsed() const { return memUsed; }
 
+    /// \brief Get the memory used by the solver in bytes.
     virtual long size() const = 0;
     virtual void clean_up();
 

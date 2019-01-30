@@ -83,12 +83,11 @@ class NLMembrane : public GenGaussIntgElement<TwoDTensorTypes<9> >
 protected:
 	int getNumGaussPoints() const override;
 	void getGaussPointAndWeight(int i, double *point, double &weight) const override;
-    void getLocalNodalCoords(int, double *);
+    void getLocalNodalCoords(int, double *) override;
 	GenShapeFunction< TwoDTensorTypes<9> > *getShapeFunction() const override;
 	GenStrainEvaluator<TwoDTensorTypes<9> > *getGenStrainEvaluator() const override;
 	const NLMaterial *getMaterial() const override;
     NLMaterial *getLinearMaterial() const override;
-    void rotateCFrame(const CoordSet &cs, double *T) const;
     void rotateCFrame(const CoordSet &cs, double *T, double *Tinv) const;
 
 public:
@@ -105,7 +104,7 @@ public:
 	int* nodes(int *) const override;
 	void updateStates(Node *nodes, double *states, double *un, double *unp) {}
 	void setProp(StructProp *p, bool _myProp) override;
-    void buildFrame(CoordSet &cs);
+    void buildFrame(CoordSet &cs) override;
 	void setCompositeData(int, int, double *, double *coefs, double *frame) override;
 	double* setCompositeData2(int, int, double *, double *coefs, CoordSet &cs, double theta) override;
 	void setMaterial(NLMaterial *) override;
@@ -115,7 +114,7 @@ public:
 							  GeomState *gs, int cflg, double t) override;
 
 	Corotator* getCorotator(CoordSet &, double *, int , int) override;
-	int getTopNumber() override { return 104; }
+	int getTopNumber() const override { return 104; }
 	FullSquareMatrix  stiffness(const CoordSet& cs, double *k, int flg) const override;
 #ifdef USE_EIGEN3
 	int getMassType() const override { return 2; } // both consistent and lumped
@@ -137,7 +136,7 @@ class NLMembrane4 : public SuperElement
 {
 public:
 	explicit NLMembrane4(int *nodenums);
-	int  getTopNumber() override;
+	int getTopNumber() const override;
 	void computeDisp(CoordSet &cs, State &state, const InterpPoint &ip, double *res, GeomState *gs) override;
 	void getFlLoad(CoordSet &cs, const InterpPoint &ip, double *flF, double *res, GeomState *gs) override;
 	PrioInfo examine(int sub, MultiFront *mf) override;

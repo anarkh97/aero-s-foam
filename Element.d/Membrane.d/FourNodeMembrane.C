@@ -35,7 +35,7 @@ FourNodeMembrane::FourNodeMembrane(int *nodenums)
 }
 
 int
-FourNodeMembrane::getTopNumber()
+FourNodeMembrane::getTopNumber() const
 {
   return 188;
 }

@@ -18,6 +18,7 @@
 #include <Driver.d/DecDomain.h>
 #include <FetiLib/Subdomain.h>
 #include <Types.h>
+#include "SetOfSubs.h"
 #include "CornerSelector.h"
 
 extern double t5;
@@ -321,6 +322,7 @@ formSubdomains(const gsl::span<gl_sub_idx> &cpuMetasubIndices, const Connectivit
  getSharedMPCs(); // N/A right now
 
   paralApply(subDomain, &BaseSub::mergeInterfaces);
+  // Splitting needs to be done on the force, not on applied BC....!!!!
  paralApply(subDomain, &GenSubDomain<Scalar>::applySplitting);
 
  //paralApply(subDomain, &GenSubDomain<Scalar>::initSrc);
@@ -364,22 +366,18 @@ std::vector<gl_num_t> subSuperNodes(const FetiBaseSub &sub,
 
 template <typename T>
 void
-selectCorners(std::vector<std::unique_ptr<T>> &subs, FSCommunicator *communicator, const Connectivity *cpuToSub,
+selectCorners(std::vector<std::unique_ptr<FetiSub<T>>> &subs, FSCommunicator *communicator, const Connectivity *cpuToSub,
               gl_sub_idx glNumSub) {
 	vector<unique_ptr<FetiSubCornerHandler>> cornerHandlers;
 	cornerHandlers.reserve(subs.size());
 	vector<FetiSubCornerHandler *> fsh;
 	fsh.reserve(subs.size());
 	for(auto &sub: subs) {
-		auto &dsa = *sub->getDsa();
-		auto &c_dsa = *sub->get_c_dsa();
 		cornerHandlers.emplace_back(
 			new FetiSubCornerHandler(sub.get())
 			);
 		fsh.emplace_back(cornerHandlers.back().get());
 	}
-	// CornerSelector(int nGlobSub, int nLocSub, std::vector<FetiSubCornerHandler *> handlers,
-	//	               FSCommPattern<int> *commPattern, FSCommunicator *communicator);
 	std::cout << "I am " << communicator->cpuNum() << "My cpuToSub is " << cpuToSub->csize() << " to " << cpuToSub->getNumTarget() << std::endl;
 	FSCommPattern<int> cpat(communicator, cpuToSub, communicator->cpuNum(), FSCommPattern<int>::CopyOnSend);
 	for(int i=0; i<subs.size(); ++i)
@@ -388,6 +386,8 @@ selectCorners(std::vector<std::unique_ptr<T>> &subs, FSCommunicator *communicato
 	CornerSelector cornerSelector(glNumSub, subs.size(), std::move(fsh), &cpat, communicator);
 	int res = cornerSelector.makeCorners();
 	std::cout << "Result of corner selection is " << res << std::endl;
+	for(int i = 0; i < subs.size(); ++i)
+		subs[i]->setCorners( cornerHandlers[i]->getCorners() );
 }
 
 /** \brief Build an upper level FetiDP Solver.
@@ -403,7 +403,7 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDPNew(const Connectivity &subToCorne
 	int numSub = subToCorner.csize();
 
 	// Get the decomposition of subdomains into super-subdomains.
-	Connectivity *decCoarse = this->cpuToSub;
+	const Connectivity *decCoarse = this->cpuToSub;
 	std::stringstream fn;
 	fn << "decomposition." << numSub;
 	FILE *f;
@@ -506,6 +506,8 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDPNew(const Connectivity &subToCorne
 	                           superElements, subToAllCoarseNodes, nodes, this->glSubToLoc);
 
 	selectCorners(subs, this->fetiCom, &cpuToCoarse, decCoarse->csize());
+
+	SetOfSubs<Scalar> setOfSubs{ this->fetiCom, std::move(subs), std::make_shared<Connectivity>(cpuToCoarse)};
 
 //	std::vector<FetiBaseSub *> baseSubs(decCoarseDomain->getAllSubDomains(),
 //	                                    decCoarseDomain->getAllSubDomains()+decCoarseDomain->getNumSub());

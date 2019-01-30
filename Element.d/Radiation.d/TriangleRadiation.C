@@ -146,7 +146,7 @@ TriangleRadiation::markDofs(DofSetArray &dsa) const
 }
 
 int
-TriangleRadiation::getTopNumber()
+TriangleRadiation::getTopNumber() const
 {
   return 149;
 }

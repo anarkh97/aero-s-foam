@@ -20,6 +20,9 @@
 #include <Math.d/DBSparseMatrix.h>
 #include <Driver.d/Communicator.h>
 #include <Utils.d/DistHelper.h>
+#include "CholmodSolver.h"
+#include "PardisoSolver.h"
+#include <Solvers.d/SolverFactory.h>
 
 template<class Scalar>
 GenSolver<Scalar> *
@@ -121,15 +124,27 @@ GenSolverFactory<Scalar>::createSolver(const Connectivity *con, const EqNumberer
 				} break;
 #endif
 				case 17: {
-					GenEiSparseMatrix<Scalar,Eigen::SparseQR<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > > *s =
-							new GenEiSparseMatrix<Scalar,Eigen::SparseQR<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > >(con, eqnum, false);
+					auto *s =
+						new GenEiSparseMatrix<Scalar,Eigen::SparseQR<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > >(con, eqnum, false);
 					solver = (GenSolver<Scalar> *) s;
 					sparse = (GenSparseMatrix<Scalar> *) s;
 				} break;
 #endif
+				case 18: { // CholMod
+					auto p = getCholmod<Scalar>(con, eqnum);
+					solver = p.first;
+					sparse = p.second;
+				}
+				break;
+				case 19: { // Pardiso in MKL
+					auto p = getPardiso<Scalar>(con, eqnum);
+					solver = p.first;
+					sparse = p.second;
+				}
+				break;
 			}
 
-		} break;
+		} break; // case Direct solver
 
 		default: break;
 	}
@@ -295,6 +310,18 @@ GenSolverFactory<Scalar>::createSolver(const Connectivity *con, const DofSetArra
 					sparse = (GenSparseMatrix<Scalar> *) s;
 				} break;
 #endif
+//				case 18: { // CholMod
+//					auto p = getCholmod<Scalar>(con, eqnum);
+//					solver = p.first;
+//					sparse = p.second;
+//				}
+//				break;
+//				case 19: { // Pardiso in MKL
+//					auto p = getPardiso<Scalar>(con, eqnum);
+//					solver = p.first;
+//					sparse = p.second;
+//				}
+//				break;
 			}
 
 		} break;
@@ -475,3 +502,8 @@ GenSolverFactory<Scalar>::createSolver(const Connectivity *con, const DofSetArra
 	}
 	return { solver, std::move(sparse) };
 }
+
+#include <complex>
+
+template class GenSolverFactory<double>;
+template class GenSolverFactory<std::complex<double>>;

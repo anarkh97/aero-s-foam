@@ -16,11 +16,12 @@ public:
 	FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg) const override;
 	double  getMass(const CoordSet& cs) const override;
 
+	Category getCategory() const override { return Category::Thermal; }
 	Element *clone() override;
 	void renum(const int *) override;
 	void renum(EleRenumMap&) override;
 	void markDofs(DofSetArray &) const override;
-	int getTopNumber() override {return 195;}
+	int getTopNumber() const override {return 195;}
 	int numTopNodes() const override {return order*order*order;}
 	int* dofs(DofSetArray &, int *p) const override;
 	int numDofs() const override { return order*order*order; }

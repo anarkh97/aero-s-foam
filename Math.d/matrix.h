@@ -2,6 +2,7 @@
 #define _MATRIX_H_
 
 #include <cstdio>
+#include <vector>
 #include <gsl/span>
 #include <Utils.d/MyComplex.h>
 
@@ -181,10 +182,10 @@ GenStackFullM<Scalar>::GenStackFullM(Scalar *data, int nr, int nc)
 template<class Scalar>
 class GenAssembledFullM : public GenFullM<Scalar>
 {
-	int *rowMap;
-	int *colMap;
+	std::vector<int> rowMap;
+	std::vector<int> colMap;
 public:
-	GenAssembledFullM(int nr, int *rMap);
+	GenAssembledFullM(int nr, gsl::span<const int> rMap);
 	GenAssembledFullM(int nr, int *rMap, int nc, int *cMap);
 	~GenAssembledFullM() { clean_up(); };
 	/** \brief Add an elemental contribution.
@@ -206,24 +207,22 @@ public:
 
 template<class Scalar>
 inline
-GenAssembledFullM<Scalar>::GenAssembledFullM(int nr, int *rMap)
+GenAssembledFullM<Scalar>::GenAssembledFullM(int nr, gsl::span<const int> rMap) :
+	rowMap(rMap.begin(), rMap.end()), colMap(rMap.begin(), rMap.end())
 {
  this->nrow    = nr;
  this->ncolumn = nr;
- rowMap  = rMap;
- colMap  = rMap;
  this->v       = new Scalar[this->nrow*this->ncolumn];
  this->zero();
 }
 
 template<class Scalar>
 inline
-GenAssembledFullM<Scalar>::GenAssembledFullM(int nr, int *rMap, int nc, int *cMap)
+GenAssembledFullM<Scalar>::GenAssembledFullM(int nr, int *rMap, int nc, int *cMap) :
+	rowMap(rMap, rMap+nr), colMap(cMap, cMap+nc)
 {
  this->nrow    = nr;
  this->ncolumn = nc;
- rowMap  = rMap;
- colMap  = cMap;
  this->v       = new Scalar[this->nrow*this->ncolumn];
  this->zero();
 }

@@ -7,7 +7,7 @@ class RigidTwoNodeTruss : public ConstantDistanceConstraint
 {
 public:
 	explicit RigidTwoNodeTruss(int*);
-	int getTopNumber() override { return 101; }
+	int getTopNumber() const override { return 101; }
 	bool isRigidElement() const override { return true; }
 	bool isSafe() const override { return false; }
 	PrioInfo examine(int sub, MultiFront*) override;
@@ -17,7 +17,7 @@ class RigidTwoNodeTrussWithMass : public ConstantDistanceConstraint
 {
 public:
 	explicit RigidTwoNodeTrussWithMass(int*);
-	int getTopNumber() override { return 101; }
+	int getTopNumber() const override { return 101; }
 	bool isRigidElement() const override { return true; }
 	bool isSafe() const override { return false; }
 	PrioInfo examine(int sub, MultiFront*) override;

@@ -375,7 +375,6 @@ class Element {
 public:
 	enum Category { Structural=0, Acoustic, Thermal, Fluid, Undefined };
 private:
-	Category category;
 	double _weight, _trueWeight;
 	int elementType;
 protected:
@@ -384,7 +383,7 @@ protected:
 	int glNum, subNum, stateOffset;
 	void lumpMatrix(FullSquareMatrix&, std::vector<double>&) const;
 public:
-	Element() { prop = 0; _weight = 1.0; _trueWeight = 1.0; myProp = false; category = Undefined; };
+	Element() { prop = 0; _weight = 1.0; _trueWeight = 1.0; myProp = false; };
 	virtual ~Element() { if(myProp && prop) delete prop; }
 	const StructProp * getProperty() const { return prop; }
 	StructProp * getProperty() { return prop; }
@@ -529,7 +528,7 @@ public:
 
 	virtual Corotator *getCorotator(CoordSet &, double *, int = 2, int = 2);
 
-	virtual int getTopNumber();
+	virtual int getTopNumber() const;
 	virtual int numTopNodes() const { return numNodes() - numInternalNodes(); }   // this is the number of nodes printed in the top file
 	// can make it different to numNodes for elements that aren't
 	// supported by xpost eg RigidSolid6Dof
@@ -588,7 +587,7 @@ public:
 	// (b) for 3D solid element all face normals are outward pointing.
 	virtual int getFace(int iFace, int *fn);
 
-	virtual bool hasDamping() { return false; }
+	virtual bool hasDamping() final { return false; }
 	bool isFluidElement();
 	virtual bool isSommerElement() const { return false; }
 	virtual bool isRadiationElement() { return false; }
@@ -634,8 +633,11 @@ public:
 	virtual FullSquareMatrixC complexDampingMatrix(CoordSet& cs, DComplex* c, int flg=1);
 	virtual FullSquareMatrixC complexMassMatrix(CoordSet& cs, DComplex* m, double mratio);
 
-	Category getCategory() { return category; }
-	void setCategory(Category _category) { category = _category; }
+	virtual Category getCategory() const = 0;//{ return category; }
+	void setCategory(Category _category) {
+		if(_category != getCategory())
+			throw "Bad category";
+	}
 	bool isDamped() { return (getCategory() != Thermal && !isSpring()) ? (prop && (prop->alphaDamp != 0.0 || prop->betaDamp != 0.0)) : false; }
 	bool isSDamped() { return (getCategory() != Thermal && !isSpring()) ? (prop && (prop->etaDamp != 0.0 )) : false; }
 

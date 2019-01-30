@@ -143,7 +143,7 @@ QuadRadiation::markDofs(DofSetArray &dsa) const
 }
 
 int
-QuadRadiation::getTopNumber()
+QuadRadiation::getTopNumber() const
 {
   return 148;
 }

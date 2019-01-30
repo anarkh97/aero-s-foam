@@ -11,6 +11,7 @@ class ShearPanel: public Element,
 public:
 	explicit ShearPanel(int*);
 
+	Category getCategory() const override { return Category::Structural; }
 	Element *clone() override;
 
 	void renum(const int *) override;
@@ -47,7 +48,7 @@ public:
 	int numNodes() const override;
 	int * nodes(int *) const override;
 	PrioInfo examine(int sub, MultiFront *) override;
-	int getTopNumber() override;
+	int getTopNumber() const override;
 	bool hasRot() const override {return true;}
 
 	int getMassType() const override { return 0; } // lumped only

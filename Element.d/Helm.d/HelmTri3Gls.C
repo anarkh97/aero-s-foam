@@ -334,7 +334,7 @@ HelmTri3Gls::addFaces(PolygonSet *pset)
 }
 
 int
-HelmTri3Gls::getTopNumber()
+HelmTri3Gls::getTopNumber() const
 {
   return 136;//4;
 }

@@ -53,11 +53,13 @@ inline double DABS(double x) { return (x>0.0) ? x : -x; }
 
 // New constructor for both shared and distributed memory
 template<class Scalar>
-GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, int _glNumSub, std::vector<FetiSub<Scalar>*> subdomains,
-                                         Connectivity *_subToSub, FetiInfo *_fetiInfo, FSCommunicator *_fetiCom,
-                                         int *_glSubToLoc, Connectivity *_mpcToSub, Connectivity *_mpcToSub_primal,
+GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, int _glNumSub, std::vector<FetiSub<Scalar> *> subdomains,
+                                         const Connectivity *_subToSub, FetiInfo *_fetiInfo, FSCommunicator *_fetiCom,
+                                         int *_glSubToLoc, const Connectivity *_mpcToSub,
+                                         const Connectivity *_mpcToSub_primal,
                                          Connectivity *_mpcToMpc,
-                                         Connectivity *_mpcToCpu, Connectivity *_cpuToSub, Connectivity *_bodyToSub,
+                                         const Connectivity *_mpcToCpu, const Connectivity *_cpuToSub,
+                                         const Connectivity *_bodyToSub,
                                          std::vector<std::unique_ptr<GenSolver<Scalar>>> sysMatrices,
                                          GenSparseMatrix<Scalar> **sysSparse,
                                          Rbm **, bool _rbmFlag, bool _geometricRbms, int _verboseFlag)
@@ -375,19 +377,19 @@ GenFetiDPSolver<Scalar>::makeKcc()
 		coarseToSub = cornerToSub;
 		mpcOffset = coarseToSub->csize();
 		if(this->glNumMpc_primal > 0) {
-			coarseToSub = coarseToSub->alloc_append(this->mpcToSub_primal);
+			coarseToSub = new Connectivity(coarseToSub->append(*this->mpcToSub_primal));
 		}
 		augOffset = coarseToSub->csize();
 		switch(fetiInfo->augment) {
 			case FetiInfo::Gs: {
-				Connectivity *augcoarseToSub = coarseToSub->alloc_append(this->subToSub);
+				Connectivity *augcoarseToSub = new Connectivity(coarseToSub->append(*this->subToSub));
 				if(coarseToSub != cornerToSub) delete coarseToSub;
 				coarseToSub = augcoarseToSub;
 			} break;
 			case FetiInfo::WeightedEdges:
 			case FetiInfo::Edges: {
 				if(!this->edgeToSub) makeEdgeConnectivity();
-				Connectivity *augcoarseToSub = coarseToSub->alloc_append(this->edgeToSub);
+				Connectivity *augcoarseToSub = new Connectivity(coarseToSub->append(*this->edgeToSub));
 				if(coarseToSub != cornerToSub) delete coarseToSub;
 				coarseToSub = augcoarseToSub;
 				// filePrint(stderr,"coarseToSub %d kb\n",(int)(coarseToSub->memsize()/1024));
@@ -2336,7 +2338,7 @@ GenFetiDPSolver<Scalar>::getBlockToMpc()
          for(int i=0; i<numOtherMpcs; ++i) target[i] = i;
          Connectivity *otherToMpc = new Connectivity(1, pointer, target);
          if(numMortarMpcs == 0) blockToMpc = otherToMpc;
-         else blockToMpc = otherToMpc->alloc_append(domain->GetMortarToMPC());
+         else blockToMpc = new Connectivity{ otherToMpc->append(*domain->GetMortarToMPC()) };
        }
        else blockToMpc = new Connectivity(*domain->GetMortarToMPC());
      } 

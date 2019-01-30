@@ -427,7 +427,7 @@ void Element::aRubberStiffnessDerivs(CoordSet& cs, complex<double> *d, int n,
   fprintf(stderr, " *** WARNING: Element aRubberStiffnessDerivs not implemented for this element\n");
 }
 
-void Element::lumpMatrix(FullSquareMatrix& m) const
+void Element::lumpMatrix(FullSquareMatrix& m, std::vector<double>& factors) const
 {
   double MM = 0.0; // total mass of element
   double MD = 0.0; // mass of the diagonal
@@ -458,7 +458,8 @@ FullSquareMatrix Element::massMatrix(const CoordSet& cs, double* m, double mrati
 {
   if(mratio == 0.0 && getMassType() == 1) { // in this case, get the consistent mass matrix and lump it using diagonal scaling
     FullSquareMatrix result = massMatrix(cs, m, 1);
-    lumpMatrix(result);
+    std::vector<double> factors;
+    lumpMatrix(result, factors);
     return result;
   }
   else return massMatrix(cs, m, int(mratio));

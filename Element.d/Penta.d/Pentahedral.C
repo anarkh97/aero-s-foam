@@ -276,6 +276,11 @@ Pentahedral::getGravityForce(CoordSet& cs, double *gravityAcceleration,
 
     double totmas = getMass(cs);
 
+    double m[18*18];
+    FullSquareMatrix result = massMatrix(cs, m, 1);
+    std::vector<double> factors;
+    lumpMatrix(result, factors);
+
     // divvy up the total body force using same ratio as the corresponding diagonal of the lumped mass matrix to the total mass
     for(int i = 0; i < nnodes; ++i) {
       gravityForce[3*i+0] = totmas*gravityAcceleration[0]*(3.0*factors[3*i+0]);

@@ -4282,16 +4282,17 @@ void Domain::updateSDETAF(StructProp* p, double omega) {
 }
 
 void
-Domain::setIncludeStressNodes()
+Domain::setIncludeStressNodes(bool *includeStressNodes)
 {
   for(int iele=0; iele<numele; iele++) {
+    includeStressNodes[iele] = false;
     int NodesPerElement = elemToNode->num(iele);
     for(int k=0; k<NodesPerElement; ++k) {
       int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
       int inode(0);
       bool isIn = checkIsInStressNodes(node,inode); 
       if(isIn) { 
-        packedEset[iele]->setIncludeStressNodes(isIn);
+        includeStressNodes[iele] = isIn;
         break;
       }
     }

@@ -3550,7 +3550,7 @@ void
 Domain::computeNLStressVMWRTthicknessAdjointSensitivity(int sindex,
                                                         AllSensitivities<double> &allSens,
                                                         GeomState *geomState, Corotator **allCorot, 
-                                                        bool isDynam)
+                                                        bool *includeStressNodes, bool isDynam)
 {
 #ifdef USE_EIGEN3
      // ... COMPUTE DERIVATIVE OF VON MISES STRESS WITH RESPECT TO THICKNESS
@@ -3566,7 +3566,7 @@ Domain::computeNLStressVMWRTthicknessAdjointSensitivity(int sindex,
      int avgnum = 1; //TODO: It is hardcoded to be 1, which corresponds to NODALFULL. It needs to be fixed.
      for(int iele=0; iele<numele; ++iele) {
        if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
-       if (!packedEset[iele]->doesIncludeStressNodes()) continue;
+       if (!includeStressNodes[iele]) continue;
        int NodesPerElement = elemToNode->num(iele);
        GenVector<double> dStressdThick(NodesPerElement);
        GenVector<double> weight(NodesPerElement,0.0);
@@ -3918,8 +3918,9 @@ Domain::makeNLPostSensitivities(GenSolver<double> *sysSolver,
 {
 #ifdef USE_EIGEN3
  makeThicknessGroupElementFlag();
- if(solInfo().sensitivityMethod == SolverInfo::Adjoint) setIncludeStressNodes(); // TODO: need to include this
-                                                                                 // function in other sensitivity routine
+ bool *includeStressNodes = new bool[numele];
+ if(solInfo().sensitivityMethod == SolverInfo::Adjoint) setIncludeStressNodes(includeStressNodes); // TODO: need to include this
+                                                                                                   // function in other sensitivity routine
 
  for(int sindex=0; sindex < numSensitivity; ++sindex) {
   switch(senInfo[sindex].type) {
@@ -3962,7 +3963,7 @@ Domain::makeNLPostSensitivities(GenSolver<double> *sysSolver,
            computeStressVMDualSensitivity(sindex, sysSolver, allSens);
          }
        }
-       computeNLStressVMWRTthicknessAdjointSensitivity(sindex,allSens,geomState,allCorot,isDynam);
+       computeNLStressVMWRTthicknessAdjointSensitivity(sindex,allSens,geomState,allCorot,includeStressNodes,isDynam);
        if (allSens.residual !=0 && allSens.dwrStressVM==0 && !isDynam) {
          allSens.dwrStressVM = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numStressNodes);
          for (int i=0; i<numStressNodes; i++) {
@@ -4009,6 +4010,7 @@ Domain::makeNLPostSensitivities(GenSolver<double> *sysSolver,
      break;
   }
  }
+ delete [] includeStressNodes;
 #endif
 }
 

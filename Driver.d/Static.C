@@ -3569,6 +3569,7 @@ Domain::computeStressVMWRTthicknessAdjointSensitivity(int sindex,
                                                       AllSensitivities<double> &allSens,
                                                       GenVector<double> *sol,
                                                       double *bcx, 
+                                                      bool *includeStressNodes,
                                                       bool isDynam)
 {
 #ifdef USE_EIGEN3
@@ -3580,7 +3581,7 @@ Domain::computeStressVMWRTthicknessAdjointSensitivity(int sindex,
      int avgnum = 1; //TODO: It is hardcoded to be 1, which corresponds to NODALFULL. It needs to be fixed.
      for(int iele=0; iele<numele; ++iele) {
        if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
-       if (!packedEset[iele]->doesIncludeStressNodes()) continue;
+       if (!includeStressNodes[iele]) continue;
        int NodesPerElement = elemToNode->num(iele);
        GenVector<double> dStressdThick(NodesPerElement);
        GenVector<double> weight(NodesPerElement,0.0);
@@ -3914,6 +3915,7 @@ Domain::computeStressVMWRTShapeVariableAdjointSensitivity(int sindex,
                                                          AllSensitivities<double> &allSens, 
                                                          GenVector<double> *sol,
                                                          double *bcx,
+                                                         bool *includeStressNodes,
                                                          bool isDynam)
 {
 #ifdef USE_EIGEN3
@@ -3924,7 +3926,7 @@ Domain::computeStressVMWRTShapeVariableAdjointSensitivity(int sindex,
      int avgnum = 1; //TODO: It is hardcoded to be 1, which corresponds to NODALFULL. It needs to be fixed.
      for(int iele = 0; iele < numele; iele++) { 
        if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
-       if (!packedEset[iele]->doesIncludeStressNodes()) continue;
+       if (!includeStressNodes[iele]) continue;
        int NodesPerElement = elemToNode->num(iele);
        GenFullM<double> dStressdCoord(3*NodesPerElement,NodesPerElement,double(0.0));
        GenVector<double> weight(NodesPerElement,0.0);
@@ -4008,7 +4010,8 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
 {
 #ifdef USE_EIGEN3
  makeThicknessGroupElementFlag();
- if(solInfo().sensitivityMethod == SolverInfo::Adjoint) setIncludeStressNodes(); //TODO: need to include this function in other sensitivity routine
+ bool *includeStressNodes = new bool[numele];
+ if(solInfo().sensitivityMethod == SolverInfo::Adjoint) setIncludeStressNodes(includeStressNodes); //TODO: need to include this function in other sensitivity routine
 
  for(int sindex=0; sindex < numSensitivity; ++sindex) {
   switch(senInfo[sindex].type) {
@@ -4125,7 +4128,7 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
            computeStressVMDualSensitivity(sindex, sysSolver, allSens, spm, K);
          }
        }
-       computeStressVMWRTthicknessAdjointSensitivity(sindex,allSens,sol,bcx,isDynam);
+       computeStressVMWRTthicknessAdjointSensitivity(sindex,allSens,sol,bcx,includeStressNodes,isDynam);
        if (allSens.residual !=0 && allSens.dwrStressVM==0) {
          allSens.dwrStressVM = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numStressNodes);
          for (int i=0; i<numStressNodes; i++) {
@@ -4168,7 +4171,7 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
            computeStressVMDualSensitivity(sindex, sysSolver, allSens, spm, K);
          }
        }
-       computeStressVMWRTShapeVariableAdjointSensitivity(sindex,allSens,sol,bcx,isDynam);
+       computeStressVMWRTShapeVariableAdjointSensitivity(sindex,allSens,sol,bcx,includeStressNodes,isDynam);
        if (allSens.residual !=0 && allSens.dwrStressVM==0) {
          allSens.dwrStressVM = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numStressNodes);
          for (int i=0; i<numStressNodes; i++) {
@@ -4272,5 +4275,6 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
      break;
   }
  }
+ delete [] includeStressNodes;
 #endif
 }

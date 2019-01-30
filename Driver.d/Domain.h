@@ -525,7 +525,7 @@ public:
 	std::vector<int> *getStressNodes() { return &stressNodes; }
 	std::vector<DispNode> *getDispNodes() { return &dispNodes; }
 
-	void setIncludeStressNodes();
+	void setIncludeStressNodes(bool *);
 	bool checkIsInStressNodes(int,int &);
 	void createKelArray(FullSquareMatrix *& kel);
 	void createKelArray(FullSquareMatrix *& kel,FullSquareMatrix *& mel);
@@ -818,7 +818,7 @@ public:
 	void computeNLStressVMWRTthicknessDirectSensitivity(int, AllSensitivities<double> &allSens, GeomState *geomState,
 	                                                    Corotator **allCorot, bool isDynam = false);
 	void computeNLStressVMWRTthicknessAdjointSensitivity(int, AllSensitivities<double> &allSens, GeomState *geomState,
-	                                                     Corotator **allCorot, bool isDynam = false);
+	                                                     Corotator **allCorot, bool *includeStressNodes, bool isDynam = false);
 	void computeAggregatedStressVMWRTShapeVariableSensitivity(int, AllSensitivities<double> &allSens,
 	                                                          GenVector<double> *sol, double *bcx,
 	                                                          bool isDynam = false);
@@ -830,7 +830,7 @@ public:
 	                                                        Vector &, Vector &, Vector &, bool isDynam = false);
 	void computeStressVMWRTthicknessAdjointSensitivity(int, AllSensitivities<double> &allSens,
 	                                                   GenVector<double> *sol, double *bcx,
-	                                                   bool isDynam = false);
+	                                                   bool *includeStressNodes, bool isDynam = false);
 	void computeStressVMWRTdisplacementSensitivity(int, AllSensitivities<double> &allSens,
 	                                               GenVector<double> *sol, double *bcx);
 	void computeNLStressVMWRTdisplacementSensitivity(int, AllSensitivities<double> &allSens,
@@ -845,7 +845,7 @@ public:
 	                                                      bool isDynam = false);
 	void computeStressVMWRTShapeVariableAdjointSensitivity(int, AllSensitivities<double> &allSens,
 	                                                       GenVector<double> *sol, double *bcx,
-	                                                       bool isDynam = false);
+	                                                       bool *includeStressNodes, bool isDynam = false);
 	void computeStressVMWRTMachNumberSensitivity(AllSensitivities<double> &allSens);
 	void computeStressVMWRTangleOfAttackSensitivity(AllSensitivities<double> &allSens);
 	void computeStressVMWRTyawAngleSensitivity(AllSensitivities<double> &allSens);

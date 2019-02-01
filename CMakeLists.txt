@@ -1,8 +1,10 @@
 PROJECT (FEM)
 
-cmake_minimum_required(VERSION 3.13  FATAL_ERROR)
+cmake_minimum_required(VERSION 3.1  FATAL_ERROR)
 enable_language(Fortran)
-cmake_policy(SET CMP0076 NEW)
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.13)
+	cmake_policy(SET CMP0076 NEW)
+endif()
 
 option(USE_MPI "Use MPI" ON)
 option(USE_CHOLMOD "Attempt to use Choldmod" ON)

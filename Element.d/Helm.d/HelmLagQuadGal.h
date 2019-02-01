@@ -36,6 +36,9 @@ public:
 	int getTopNumber() const override {return 163;}
 
 	PrioInfo examine(int sub, MultiFront *mf) override;
+	double weight() const override;
+	double trueWeight() const override;
+
 };
 #endif
 

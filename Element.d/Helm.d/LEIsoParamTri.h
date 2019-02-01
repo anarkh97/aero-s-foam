@@ -34,6 +34,8 @@ public:
 	int* nodes(int *) const override;
 
 //        PrioInfo examine(int sub, MultiFront *mf) override;
+	double weight() const override;
+	double trueWeight() const override;
 
 };
 #endif

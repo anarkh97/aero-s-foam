@@ -29,9 +29,6 @@ HelmIsoParamTri::HelmIsoParamTri(int o, int* nodenums) {
  nn = new int[ordersq];
  int i;
  for(i=0;i<ordersq;i++) nn[i] = nodenums[i];
-
- setWeight(order-1);
- setTrueWeight(order-1);
 }
 
 
@@ -227,4 +224,14 @@ HelmIsoParamTri::numNodes() const {
 int HelmIsoParamTri::getTopNumber() const
 {
     return -1;
+}
+
+double HelmIsoParamTri::weight() const
+{
+	return order-1;
+}
+
+double HelmIsoParamTri::trueWeight() const
+{
+	return order-1;
 }

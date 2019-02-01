@@ -3,12 +3,57 @@
 #include <cstdlib>
 #include <cmath>
 #include <limits>
+#include <numeric>
 
 #include <Element.d/Element.h>
 #include <Math.d/matrix.h>
 #include <Math.d/Vector.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Utils.d/pstress.h>
+extern std::map<int, double> weightList;
+extern std::map<int, double> fieldWeightList;
+
+double Element::weight() const
+{
+	auto it = weightList.find(getElementType());
+	double weight = 1.0;
+	double trueWeight = 1.0;
+	if(it != weightList.end())
+		weight = it->second;
+
+	auto it2 = fieldWeightList.find((int)getCategory());
+	if(it2 != fieldWeightList.end()) {
+		double ratio =
+			it2->second/std::accumulate(fieldWeightList.begin(), fieldWeightList.end(),
+				0, [](double x, const std::pair<int, double>& y) {
+					return x + y.second;
+				});
+		weight *= ratio;
+	}
+	return weight;
+//	std::map<int, double>::iterator it1 = weightList.find(etype);
+//	if(it1 != weightList.end()) {
+//		ele->setWeight(it1->second);
+//		ele->setTrueWeight(it1->second);
+//	}
+//
+//	// adjust weight using FWEI if defined
+//	if(!fieldWeightList.empty()) {
+//		std::map<int,double>::iterator it2 = fieldWeightList.find((int)ele->getCategory());
+//		if(it2 != fieldWeightList.end()) {
+//			double weight = ele->weight();
+//			double trueWeight = ele->trueWeight();
+//			double ratio = it2->second/std::accumulate(fieldWeightList.begin(), fieldWeightList.end(), 0, weight_add());
+//			ele->setWeight(weight*ratio);
+//			ele->setTrueWeight(trueWeight*ratio);
+//		}
+//	}
+}
+
+double Element::trueWeight() const
+{
+	return weight();
+}
 
 void
 Element::setCompositeData(int, int, double*, double*, double*)

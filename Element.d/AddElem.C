@@ -174,16 +174,9 @@ extern std::map<int,double> fieldWeightList;
 #include <Driver.d/Domain.h>
 #include <Parser.d/AuxDefs.h>
 #include <Utils.d/SolverInfo.h>
-#include <numeric>
 
 extern SolverInfo &solInfo;
 extern std::unique_ptr<ElementFactory> elemFact;
-
-struct weight_add {
-  double operator()(double x, const std::pair<int, double>& y) {
-    return x + y.second;
-  }
-};
 
 void
 Elemset::elemadd(int num, int etype, int nnodes, int*n)
@@ -203,23 +196,7 @@ Elemset::setWeights()
     int num = it0->second;
     Element *ele = elem[num];
   
-    std::map<int, double>::iterator it1 = weightList.find(etype);
-    if(it1 != weightList.end()) {
-      ele->setWeight(it1->second);
-      ele->setTrueWeight(it1->second);
-    }
 
-    // adjust weight using FWEI if defined
-    if(!fieldWeightList.empty()) {
-      std::map<int,double>::iterator it2 = fieldWeightList.find((int)ele->getCategory());
-      if(it2 != fieldWeightList.end()) {
-        double weight = ele->weight();
-        double trueWeight = ele->trueWeight();
-        double ratio = it2->second/std::accumulate(fieldWeightList.begin(), fieldWeightList.end(), 0, weight_add());
-        ele->setWeight(weight*ratio);
-        ele->setTrueWeight(trueWeight*ratio);
-      }
-    }
   }
 
   etypes.clear();
@@ -1035,14 +1012,6 @@ Elemset::mpcelemadd(int num, LMPCons *mpc, bool nlflag)
    ele->setElementType(1001);
    elemadd(num, ele);
 
-   std::map<int, double >::iterator it = weightList.find(1001);
-   if(it == weightList.end()) {
-     ele->setWeight(1.0);
-     ele->setTrueWeight(1.0);
-   } else {
-     ele->setWeight(it->second);
-     ele->setTrueWeight(it->second);
-   }
 }
 
 void
@@ -1052,15 +1021,6 @@ Elemset::fsielemadd(int num, LMPCons *fsi)
    ele = new (ba) FsiElement(fsi);
    ele->setElementType(1002);
    elemadd(num, ele);
-
-   std::map<int, double >::iterator it = weightList.find(1002);
-   if(it == weightList.end()) {
-     ele->setWeight(1.0);
-     ele->setTrueWeight(1.0);
-   } else {
-     ele->setWeight(it->second);
-     ele->setTrueWeight(it->second);
-   }
 }
 
 

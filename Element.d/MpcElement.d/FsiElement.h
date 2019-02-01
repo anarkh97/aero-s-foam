@@ -46,6 +46,7 @@ public:
 	int numTopNodes() const override { return nnodes; }
 
 	PrioInfo examine(int sub, MultiFront *mf) override;
+	int getElementType() const override;
 // JLchange    bool isSafe() const override { return false; }
 };
 #endif

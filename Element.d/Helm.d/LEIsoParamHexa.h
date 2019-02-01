@@ -37,6 +37,8 @@ public:
 	int* nodes(int * = 0) const override;
 
 	PrioInfo examine(int sub, MultiFront *mf) override;
+	double weight() const override;
+	double trueWeight() const override;
 	int nDecFaces() const override { return 6;}
 	int getDecFace(int iFace, int *fn) override;
 

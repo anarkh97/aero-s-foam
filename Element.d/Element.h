@@ -375,7 +375,6 @@ class Element {
 public:
 	enum Category { Structural=0, Acoustic, Thermal, Fluid, Undefined };
 private:
-	double _weight, _trueWeight;
 	int elementType;
 protected:
 	StructProp *prop;	// structural properties for this element
@@ -383,7 +382,7 @@ protected:
 	int glNum, subNum, stateOffset;
 	void lumpMatrix(FullSquareMatrix&, std::vector<double>&) const;
 public:
-	Element() { prop = 0; _weight = 1.0; _trueWeight = 1.0; myProp = false; };
+	Element() { prop = 0; myProp = false; };
 	virtual ~Element() { if(myProp && prop) delete prop; }
 	const StructProp * getProperty() const { return prop; }
 	StructProp * getProperty() { return prop; }
@@ -569,10 +568,8 @@ public:
 
 	virtual bool hasRot() const { return false; }
 	virtual PrioInfo examine(int sub, MultiFront *mf);
-	virtual double weight() { return _weight; }
-	virtual double trueWeight() { return _trueWeight; }
-	void setWeight(double weight) { _weight = weight; }
-	void setTrueWeight(double trueWeight) { _trueWeight = trueWeight; }
+	virtual double weight() const;
+	virtual double trueWeight() const;
 
 	void getCG(CoordSet &cset, double &xcg, double &ycg, double &zcg);
 	virtual int nDecFaces() const { return 0; }
@@ -621,7 +618,7 @@ public:
 	virtual bool isFreeplayElement() const { return false; }
 	virtual bool isPhantomElement() { return (!(prop || isConstraintElement() || isSommerElement())); }
 
-	int getElementType() { return elementType; }
+	virtual int getElementType() const { return elementType; }
 	void setElementType(int _type) { elementType = _type; }
 
 	// friend class Domain;

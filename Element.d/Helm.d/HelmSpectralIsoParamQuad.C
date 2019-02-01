@@ -18,9 +18,6 @@ HelmSpectralIsoParamQuad::HelmSpectralIsoParamQuad(int o, int* nodenums) {
  int ordersq = order*order;
  nn = new int[ordersq];
  for(i=0;i<ordersq;i++) nn[i] = nodenums[i];
-
- setWeight(order);
- setTrueWeight(order);
 }
 
 
@@ -130,5 +127,15 @@ HelmSpectralIsoParamQuad::numNodes() const {
     return order*order;
   else
     return(4);   // to ignore effect of mid-size nodes in dec
+}
+
+double HelmSpectralIsoParamQuad::weight() const
+{
+	return order;
+}
+
+double HelmSpectralIsoParamQuad::trueWeight() const
+{
+	return order;
 }
 

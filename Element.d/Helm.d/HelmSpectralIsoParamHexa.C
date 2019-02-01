@@ -17,9 +17,6 @@ HelmSpectralIsoParamHexa::HelmSpectralIsoParamHexa(int o, int* nodenums) {
  int orderc = order*order*order;
  nn = new int[orderc];
  for(i=0;i<orderc;i++) nn[i] = nodenums[i];
-
- setWeight(order);
- setTrueWeight(order);
 }
 
 
@@ -157,5 +154,15 @@ HelmSpectralIsoParamHexa::numNodes() const {
     return order*order*order;
   else
     return(8);   // to ignore effect of mid-size nodes in dec
+}
+
+double HelmSpectralIsoParamHexa::weight() const
+{
+	return order;
+}
+
+double HelmSpectralIsoParamHexa::trueWeight() const
+{
+	return order;
 }
 

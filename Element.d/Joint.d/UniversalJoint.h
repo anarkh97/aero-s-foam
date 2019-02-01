@@ -11,6 +11,8 @@ class UniversalJoint : public SuperElement
 {
 public:
 	UniversalJoint(int*);
+
+	int getElementType() const override { return 122; }
 	Category getCategory() const override { return Category::Structural; }
 	int getTopNumber() const override;
 	bool hasRot() const override { return true; }

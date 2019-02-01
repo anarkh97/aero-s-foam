@@ -11,6 +11,8 @@ class CylindricalJoint : public SuperElement
 {
 public:
 	CylindricalJoint(int*);
+
+	int getElementType() const override { return 124; }
 	Category getCategory() const override { return Category::Structural; }
 	int getTopNumber() const override;
 	bool hasRot() const override { return true; }

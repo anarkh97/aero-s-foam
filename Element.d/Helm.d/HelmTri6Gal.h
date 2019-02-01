@@ -11,6 +11,7 @@ class HelmTri6Gal: public HelmElement, public Element {
 public:
 	HelmTri6Gal(int*);
 
+	int getElementType() const override { return 38; }
 	Category getCategory() const override { return Category::Acoustic; }
 	Element *clone() override;
 

@@ -111,6 +111,8 @@ public:
 class DGMHelm2d_4: public DGMHelm2d {
 public:
 	DGMHelm2d_4(int _o, int* nodenums);
+
+	int getElementType() const override { return 1100; }
 	complex<double> dir(int) override;
 	int defaultLMType() const override { return 1; }
 };
@@ -118,6 +120,8 @@ public:
 class DGMHelm2d_4t: public DGMHelm2d {
 public:
 	DGMHelm2d_4t(int _o, int* nodenums);
+
+	int getElementType() const override { return 1110; }
 	complex<double> dir(int) override;
 	int defaultLMType() const override { return 1; }
 };
@@ -125,6 +129,8 @@ public:
 class DGMHelm2d_8: public DGMHelm2d {
 public:
 	DGMHelm2d_8(int _o, int* nodenums);
+
+	int getElementType() const override { return 1101; }
 	complex<double> dir(int) override;
 	int defaultLMType() const override { return 2; }
 };
@@ -132,6 +138,8 @@ public:
 class DGMHelm2d_8t: public DGMHelm2d {
 public:
 	DGMHelm2d_8t(int _o, int* nodenums);
+
+	int getElementType() const override { return 1111; }
 	complex<double> dir(int) override;
 	int defaultLMType() const override { return 2; }
 };
@@ -139,6 +147,8 @@ public:
 class DGMHelm2d_16: public DGMHelm2d {
 public:
 	DGMHelm2d_16(int _o, int* nodenums);
+
+	int getElementType() const override { return 1102; }
 	complex<double> dir(int) override;
 	int defaultLMType() const override { return 3; }
 };
@@ -146,6 +156,8 @@ public:
 class DGMHelm2d_32: public DGMHelm2d {
 public:
 	DGMHelm2d_32(int _o, int* nodenums);
+
+	int getElementType() const override { return 1103; }
 	complex<double> dir(int) override;
 	int defaultLMType() const override { return 4; }
 };
@@ -161,6 +173,8 @@ public:
 class DGMHelm2d_Eva2_8: public DGMHelm2d_Eva {
 public:
 	DGMHelm2d_Eva2_8(int _o, int* nodenums);
+
+	int getElementType() const override { return 1104; }
 	complex<double> dir(int) override;
 	int defaultLMType() const override { return 5; }
 };
@@ -181,6 +195,8 @@ public:
 class DEMHelm2d_4: public DEMHelm2d {
 public:
 	DEMHelm2d_4(int _o, int* nodenums);
+
+	int getElementType() const override { return 1120; }
 	complex<double> dir(int) override;
 	int defaultLMType() const override { return 1; }
 };
@@ -188,6 +204,8 @@ public:
 class DEMHelm2d_4t: public DEMHelm2d {
 public:
 	DEMHelm2d_4t(int _o, int* nodenums);
+
+	int getElementType() const override { return 1130; }
 	complex<double> dir(int) override;
 	int defaultLMType() const override { return 1; }
 };
@@ -195,6 +213,8 @@ public:
 class DEMHelm2d_8: public DEMHelm2d {
 public:
 	DEMHelm2d_8(int _o, int* nodenums);
+
+	int getElementType() const override { return 1121; }
 	complex<double> dir(int) override;
 	int defaultLMType() const override { return 2; }
 };
@@ -202,6 +222,8 @@ public:
 class DEMHelm2d_8t: public DEMHelm2d {
 public:
 	DEMHelm2d_8t(int _o, int* nodenums);
+
+	int getElementType() const override { return 1131; }
 	complex<double> dir(int) override;
 	int defaultLMType() const override { return 2; }
 };
@@ -209,6 +231,8 @@ public:
 class DEMHelm2d_16: public DEMHelm2d {
 public:
 	DEMHelm2d_16(int _o, int* nodenums);
+
+	int getElementType() const override { return 1122; }
 	complex<double> dir(int) override;
 	int defaultLMType() const override { return 3; }
 };
@@ -216,6 +240,8 @@ public:
 class DEMHelm2d_32: public DEMHelm2d {
 public:
 	DEMHelm2d_32(int _o, int* nodenums);
+
+	int getElementType() const override { return 1123; }
 	complex<double> dir(int) override;
 	int defaultLMType() const override { return 4; }
 };

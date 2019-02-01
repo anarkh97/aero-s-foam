@@ -10,6 +10,7 @@ class IsoParamTriLineSommer : public SommerElement {
 public:
 	IsoParamTriLineSommer(int, int *, Element *_el = 0);
 
+	int getElementType() const override { return 13; }
 	int numNodes() const override { return order; }
 
 	int getNode(int nd) const override { return nn[nd]; }

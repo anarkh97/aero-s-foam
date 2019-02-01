@@ -10,6 +10,7 @@ class LagLineSommer : public SommerElement {
 public:
 	LagLineSommer(int, int *, Element *_el = 0);
 
+	int getElementType() const override { return 9; }
 	int numNodes() const override { return order; }
 
 	int getNode(int nd) const override { return nn[nd]; }

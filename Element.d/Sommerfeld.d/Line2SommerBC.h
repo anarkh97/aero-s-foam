@@ -9,6 +9,7 @@ class Line2SommerBC : public SommerElement {
 public:
 	Line2SommerBC(int, int, int, Element *_el = 0, int etype = 2);
 
+	int getElementType() const override { return 2; }
 	int numNodes() const override { return 3; }
 
 	int getNode(int nd) const override { return nn[nd]; }

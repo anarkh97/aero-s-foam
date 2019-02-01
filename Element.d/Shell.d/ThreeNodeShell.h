@@ -17,6 +17,7 @@ protected:
 public:
 	explicit ThreeNodeShell(int*, double _w=3);
 
+	int getElementType() const override { return 8; }
 	Category getCategory() const override { return Category::Structural; }
 	Element *clone() override;
 

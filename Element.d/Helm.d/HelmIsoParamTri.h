@@ -15,6 +15,7 @@ class HelmIsoParamTri: public HelmElement, public Element {
 public:
 	HelmIsoParamTri(int,int*);
 
+	int getElementType() const override { return 99; }
 	FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const override;
 	FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg=1) const override;
 	FullSquareMatrixC stiffness(const CoordSet&, complex<double> *d) const override;

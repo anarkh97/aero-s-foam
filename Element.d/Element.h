@@ -374,8 +374,6 @@ class MultiFront;
 class Element {
 public:
 	enum Category { Structural=0, Acoustic, Thermal, Fluid, Undefined };
-private:
-	int elementType;
 protected:
 	StructProp *prop;	// structural properties for this element
 	bool myProp;
@@ -618,8 +616,8 @@ public:
 	virtual bool isFreeplayElement() const { return false; }
 	virtual bool isPhantomElement() { return (!(prop || isConstraintElement() || isSommerElement())); }
 
-	virtual int getElementType() const { return elementType; }
-	void setElementType(int _type) { elementType = _type; }
+	virtual int getElementType() const = 0;
+	void setElementType(int _type) { if( _type != getElementType() ) throw "Inconsistency"; }
 
 	// friend class Domain;
 	friend class SuperElement;

@@ -7,6 +7,8 @@ class RevoluteJointSpringComboWithFreeplay : public SuperElement
 {
 public:
 	RevoluteJointSpringComboWithFreeplay(int*);
+
+	int getElementType() const override { return 323; }
 	Category getCategory() const override { return Category::Structural; }
 	int getTopNumber() const override;
 	bool hasRot() const override { return true; }

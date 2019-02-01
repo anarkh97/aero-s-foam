@@ -11,6 +11,7 @@ class TwoNodeTruss : public virtual Element,
 	double preload;
 public:
 	explicit TwoNodeTruss(int*);
+	int getElementType() const override { return 1; }
 	Element *clone() override;
 	Category getCategory() const override { return Category::Structural; }
 	void renum(const int *) override;

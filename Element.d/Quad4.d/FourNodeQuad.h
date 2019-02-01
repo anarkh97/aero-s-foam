@@ -11,7 +11,7 @@ protected:
 	int nn[4];
 public:
 	explicit FourNodeQuad(int*);
-
+	int getElementType() const override { return 2; }
 	Category getCategory() const override { return Category::Structural; }
 	Element *clone() override;
 

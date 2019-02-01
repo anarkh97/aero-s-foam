@@ -15,6 +15,7 @@ class LEIsoParamHexa: public Element {
 public:
 	LEIsoParamHexa(int,int*);
 
+	int getElementType() const override { return 102; }
 	FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const override;
 	FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg=1) const override;
 	void aRubberStiffnessDerivs(CoordSet&, complex<double> *d, int n, double omega) override;

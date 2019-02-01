@@ -11,6 +11,7 @@ class Therm3NoShell : public Element {
 public:
 	explicit Therm3NoShell(int*);
 
+	int getElementType() const override { return 46; }
 	Category getCategory() const override { return Category::Thermal; }
 	Element *clone() override;
 

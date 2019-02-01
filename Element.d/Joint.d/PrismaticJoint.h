@@ -11,6 +11,8 @@ class PrismaticJoint : public SuperElement
 {
 public:
 	PrismaticJoint(int*);
+
+	int getElementType() const override { return 125; }
 	Category getCategory() const override { return Category::Structural; }
 	int getTopNumber() const override;
 	bool hasRot() const override { return true; }

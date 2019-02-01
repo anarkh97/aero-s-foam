@@ -22,6 +22,7 @@ public:
 
 	Element* clone() override;
 
+	int getElementType() const override { return 0; }
 	Category getCategory() const override { return Category::Undefined; }
 	int getTopNumber() const override;
 	void setDofs(DofSet *d);

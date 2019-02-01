@@ -16,6 +16,7 @@ class HelmBrick32: public HelmElement, public Element {
 public:
 	explicit HelmBrick32(int*);
 
+	int getElementType() const override { return 93; }
 	Category getCategory() const override { return Category::Acoustic; }
 	Element *clone() override;
 

@@ -7,7 +7,7 @@ class DofSet;
 
 class GeomState;
 
-template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
+template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree, int eType>
 class PressureElement : public SommerElement {
 protected:
 	int nNodes;               // number of nodes
@@ -23,6 +23,7 @@ public:
 
 	~PressureElement();
 
+	int getElementType() const override { return eType; }
 	void renum(const int *) override;
 
 	void renum(EleRenumMap &) override;

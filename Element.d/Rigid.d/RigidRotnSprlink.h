@@ -7,7 +7,9 @@ class RigidRotnSprlink : public SuperElement
 {
   public:
     RigidRotnSprlink(int*);
-    void setProp(StructProp*, bool = false) override;
+
+	int getElementType() const override { return 69; }
+	void setProp(StructProp*, bool = false) override;
     int getTopNumber() const override { return 122; }
     bool isSafe() const override { return false; }
     bool isSpring() const override { return true; }

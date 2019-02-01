@@ -11,6 +11,8 @@ class ParallelAxesConstraint : public SuperElement
 {
 public:
 	ParallelAxesConstraint(int*, int=0);
+
+	int getElementType() const override { return 116; }
 	Category getCategory() const override { return Category::Structural; }
 	int getTopNumber() const override;
 	bool hasRot() const override { return true; }

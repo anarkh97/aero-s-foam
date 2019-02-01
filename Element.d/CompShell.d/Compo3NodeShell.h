@@ -20,6 +20,7 @@ private:
 public:
 	explicit Compo3NodeShell(int*);
 
+	int getElementType() const override { return 20; }
 	Category getCategory() const override { return Category::Structural; }
 	Element *clone() override;
 

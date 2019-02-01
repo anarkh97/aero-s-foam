@@ -7,6 +7,8 @@ class PrismaticJointSpringComboWithFreeplay : public SuperElement
 {
 public:
 	PrismaticJointSpringComboWithFreeplay(int*);
+
+	int getElementType() const override { return 325; }
 	Category getCategory() const override { return Category::Structural; }
 	int getTopNumber() const override;
 	bool hasRot() const override { return true; }

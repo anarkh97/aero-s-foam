@@ -17,6 +17,7 @@ public:
 	Brick20(int*);
 	~Brick20();
 
+	int getElementType() const override { return 72; }
 	Category getCategory() const override { return Category::Structural; }
 	Element *clone() override;
 

@@ -5,6 +5,6 @@
 #include <Element.d/Function.d/QuadratureRule.h>
 #include <Mortar.d/FaceElement.d/FaceTri6.d/FaceTri6.h>
 
-typedef PressureElement<FaceTri6, TriangleQuadratureRule<double>, 3, 6> Triangle6PressureBC;
+typedef PressureElement<FaceTri6, TriangleQuadratureRule<double>, 3, 6, 17> Triangle6PressureBC;
 
 #endif

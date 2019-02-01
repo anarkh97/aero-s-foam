@@ -15,6 +15,7 @@ class LEIsoParamQuad: public Element {
 public:
 	LEIsoParamQuad(int,int*);
 
+	int getElementType() const override { return 100; }
 	FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const override;
 	FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg=1) const override;
 	double  getMass(const CoordSet& cs) const override;

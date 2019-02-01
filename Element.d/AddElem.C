@@ -402,7 +402,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        ele->setCategory(Element::Thermal);
        break;
      case 63:
-       ele = new (ba) HelmLagQuadGal(nnodes,n);
+       ele = new (ba) HelmLagQuadGal63(nnodes,n);
        ele->setCategory(Element::Acoustic);
        break;
      case 65:
@@ -493,7 +493,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        ele = new (ba) FourNodeMembrane(n);
        ele->setCategory(Element::Structural);
        break;
-     case 88:
+     case 88: // Does one need to distinguish this version vs the implementation in backward mode?
        {
          // PJSA: first count number of unique nodes & if there are only 3 make a tri
          int i, j;
@@ -581,7 +581,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        ele->setCategory(Element::Acoustic);
        break;
      case 106:
-       ele = new (ba) RigidBeamWithMass(n,1);
+       ele = new (ba) RigidBeamWithMass106(n,1);
        ele->setCategory(Element::Structural);
        break;
      case 108:
@@ -666,7 +666,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        ele->setCategory(Element::Structural);
        break;
      case 133:
-       ele = new (ba) RigidBeam(n,1);
+       ele = new (ba) RigidBeam133(n,1);
        ele->setCategory(Element::Structural);
        break;
      case 134:
@@ -744,12 +744,12 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        ele->setCategory(Element::Structural);
        break;
      case 203:
-       ele = new (ba) LinearTranslationalSpring(n, 1);
+       ele = new (ba) LinearTranslationalSpring203(n, 1);
        ele->setCategory(Element::Structural);
        domain->solInfo().freeplay = true;
        break;
      case 204:
-       ele = new (ba) NonlinearTranslationalSpring(n, 0, 0, 1);
+       ele = new (ba) NonlinearTranslationalSpring204(n, 0, 0, 1);
        ele->setCategory(Element::Structural);
        domain->solInfo().freeplay = true;
        break;
@@ -809,7 +809,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        domain->solInfo().freeplay = true;
        break;
      case 379:
-       ele = new (ba) PointVariPlaneSegmentDistanceConstraintElement(n);
+       ele = new (ba) PointVariPlaneSegmentDistanceConstraintElement379(n);
        ele->setCategory(Element::Structural);
        break;
      case 128:

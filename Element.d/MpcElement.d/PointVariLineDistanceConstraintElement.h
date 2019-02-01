@@ -7,8 +7,9 @@
 class PointVariLineDistanceConstraintElement : public ConstraintFunctionElement<Simo::PointVariLineDistanceConstraintFunction>
 {
   public:
-    PointVariLineDistanceConstraintElement(int* _nn); 
+    PointVariLineDistanceConstraintElement(int* _nn);
 
+	int getElementType() const override { return 178; }
   protected:
     void getConstants(const CoordSet & cs, Eigen::Array<double,14,1>& sconst, Eigen::Array<int,1,1>& iconst,
                       const GeomState* = nullptr) const override;

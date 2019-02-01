@@ -3,8 +3,8 @@
 #include <Mortar.d/MortarDefines.h>
 #include <iostream>
 
-template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
-PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree>
+template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree, int eType>
+PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree, eType>
 ::PressureElement(int *_nn, PressureBCond *_pbc)
 		: nNodes(FaceElementType::NumberOfNodes), pbc(_pbc) {
 	nn = new int[nNodes];
@@ -13,9 +13,9 @@ PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree>
 	addTerms(DofSet::XYZdisp);
 }
 
-template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
+template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree, int eType>
 void
-PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree>
+PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree, eType>
 ::addTerms(DofSet nodalDofs) {
 	terms.clear();
 	nterms = 0;
@@ -33,23 +33,23 @@ PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree>
 	}
 }
 
-template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
-PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree>
+template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree, int eType>
+PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree, eType>
 ::~PressureElement() {
 	delete pbc;
 	delete[] nn;
 }
 
-template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
+template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree, int eType>
 int
-PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree>
+PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree, eType>
 ::numNodes() const {
 	return nNodes;
 }
 
-template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
+template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree, int eType>
 void
-PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree>
+PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree, eType>
 ::renum(const int *table) {
 	for (int i = 0; i < numNodes(); ++i)
 		if (nn[i] > -1)
@@ -58,9 +58,9 @@ PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree>
 		terms[i].nnum = table[terms[i].nnum];
 }
 
-template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
+template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree, int eType>
 void
-PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree>
+PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree, eType>
 ::renum(EleRenumMap &table) {
 	for (int i = 0; i < numNodes(); ++i)
 		if (nn[i] > -1)
@@ -69,25 +69,25 @@ PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree>
 		terms[i].nnum = table[terms[i].nnum];
 }
 
-template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
+template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree, int eType>
 int *
-PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree>
+PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree, eType>
 ::nodes(int *p) const {
 	if (p == 0) p = new int[numNodes()];
 	for (int i = 0; i < numNodes(); ++i) p[i] = nn[i];
 	return p;
 }
 
-template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
+template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree, int eType>
 int
-PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree>
+PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree, eType>
 ::numDofs() const {
 	return nterms;
 }
 
-template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
+template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree, int eType>
 int *
-PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree>
+PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree, eType>
 ::dofs(DofSetArray &dsa, int *p) const  {
 	if (p == 0) p = new int[numDofs()];
 	for (int i = 0; i < nterms; i++)
@@ -95,17 +95,17 @@ PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree>
 	return p;
 }
 
-template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
+template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree, int eType>
 void
-PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree>
+PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree, eType>
 ::markDofs(DofSetArray &dsa) const {
 	for (int i = 0; i < nterms; i++)
 		dsa.mark(terms[i].nnum, 1 << terms[i].dofnum);
 }
 
-template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
+template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree, int eType>
 void
-PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree>::neumVector(CoordSet &c0, Vector &F,
+PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree, eType>::neumVector(CoordSet &c0, Vector &F,
                                                                                              int, GeomState *c1,
                                                                                              double t) {
 	// construct face element & local coordsets
@@ -168,9 +168,9 @@ PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree>
 	}
 }
 
-template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
+template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree, int eType>
 void
-PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree>::neumVectorJacobian(CoordSet &c0,
+PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree, eType>::neumVectorJacobian(CoordSet &c0,
                                                                                                      FullSquareMatrix &Ktan,
                                                                                                      int, GeomState *c1,
                                                                                                      double t) {
@@ -236,9 +236,9 @@ PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree>
 	}
 }
 
-template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
+template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree, int eType>
 FullSquareMatrix
-PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree>
+PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree, eType>
 ::sommerMatrix(CoordSet &cs, double *d) const {
 	FullSquareMatrix sommerM(numDofs(), d);
 	sommerM.zero();
@@ -246,9 +246,9 @@ PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree>
 	return sommerM;
 }
 
-template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
+template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree, int eType>
 int
-PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree>
+PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree, eType>
 ::findAndSetEle(const CoordSet &cs, Elemset &eset, const Connectivity *nodeToElem, int *eleTouch, int *eleCount,
                 int myNum,
                 int it) {

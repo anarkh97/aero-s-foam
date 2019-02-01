@@ -11,6 +11,7 @@ class HelmBrickGLS: public HelmElement, public Element {
 public:
 	HelmBrickGLS(int*);
 
+	int getElementType() const override { return 44; }
 	Category getCategory() const override { return Category::Acoustic; }
 	Element *clone() override;
 

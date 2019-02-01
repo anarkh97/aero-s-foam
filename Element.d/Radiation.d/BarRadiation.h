@@ -10,6 +10,7 @@ public:
 	explicit BarRadiation(int*);
 	~BarRadiation() override;
 
+	int getElementType() const override { return 56; }
 	Category getCategory() const override { return Category::Thermal; }
 	Element *clone() override;
 

@@ -44,6 +44,8 @@ public:
         numN = static_cast<int>(p - nn);
     }
     ~DecGluedElement() override { delete[] nn; }
+
+    int getElementType() const override { return -1; }
     Category getCategory() const override { return Category::Structural; }
 
     void renum(const int *) override {

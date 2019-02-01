@@ -7,6 +7,7 @@ class RigidEightNodeBrick : public SuperElement
 {
 public:
 	explicit RigidEightNodeBrick(int*);
+	int getElementType() const override { return 70; }
 	int getTopNumber() const override { return 117; }
 	bool isRigidElement() const override { return true; }
 	bool isSafe() const override { return true; }

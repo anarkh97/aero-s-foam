@@ -93,6 +93,8 @@ protected:
 public:
 	explicit NLMembrane(int *nd);
 	~NLMembrane() override;
+
+	int getElementType() const override { return 129; }
 	void setPreLoad(std::vector<double> &_preload) override { preload = _preload; }
 	std::vector<double> getPreLoad() override { return preload; }
 	int numNodes() const override { return 3; }
@@ -136,6 +138,8 @@ class NLMembrane4 : public SuperElement
 {
 public:
 	explicit NLMembrane4(int *nodenums);
+
+	int getElementType() const override { return 128; }
 	int getTopNumber() const override;
 	void computeDisp(CoordSet &cs, State &state, const InterpPoint &ip, double *res, GeomState *gs) override;
 	void getFlLoad(CoordSet &cs, const InterpPoint &ip, double *flF, double *res, GeomState *gs) override;

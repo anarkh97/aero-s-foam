@@ -15,6 +15,8 @@ class RigidFourNodeShell : public SuperElement
 
 public:
 	explicit RigidFourNodeShell(int*);
+
+	int getElementType() const override { return 76; }
 	int getTopNumber() const override { return 188; }
 	bool isRigidElement() const override { return true; }
 	bool hasRot() const override { return true; }

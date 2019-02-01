@@ -12,6 +12,7 @@ public:
 	PointPointDistanceConstraintElement(int* _nn);
 	void setFrame(EFrame *) override;
 
+	int getElementType() const override { return 77; }
 protected:
 	void getConstants(const CoordSet & cs, Eigen::Array<double,11,1>& sconst, Eigen::Array<int,1,1>& iconst,
 	                  const GeomState* = NULL) const override;

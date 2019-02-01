@@ -7,6 +7,8 @@ class RigidSpring : public SuperElement
 {
   public:
     RigidSpring(int*);
+
+	int getElementType() const override { return 67; }
     int getTopNumber() const override;
     bool isRigidElement() const override { return true; }
     bool isSpring() const override { return true; }

@@ -10,6 +10,7 @@ public:
 
 	explicit LinSpring(int*);
 
+	int getElementType() const override { return 12; }
 	Category getCategory() const override { return Category::Structural; }
 	Element *clone() override;
 

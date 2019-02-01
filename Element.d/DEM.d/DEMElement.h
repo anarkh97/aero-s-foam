@@ -153,6 +153,7 @@ class DEMInterfaceElement: public Element, public DEMCoreInterfaceElement {
 public:
 	DEMInterfaceElement(DEMElement *_deme, DEMElement *_deme2, int _fi);
 
+	int getElementType() const override { return -1; }
 	Category getCategory() const override { return Category::Undefined; }
 	void renum(const int *) override;
 

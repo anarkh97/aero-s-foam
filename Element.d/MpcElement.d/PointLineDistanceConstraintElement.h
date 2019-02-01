@@ -11,7 +11,7 @@ class PointLineDistanceConstraintElement : public ConstraintFunctionElement<Simo
 public:
 	PointLineDistanceConstraintElement(int* _nn);
 	void setFrame(EFrame *) override;
-
+	int getElementType() const override { return 78; }
 protected:
 	void getConstants(const CoordSet & cs, Eigen::Array<double,14,1>& sconst, Eigen::Array<int,1,1>& iconst,
 					  const GeomState* = nullptr) const override;

@@ -10,6 +10,7 @@ class SpectralIsoParamQuadSommer : public SommerElement {
 public:
 	SpectralIsoParamQuadSommer(int, int *, Element *_el = 0, int eType = 10);
 
+	int getElementType() const override { return 14; }
 	int numNodes() const override { return order * order; }
 
 	int getNode(int nd) const override { return nn[nd]; }

@@ -10,6 +10,7 @@ class IsoParamLineSommer : public SommerElement {
 public:
 	IsoParamLineSommer(int, int *, Element *_el = 0);
 
+	int getElementType() const override { return 12; }
 	int numNodes() const override { return order; }
 
 	int getNode(int nd) const override { return nn[nd]; }

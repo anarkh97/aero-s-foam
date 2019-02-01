@@ -14,6 +14,7 @@ class TetraHelmGal: public HelmElement, public Element {
 public:
 	TetraHelmGal(int*);
 
+	int getElementType() const override { return 40; }
 	Category getCategory() const override { return Category::Acoustic; }
 	Element *clone() override;
 

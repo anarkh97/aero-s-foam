@@ -9,6 +9,7 @@ class PentaBulk: public virtual Element {
 public:
 	explicit PentaBulk(int*);
 
+	int getElementType() const override { return 86; }
 	Category getCategory() const override { return Category::Thermal; }
 	Element *clone() override;
 

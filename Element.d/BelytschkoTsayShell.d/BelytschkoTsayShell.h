@@ -51,6 +51,7 @@ public:
     BelytschkoTsayShell(int*);
     ~BelytschkoTsayShell();
 
+	int getElementType() const override { return 16; }
     Category getCategory() const override { return Category::Structural; }
     void setProp(StructProp *p, bool _myProp) override;
     void setMaterial(NLMaterial *) override;

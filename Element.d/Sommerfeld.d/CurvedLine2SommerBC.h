@@ -9,6 +9,7 @@ class CurvedLine2SommerBC : public SommerElement {
 public:
 	CurvedLine2SommerBC(int, int, int, Element *_el = 0);
 
+	int getElementType() const override { return 8; }
 	int numNodes() const override { return 3; }
 
 	int getNode(int nd) const override { return nn[nd]; }

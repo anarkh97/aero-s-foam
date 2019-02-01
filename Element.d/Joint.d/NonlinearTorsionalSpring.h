@@ -19,6 +19,8 @@ class NonlinearTorsionalSpring : public AngleType1ConstraintElement
 
 public:
 	NonlinearTorsionalSpring(int*, int, int, int=0, int=0, int=1);
+
+	int getElementType() const override { return this->type == 0 ? 202 : 205; }
 	Category getCategory() const override { return Category::Structural; }
 	void setProp(StructProp *p, bool _myProp) override;
 	void update(GeomState *refState, GeomState& gState, CoordSet& cs, double t) override;

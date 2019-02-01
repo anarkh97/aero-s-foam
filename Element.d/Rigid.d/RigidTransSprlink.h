@@ -7,6 +7,8 @@ class RigidTransSprlink : public SuperElement
 {
   public:
     RigidTransSprlink(int*);
+
+	int getElementType() const override { return 68; }
     void setProp(StructProp*, bool = false) override;
     int getTopNumber() const override { return 121; }
     bool isSafe() const override { return false; }

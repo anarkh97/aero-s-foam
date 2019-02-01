@@ -11,6 +11,7 @@ public:
 
 	explicit RotnSprlink(int*);
 
+	int getElementType() const override { return 22; }
 	Category getCategory() const override { return Category::Structural; }
 	Element *clone() override;
 

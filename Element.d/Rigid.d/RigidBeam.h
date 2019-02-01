@@ -11,6 +11,8 @@ class RigidBeam : public SuperElement
 	double length;
 public:
 	RigidBeam(int*, int=0);
+
+	int getElementType() const override { return 132; }
 	Category getCategory() const override { return Category::Structural; }
 	int getTopNumber() const override { return 106; }
 	bool isRigidElement() const override { return true; }
@@ -24,6 +26,13 @@ private:
 	void getLength(CoordSet&, double &length);
 };
 
+class RigidBeam133 : public RigidBeam {
+public:
+	using RigidBeam::RigidBeam;
+
+	int getElementType() const override { return 133; }
+};
+
 class RigidBeamWithMass : public SuperElement
 {
 	EFrame *elemframe;
@@ -32,6 +41,8 @@ class RigidBeamWithMass : public SuperElement
 	double length;
 public:
 	RigidBeamWithMass(int*, int=0);
+
+	int getElementType() const override { return 66; }
 	Category getCategory() const override { return Category::Structural; }
 	int getTopNumber() const override { return 106; }
 	bool isRigidElement() const override { return true; }
@@ -47,6 +58,13 @@ public:
 
 private:
 	void getLength(CoordSet&, double &length);
+};
+
+class RigidBeamWithMass106 : public RigidBeamWithMass {
+public:
+	using RigidBeamWithMass::RigidBeamWithMass;
+
+	int getElementType() const override { return 106; }
 };
 
 #endif

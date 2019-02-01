@@ -9,6 +9,7 @@ class ThermTriangle: public Element {
 public:
 	explicit ThermTriangle(int*);
 
+	int getElementType() const override { return 53; }
 	Category getCategory() const override { return Category::Thermal; }
 	Element *clone() override;
 

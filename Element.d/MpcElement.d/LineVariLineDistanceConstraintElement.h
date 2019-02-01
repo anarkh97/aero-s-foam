@@ -8,8 +8,9 @@ class LineVariLineDistanceConstraintElement : public ConstraintFunctionElement<S
 {
 
   public:
-    LineVariLineDistanceConstraintElement(int* _nn); 
+    LineVariLineDistanceConstraintElement(int* _nn);
 
+	int getElementType() const override { return 175; }
   protected:
     void getConstants(const CoordSet & cs,
                       Eigen::Array<double,17,1>& sconst, Eigen::Array<int,1,1>& iconst,

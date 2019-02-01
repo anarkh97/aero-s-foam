@@ -179,6 +179,8 @@ public:
 class DGMHelm3d_6: public HexDGMElement3d {
 public:
     DGMHelm3d_6(int _o, int* nodenums);
+
+	int getElementType() const override { return 1150; }
     void dir(int,complex<double>*) override;
     int defaultLMType() const override { return 51; }
 };
@@ -187,6 +189,8 @@ public:
 class DGMHelm3d_6t: public TetraDGMElement3d {
 public:
     DGMHelm3d_6t(int _o, int* nodenums);
+
+	int getElementType() const override { return 1160; }
     void dir(int,complex<double>*) override;
     int defaultLMType() const override { return 51; }
 };
@@ -209,6 +213,8 @@ public:
 class DGMHelm3d_26: public HexDGMElement3d {
 public:
     DGMHelm3d_26(int _o, int* nodenums);
+
+	int getElementType() const override { return 1151; }
     void dir(int,complex<double>*) override;
     int defaultLMType() const override { return 52; }
 };
@@ -216,6 +222,8 @@ public:
 class DGMHelm3d_26t: public TetraDGMElement3d {
 public:
     DGMHelm3d_26t(int _o, int* nodenums);
+
+	int getElementType() const override { return 1161; }
     void dir(int,complex<double>*) override;
     int defaultLMType() const override { return 52; }
 };
@@ -237,6 +245,8 @@ public:
 class DGMHelm3d_56: public HexDGMElement3d {
 public:
     DGMHelm3d_56(int _o, int* nodenums);
+
+	int getElementType() const override { return 1152; }
     void dir(int,complex<double>*) override;
     int defaultLMType() const override { return 53; }
 };
@@ -244,6 +254,8 @@ public:
 class DGMHelm3d_56t: public TetraDGMElement3d {
 public:
     DGMHelm3d_56t(int _o, int* nodenums);
+
+	int getElementType() const override { return 1162; }
     void dir(int,complex<double>*) override;
     int defaultLMType() const override { return 53; }
 };
@@ -265,6 +277,8 @@ public:
 class DGMHelm3d_98: public HexDGMElement3d {
 public:
     DGMHelm3d_98(int _o, int* nodenums);
+
+	int getElementType() const override { return 1153; }
     void dir(int,complex<double>*) override;
     int defaultLMType() const override { return 54; }
 };
@@ -286,6 +300,8 @@ public:
 class DEMHelm3d_6: public DEMHelm3d {
 public:
     DEMHelm3d_6(int _o, int* nodenums);
+
+	int getElementType() const override { return 1170; }
     void dir(int,complex<double>*) override;
     int defaultLMType() const override { return 51; }
 };
@@ -293,6 +309,8 @@ public:
 class DEMHelm3d_26: public DEMHelm3d {
 public:
     DEMHelm3d_26(int _o, int* nodenums);
+
+	int getElementType() const override { return 1171; }
     void dir(int,complex<double>*) override;
     int defaultLMType() const override { return 52; }
 };
@@ -300,6 +318,8 @@ public:
 class DEMHelm3d_56: public DEMHelm3d {
 public:
     DEMHelm3d_56(int _o, int* nodenums);
+
+	int getElementType() const override { return 1172; }
     void dir(int,complex<double>*) override;
     int defaultLMType() const override { return 53; }
 };
@@ -307,6 +327,8 @@ public:
 class DEMHelm3d_98: public DEMHelm3d {
 public:
     DEMHelm3d_98(int _o, int* nodenums);
+
+	int getElementType() const override { return 1173; }
     void dir(int,complex<double>*) override;
     int defaultLMType() const override { return 54; }
 };

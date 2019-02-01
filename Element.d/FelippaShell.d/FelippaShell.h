@@ -22,6 +22,7 @@ public:
 	explicit FelippaShell(int*);
 	~FelippaShell() override;
 
+	int getElementType() const override { return 15; }
 	Category getCategory() const override { return Category::Structural; }
 	Element *clone() override;
 

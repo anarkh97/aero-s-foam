@@ -41,6 +41,8 @@ protected:
 public:
 	enum { numGaussPoints = NumIntgPts };
 	SolidElementTemplate(int *nd);
+
+	int getElementType() const { return -1; }
 	int numNodes() const override;
 	int numDofs() const override;
 	void renum(const int *) override;

@@ -9,6 +9,7 @@ private:
 public:
 	PentaContact(int*);
 
+	int getElementType() const override { return 83; }
 	Category getCategory() const override { return Category::Thermal; }
 	Element *clone() override;
 

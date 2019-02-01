@@ -11,6 +11,8 @@ class StraightLinePointFollowerConstraint : public SuperElement
 {
 public:
 	StraightLinePointFollowerConstraint(int*, int=0);
+
+	int getElementType() const override { return 117; }
 	Category getCategory() const override { return Category::Structural; }
 	int getTopNumber() const override;
 	bool hasRot() const override { return true; }

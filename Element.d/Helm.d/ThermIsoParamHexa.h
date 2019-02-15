@@ -12,6 +12,7 @@ class ThermIsoParamHexa: public Element {
 public:
 	ThermIsoParamHexa(int,int*);
 
+	int getElementType() const override;
 	FullSquareMatrix stiffness(const CoordSet&, double *d, int flg) const override;
 	FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg) const override;
 	double  getMass(const CoordSet& cs) const override;
@@ -29,6 +30,8 @@ public:
 	int* nodes(int * = 0) const override;
 
 	PrioInfo examine(int sub, MultiFront *mf) override;
+	double weight() const override;
+	double trueWeight() const override;
 
 	Corotator * getCorotator(CoordSet &, double*, int, int) override { return 0; }
 };

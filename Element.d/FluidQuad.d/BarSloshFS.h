@@ -11,6 +11,7 @@ public:
 
 	explicit BarSloshFS(int*);
 
+	int getElementType() const override { return 302; }
 	Category getCategory() const override { return Category::Fluid; }
 	Element *clone() override;
 

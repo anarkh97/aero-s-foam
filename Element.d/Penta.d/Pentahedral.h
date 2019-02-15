@@ -14,6 +14,7 @@ public:
     explicit Pentahedral(int*);
     ~Pentahedral() override;
 
+	int getElementType() const override { return 24; }
     Category getCategory() const override { return Category::Structural; }
     Element *clone() override;
 

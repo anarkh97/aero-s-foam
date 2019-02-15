@@ -9,6 +9,7 @@ private:
 public:
 	QuadContact(int*);
 
+	int getElementType() const override { return 81; }
 	Category getCategory() const override { return Category::Thermal; }
 	Element *clone() override;
 

@@ -8,6 +8,7 @@ class FourNodeShell : public SuperElement
 public:
 	explicit FourNodeShell(int *nodenums);
 
+	int getElementType() const override { return 88; }
 	Element* clone() override;
 	int getTopNumber() const override;
 	bool isShell() const override { return true; }

@@ -20,9 +20,6 @@ LEIsoParamHexa::LEIsoParamHexa(int o, int* nodenums) {
  int orderc = order*order*order;
  nn = new int[orderc];
  for(i=0;i<orderc;i++) nn[i] = nodenums[i];
-
- setWeight(order);
- setTrueWeight(order);
 }
 
 
@@ -207,6 +204,16 @@ int LEIsoParamHexa::getDecFace(int iFace, int *fn) {
     fn[i] = nn[tmp];
   }
   return ordersq;
+}
+
+double LEIsoParamHexa::weight() const
+{
+	return order;
+}
+
+double LEIsoParamHexa::trueWeight() const
+{
+	return order;
 }
 
 

@@ -17,6 +17,8 @@ class NonlinearTranslationalSpring : public DotType2ConstraintElement
 
 public:
 	NonlinearTranslationalSpring(int*, int, int=0, int=0, int=1);
+
+	int getElementType() const override { return 201; }
 	Category getCategory() const override { return Category::Structural; }
 	void setProp(StructProp *p, bool _myProp) override;
 	void buildFrame(CoordSet&) override;
@@ -26,4 +28,10 @@ public:
 	bool hasRot() const override { return true; }
 };
 
+class NonlinearTranslationalSpring204 : public NonlinearTranslationalSpring {
+public:
+	using NonlinearTranslationalSpring::NonlinearTranslationalSpring;
+
+	int getElementType() const override { return 204; }
+};
 #endif

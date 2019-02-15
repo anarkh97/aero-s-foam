@@ -9,6 +9,7 @@ private:
 public:
 	TetraBulk(int*);
 
+	int getElementType() const override { return 85; }
 	Category getCategory() const override { return Category::Thermal; }
 	Element *clone() override;
 

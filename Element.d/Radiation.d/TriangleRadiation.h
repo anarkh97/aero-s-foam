@@ -10,6 +10,7 @@ public:
 	explicit TriangleRadiation(int*);
 	~TriangleRadiation() override;
 
+	int getElementType() const override { return 57; }
 	Category getCategory() const override { return Category::Thermal; }
 	Element *clone() override;
 

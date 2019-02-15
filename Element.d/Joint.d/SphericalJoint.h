@@ -7,6 +7,8 @@ class SphericalJoint : public CommonPointConstraint
 {
 public:
 	SphericalJoint(int*);
+
+	int getElementType() const override { return 120; }
 	Category getCategory() const override { return Category::Structural; }
 	int getTopNumber() const override;
 	PrioInfo examine(int sub, MultiFront*) override;

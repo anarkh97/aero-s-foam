@@ -30,9 +30,6 @@ HelmIsoParamTetra::HelmIsoParamTetra(int o, int* nodenums) {
  nn = new int[orderc];
  int i;
  for(i=0;i<orderc;i++) nn[i] = nodenums[i];
-
- setWeight(order-1);
- setTrueWeight(order-1);
 }
 
 
@@ -259,6 +256,16 @@ int HelmIsoParamTetra::getDecFace(int iFace, int *fn) {
     fn[i] = nn[tmp];
   }
   return ordersq;
+}
+
+double HelmIsoParamTetra::weight() const
+{
+	return order-1;
+}
+
+double HelmIsoParamTetra::trueWeight() const
+{
+	return order-1;
 }
 
 

@@ -19,7 +19,7 @@ public:
 	explicit TimoshenkoBeam(int *);
 
 	~TimoshenkoBeam() override;
-
+	int getElementType() const override { return 7; }
 	Category getCategory() const override { return Category::Structural; }
 	TimoshenkoBeam *clone() override;
 

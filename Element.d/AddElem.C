@@ -174,16 +174,9 @@ extern std::map<int,double> fieldWeightList;
 #include <Driver.d/Domain.h>
 #include <Parser.d/AuxDefs.h>
 #include <Utils.d/SolverInfo.h>
-#include <numeric>
 
 extern SolverInfo &solInfo;
 extern std::unique_ptr<ElementFactory> elemFact;
-
-struct weight_add {
-  double operator()(double x, const std::pair<int, double>& y) {
-    return x + y.second;
-  }
-};
 
 void
 Elemset::elemadd(int num, int etype, int nnodes, int*n)
@@ -203,23 +196,7 @@ Elemset::setWeights()
     int num = it0->second;
     Element *ele = elem[num];
   
-    std::map<int, double>::iterator it1 = weightList.find(etype);
-    if(it1 != weightList.end()) {
-      ele->setWeight(it1->second);
-      ele->setTrueWeight(it1->second);
-    }
 
-    // adjust weight using FWEI if defined
-    if(!fieldWeightList.empty()) {
-      std::map<int,double>::iterator it2 = fieldWeightList.find((int)ele->getCategory());
-      if(it2 != fieldWeightList.end()) {
-        double weight = ele->weight();
-        double trueWeight = ele->trueWeight();
-        double ratio = it2->second/std::accumulate(fieldWeightList.begin(), fieldWeightList.end(), 0, weight_add());
-        ele->setWeight(weight*ratio);
-        ele->setTrueWeight(trueWeight*ratio);
-      }
-    }
   }
 
   etypes.clear();
@@ -425,7 +402,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        ele->setCategory(Element::Thermal);
        break;
      case 63:
-       ele = new (ba) HelmLagQuadGal(nnodes,n);
+       ele = new (ba) HelmLagQuadGal63(nnodes,n);
        ele->setCategory(Element::Acoustic);
        break;
      case 65:
@@ -516,7 +493,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        ele = new (ba) FourNodeMembrane(n);
        ele->setCategory(Element::Structural);
        break;
-     case 88:
+     case 88: // Does one need to distinguish this version vs the implementation in backward mode?
        {
          // PJSA: first count number of unique nodes & if there are only 3 make a tri
          int i, j;
@@ -604,7 +581,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        ele->setCategory(Element::Acoustic);
        break;
      case 106:
-       ele = new (ba) RigidBeamWithMass(n,1);
+       ele = new (ba) RigidBeamWithMass106(n,1);
        ele->setCategory(Element::Structural);
        break;
      case 108:
@@ -689,7 +666,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        ele->setCategory(Element::Structural);
        break;
      case 133:
-       ele = new (ba) RigidBeam(n,1);
+       ele = new (ba) RigidBeam133(n,1);
        ele->setCategory(Element::Structural);
        break;
      case 134:
@@ -767,12 +744,12 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        ele->setCategory(Element::Structural);
        break;
      case 203:
-       ele = new (ba) LinearTranslationalSpring(n, 1);
+       ele = new (ba) LinearTranslationalSpring203(n, 1);
        ele->setCategory(Element::Structural);
        domain->solInfo().freeplay = true;
        break;
      case 204:
-       ele = new (ba) NonlinearTranslationalSpring(n, 0, 0, 1);
+       ele = new (ba) NonlinearTranslationalSpring204(n, 0, 0, 1);
        ele->setCategory(Element::Structural);
        domain->solInfo().freeplay = true;
        break;
@@ -832,7 +809,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        domain->solInfo().freeplay = true;
        break;
      case 379:
-       ele = new (ba) PointVariPlaneSegmentDistanceConstraintElement(n);
+       ele = new (ba) PointVariPlaneSegmentDistanceConstraintElement379(n);
        ele->setCategory(Element::Structural);
        break;
      case 128:
@@ -1035,14 +1012,6 @@ Elemset::mpcelemadd(int num, LMPCons *mpc, bool nlflag)
    ele->setElementType(1001);
    elemadd(num, ele);
 
-   std::map<int, double >::iterator it = weightList.find(1001);
-   if(it == weightList.end()) {
-     ele->setWeight(1.0);
-     ele->setTrueWeight(1.0);
-   } else {
-     ele->setWeight(it->second);
-     ele->setTrueWeight(it->second);
-   }
 }
 
 void
@@ -1052,15 +1021,6 @@ Elemset::fsielemadd(int num, LMPCons *fsi)
    ele = new (ba) FsiElement(fsi);
    ele->setElementType(1002);
    elemadd(num, ele);
-
-   std::map<int, double >::iterator it = weightList.find(1002);
-   if(it == weightList.end()) {
-     ele->setWeight(1.0);
-     ele->setTrueWeight(1.0);
-   } else {
-     ele->setWeight(it->second);
-     ele->setTrueWeight(it->second);
-   }
 }
 
 

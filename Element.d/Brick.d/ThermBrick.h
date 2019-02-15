@@ -9,6 +9,7 @@ class ThermBrick: public Element {
 public:
 	explicit ThermBrick(int*);
 
+	int getElementType() const override { return 51; }
 	Category getCategory() const override { return Category::Thermal; }
 	Element *clone() override;
 

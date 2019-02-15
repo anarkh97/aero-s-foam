@@ -15,6 +15,7 @@ class HelmIsoParamTetra: public HelmElement, public Element {
 public:
 	HelmIsoParamTetra(int,int*);
 
+	int getElementType() const override { return 96; }
 	FullSquareMatrix stiffness(const CoordSet&, double *d, int flg) const override;
 	FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg) const override;
 	FullSquareMatrixC stiffness(const CoordSet&, complex<double> *d) const override;
@@ -35,6 +36,8 @@ public:
 	void addFaces(PolygonSet *pset) override;
 
 	PrioInfo examine(int sub, MultiFront *mf) override;
+	double weight() const override;
+	double trueWeight() const override;
 	int nDecFaces() const override { return 4;}
 	int getDecFace(int iFace, int *fn) override;
 

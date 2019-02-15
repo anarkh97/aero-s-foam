@@ -17,6 +17,7 @@ public:
 	explicit Tetrahedral(int*);
 	~Tetrahedral() override;
 
+	int getElementType() const override { return 23; }
 	Category getCategory() const override { return Category::Structural; }
 	Element *clone() override;
 

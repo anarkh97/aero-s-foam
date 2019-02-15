@@ -11,6 +11,7 @@ class Triangle6SommerBC : public SommerElement {
 public:
 	Triangle6SommerBC(int, int, int, int, int, int, Element *_el = 0, int etype = 6);
 
+	int getElementType() const override { return 6; }
 	int numNodes() const override { return 6; }
 
 	int getNode(int nd) const override { return nn[nd]; }

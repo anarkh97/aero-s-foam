@@ -14,6 +14,7 @@ public:
 	explicit Penta26(int*);
 	~Penta26() override;
 
+	int getElementType() const override { return 92; }
 	Category getCategory() const override { return Category::Structural; }
 	Element *clone() override;
 

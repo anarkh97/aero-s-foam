@@ -9,6 +9,7 @@ class QuadSommerBC : public SommerElement {
 public:
 	QuadSommerBC(int, int, int, int, Element *_el = 0, int eType = 4);
 
+	int getElementType() const override { return 4; }
 	int numNodes() const override { return 4; }
 
 	int getNode(int nd) const override { return nn[nd]; }

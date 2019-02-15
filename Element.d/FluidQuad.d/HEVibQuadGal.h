@@ -10,6 +10,7 @@ class HEVibQuadGal: public Element {
 public:
 	explicit HEVibQuadGal(int*);
 
+	int getElementType() const override { return 321; }
 	Category getCategory() const override { return Category::Fluid; }
 	Element *clone() override;
 

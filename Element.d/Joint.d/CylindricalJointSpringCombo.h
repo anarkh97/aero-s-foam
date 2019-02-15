@@ -7,6 +7,8 @@ class CylindricalJointSpringCombo : public SuperElement
 {
 public:
 	CylindricalJointSpringCombo(int*);
+
+	int getElementType() const override { return 224; }
 	Category getCategory() const override { return Category::Structural; }
 	int getTopNumber() const override;
 	bool hasRot() const override { return true; }

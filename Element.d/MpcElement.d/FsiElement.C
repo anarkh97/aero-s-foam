@@ -149,3 +149,8 @@ FsiElement::markDofs(DofSetArray &dsa) const
   dsa.mark(nn[nnodes-1],DofSet::Helm);
 }
 
+int
+FsiElement::getElementType() const
+{
+	return 1002;
+}

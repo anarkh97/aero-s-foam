@@ -11,6 +11,8 @@ class TwoNodeTrussF : public virtual Element {
 	BarFCorotator *myCorot;
 public:
 	explicit TwoNodeTrussF(int*);
+
+	int getElementType() const override { return 111; }
 	Category getCategory() const override { return Category::Structural; }
 	Element *clone() override;
 	void renum(const int *) override;

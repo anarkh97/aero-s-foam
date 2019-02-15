@@ -14,6 +14,7 @@ public:
 	explicit FollowerForceElement(int* _nn);
 	~FollowerForceElement() override;
 
+	int getElementType() const override { return 140; }
 	Category getCategory() const override { return Category::Structural; }
 
 	void setFrame(EFrame *) override;

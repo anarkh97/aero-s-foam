@@ -626,3 +626,8 @@ MpcElement::getError(GeomState& c1)
 		return 0;
 	}
 }
+
+int MpcElement::getElementType() const
+{
+	return 1001;
+}

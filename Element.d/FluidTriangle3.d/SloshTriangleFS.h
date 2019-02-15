@@ -10,6 +10,7 @@ private:
 public:
     SloshTriangleFS(int*);
 
+	int getElementType() const override { return 312; }
     Category getCategory() const override { return Category::Structural; }
     Element *clone() override;
 

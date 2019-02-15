@@ -13,9 +13,20 @@ class LinearTranslationalSpring : public ConstantDistanceConstraint
 {
   public:
     LinearTranslationalSpring(int*, int=0);
+
+	int getElementType() const override { return 200; }
     void setProp(StructProp *p, bool _myProp) override;
 
     bool isSpring() const override { return true; }
+};
+
+class LinearTranslationalSpring203 : public LinearTranslationalSpring
+{
+public:
+	using LinearTranslationalSpring::LinearTranslationalSpring;
+
+	int getElementType() const override { return 203; }
+
 };
 
 #endif

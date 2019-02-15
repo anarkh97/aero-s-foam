@@ -9,6 +9,7 @@ class HelmQuadGal: public HelmElement, public Element {
 public:
 	explicit HelmQuadGal(int*);
 
+	int getElementType() const override { return 30; }
 	Category getCategory() const override { return Category::Acoustic; }
 	Element *clone() override;
 

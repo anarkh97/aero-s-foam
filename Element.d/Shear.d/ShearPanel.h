@@ -11,6 +11,7 @@ class ShearPanel: public Element,
 public:
 	explicit ShearPanel(int*);
 
+	int getElementType() const override { return 18; }
 	Category getCategory() const override { return Category::Structural; }
 	Element *clone() override;
 

@@ -13,6 +13,7 @@ class LineSommerBC : public SommerElement {
 public:
 	LineSommerBC(int, int, Element *_el = 0, int etype = 1);
 
+	int getElementType() const override { return 1; }
 	int numNodes() const override { return 2; }
 
 	int getNode(int nd) const override { return nn[nd]; }

@@ -10,6 +10,7 @@ class HEVibTetra: public Element {
 public:
 	HEVibTetra(int*);
 
+	int getElementType() const override { return 331; }
 	Category getCategory() const override { return Category::Fluid; }
 	Element *clone() override;
 

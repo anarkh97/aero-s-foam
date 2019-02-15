@@ -28,9 +28,6 @@ LEIsoParamTri::LEIsoParamTri(int o, int* nodenums) {
  nn = new int[ordersq];
  int i;
  for(i=0;i<ordersq;i++) nn[i] = nodenums[i];
-
- setWeight(order-1);
- setTrueWeight(order-1);
 }
 
 
@@ -171,4 +168,14 @@ LEIsoParamTri::numNodes() const {
 int LEIsoParamTri::getTopNumber() const
 {
  return -1;
+}
+
+double LEIsoParamTri::weight() const
+{
+	return order-1;
+}
+
+double LEIsoParamTri::trueWeight() const
+{
+	return order - 1;
 }

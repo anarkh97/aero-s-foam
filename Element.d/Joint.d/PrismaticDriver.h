@@ -7,6 +7,8 @@ class PrismaticDriver : public SuperElement
 {
 public:
 	PrismaticDriver(int*);
+
+	int getElementType() const override { return 134; }
 	Category getCategory() const override { return Category::Structural; }
 	int getTopNumber() const override;
 	bool hasRot() const override { return true; }

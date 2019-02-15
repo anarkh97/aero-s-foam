@@ -9,6 +9,7 @@ class HelmPenta: public HelmElement, public Element {
 public:
 	HelmPenta(int*);
 
+	int getElementType() const override { return 90; }
 	Category getCategory() const override { return Category::Acoustic; }
 	Element *clone() override;
 

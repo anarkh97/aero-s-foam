@@ -9,6 +9,7 @@ private:
 public:
 	HelmBrick(int*);
 
+	int getElementType() const override { return 45; }
 	Category getCategory() const override { return Category::Acoustic; }
 	Element *clone() override;
 

@@ -9,6 +9,7 @@ private:
 public:
 	BrickContact(int*);
 
+	int getElementType() const override { return 82; }
 	Category getCategory() const override { return Category::Thermal; }
 	Element *clone() override;
 

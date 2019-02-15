@@ -8,6 +8,7 @@ class Compo4NodeShell : public SuperElement
   public:
     Compo4NodeShell(int *nodenums);
 
+	int getElementType() const override { return 2020; }
     Element* clone() override;
     int getTopNumber() const override;
     bool isShell() const override { return true; }

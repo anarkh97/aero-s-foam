@@ -13,9 +13,6 @@ HelmLagQuadGal::HelmLagQuadGal(int o, int* nodenums) {
  order = int(sqrt(double(o)));
  nn = new int[order*order];
  for(i=0;i<order*order;i++) nn[i] = nodenums[i];
-
- setWeight(order);
- setTrueWeight(order);
 }
 
 
@@ -522,4 +519,14 @@ void HelmLagQuadGal::addFaces(PolygonSet *pset) {
  for(i=0;i<order-1;i++)
    pset->addLine(this,nn[(order-1)*order-i*order],nn[(order-1)*order-(i+1)*order]);
 */
+}
+
+double HelmLagQuadGal::weight() const
+{
+	return order;
+}
+
+double HelmLagQuadGal::trueWeight() const
+{
+	return order;
 }

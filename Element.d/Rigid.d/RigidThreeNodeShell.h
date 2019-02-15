@@ -9,6 +9,7 @@ class RigidThreeNodeShell : public SuperElement
 
 public:
 	explicit RigidThreeNodeShell(int*);
+	int getElementType() const override { return 73; }
 	int getTopNumber() const override { return 108; }
 	bool isRigidElement() const override { return true; }
 	bool hasRot() const override { return true; }

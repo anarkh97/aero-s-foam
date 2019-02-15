@@ -9,6 +9,7 @@ class FelippaShellX2 : public SuperElement
   public:
     FelippaShellX2(int *nodenums);
 
+	int getElementType() const override { return 1515; }
     Element* clone() override;
     int getTopNumber() const override;
     bool isShell() const override { return true; }

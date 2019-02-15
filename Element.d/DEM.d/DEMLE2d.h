@@ -70,6 +70,8 @@ public:
 class DGMLE2d_4: public DGMLE2d {
 public:
 	DGMLE2d_4(int _o, int* nodenums);
+
+	int getElementType() const override { return 1200; }
 	void dir(int,complex<double>*) override;
 	int defaultLMType() const override { return 201; }
 };
@@ -77,6 +79,8 @@ public:
 class DGMLE2d_16: public DGMLE2d {
 public:
 	DGMLE2d_16(int _o, int* nodenums);
+
+	int getElementType() const override { return 1201; }
 	void dir(int,complex<double>*) override;
 	int defaultLMType() const override { return 202; }
 };
@@ -95,6 +99,8 @@ public:
 class DEMLE2d_4: public DEMLE2d {
 public:
 	DEMLE2d_4(int _o, int* nodenums);
+
+	int getElementType() const override { return 1220; }
 	void dir(int,complex<double>*) override;
 	int defaultLMType() const override { return 201; }
 };

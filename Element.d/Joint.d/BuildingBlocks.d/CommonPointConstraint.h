@@ -11,6 +11,8 @@ class CommonPointConstraint : public SuperElement
 {
 public:
 	explicit CommonPointConstraint(int*);
+
+	int getElementType() const override { return 114; }
 	Category getCategory() const override { return Category::Structural; }
 	void buildFrame(CoordSet& cs) override;
 	int getTopNumber() const override;

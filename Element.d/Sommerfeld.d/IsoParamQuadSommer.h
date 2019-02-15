@@ -10,6 +10,7 @@ class IsoParamQuadSommer : public SommerElement {
 public:
 	IsoParamQuadSommer(int, int *, Element *_el = 0, int eType = 10);
 
+	int getElementType() const override { return 10; }
 	int numNodes() const override { return order * order; }
 
 	int getNode(int nd) const override { return nn[nd]; }

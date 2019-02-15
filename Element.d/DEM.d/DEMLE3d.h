@@ -104,6 +104,8 @@ public:
 class DGMLE3d_6: public DGMLE3d {
 public:
 	DGMLE3d_6(int _o, int* nodenums);
+
+	int getElementType() const override { return 1250; }
 	void dir(int,complex<double>*) override;
 	int defaultLMType() const override { return 251; }
 };
@@ -111,6 +113,8 @@ public:
 class DGMLE3d_26: public DGMLE3d {
 public:
 	DGMLE3d_26(int _o, int* nodenums);
+
+	int getElementType() const override { return 1251; }
 	void dir(int,complex<double>*) override;
 	int defaultLMType() const override { return 252; }
 };
@@ -118,6 +122,8 @@ public:
 class DGMLE3d_50: public DGMLE3d {
 public:
 	DGMLE3d_50(int _o, int* nodenums);
+
+	int getElementType() const override { return 1252; }
 	void dir(int,complex<double>*) override;
 	int defaultLMType() const override { return 253; }
 };
@@ -136,6 +142,8 @@ public:
 class DEMLE3d_6: public DEMLE3d {
 public:
 	DEMLE3d_6(int _o, int* nodenums);
+
+	int getElementType() const override { return 1270; }
 	void dir(int,complex<double>*) override;
 	int defaultLMType() const override { return 251; }
 };
@@ -143,6 +151,8 @@ public:
 class DEMLE3d_26: public DEMLE3d {
 public:
 	DEMLE3d_26(int _o, int* nodenums);
+
+	int getElementType() const override { return 1271; }
 	void dir(int,complex<double>*) override;
 	int defaultLMType() const override { return 252; }
 };
@@ -150,6 +160,8 @@ public:
 class DEMLE3d_50: public DEMLE3d {
 public:
 	DEMLE3d_50(int _o, int* nodenums);
+
+	int getElementType() const override { return 1272; }
 	void dir(int,complex<double>*) override;
 	int defaultLMType() const override { return 253; }
 };

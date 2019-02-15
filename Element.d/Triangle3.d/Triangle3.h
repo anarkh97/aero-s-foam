@@ -11,7 +11,7 @@ class Triangle3: public Element,
 	int nn[3];
 public:
 	explicit Triangle3(int*);
-
+	int getElementType() const override { return 4; }
 	Category getCategory() const override { return Category::Structural; }
 	Element *clone() override;
 

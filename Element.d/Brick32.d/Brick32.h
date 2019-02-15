@@ -17,6 +17,7 @@ public:
     explicit Brick32(int*);
 	~Brick32() override;
 
+	int getElementType() const override { return 91; }
 	Category getCategory() const override { return Category::Structural; }
 	Element *clone() override;
 

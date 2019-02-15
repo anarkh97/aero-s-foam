@@ -15,6 +15,7 @@ class HelmIsoParamQuad: public HelmElement, public Element {
 public:
 	HelmIsoParamQuad(int,int*);
 
+	int getElementType() const override { return 98; }
 	FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const override;
 	FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg=1) const override;
 	FullSquareMatrixC stiffness(const CoordSet&, complex<double> *d) const override;
@@ -35,6 +36,8 @@ public:
 	int* nodes(int * = 0) const override;
 
 	PrioInfo examine(int sub, MultiFront *mf) override;
+	double weight() const override;
+	double trueWeight() const override;
 
 };
 #endif

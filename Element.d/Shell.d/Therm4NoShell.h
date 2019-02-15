@@ -9,6 +9,7 @@ class Therm4NoShell : public SuperElement
 public:
 	explicit Therm4NoShell(int *nodenums);
 
+	int getElementType() const override { return 4646; }
 	Element* clone() override;
 	int getTopNumber() const override;
 	PrioInfo examine(int sub, MultiFront *) override;

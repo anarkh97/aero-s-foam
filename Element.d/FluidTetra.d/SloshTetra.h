@@ -10,6 +10,7 @@ private:
 public:
     explicit SloshTetra(int*);
 
+	int getElementType() const override { return 311; }
     Category getCategory() const override { return Category::Fluid; }
     Element *clone() override;
 

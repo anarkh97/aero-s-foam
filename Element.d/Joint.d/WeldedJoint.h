@@ -10,6 +10,8 @@ class WeldedJoint : public SuperElement
 public:
 	explicit WeldedJoint(int*);
 	~WeldedJoint() override;
+
+	int getElementType() const override { return 119; }
 	void setFrame(EFrame *_elemframe) override;
 	void buildFrame(CoordSet&) override;
 	Category getCategory() const override { return Category::Structural; }

@@ -10,6 +10,7 @@ public:
 
 	explicit Therm2NodeBar(int*);
 
+	int getElementType() const override { return 9; }
 	Category getCategory() const override { return Category::Thermal; }
 	Element *clone() override;
 

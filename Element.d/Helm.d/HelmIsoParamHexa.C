@@ -21,9 +21,6 @@ HelmIsoParamHexa::HelmIsoParamHexa(int o, int* nodenums) {
  int orderc = order*order*order;
  nn = new int[orderc];
  for(i=0;i<orderc;i++) nn[i] = nodenums[i];
-
- setWeight(order);
- setTrueWeight(order);
 }
 
 
@@ -287,4 +284,14 @@ int HelmIsoParamHexa::getDecFace(int iFace, int *fn) {
     fn[i] = nn[tmp];
   }
   return ordersq;
+}
+
+double HelmIsoParamHexa::weight() const
+{
+	return order;
+}
+
+double HelmIsoParamHexa::trueWeight() const
+{
+	return order;
 }

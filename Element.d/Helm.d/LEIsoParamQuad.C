@@ -18,9 +18,6 @@ LEIsoParamQuad::LEIsoParamQuad(int o, int* nodenums) {
  int ordersq = order*order;
  nn = new int[ordersq];
  for(i=0;i<ordersq;i++) nn[i] = nodenums[i];
-
- setWeight(order);
- setTrueWeight(order);
 }
 
 
@@ -161,5 +158,15 @@ LEIsoParamQuad::numNodes() const {
 int LEIsoParamQuad::getTopNumber() const
 {
  return -1;
+}
+
+double LEIsoParamQuad::weight() const
+{
+	return order;
+}
+
+double LEIsoParamQuad::trueWeight() const
+{
+	return order;
 }
 

@@ -15,6 +15,7 @@ private:
 public:
 	HelmSpectralIsoParamQuad(int,int*);
 
+	int getElementType() const override { return 108; }
 	FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const override;
 	FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg=1) const override;
 	double  getMass(const CoordSet& cs) const override;
@@ -32,6 +33,8 @@ public:
 	int* nodes(int * = 0) const override;
 
 	PrioInfo examine(int sub, MultiFront *mf) override;
+	double weight() const override;
+	double trueWeight() const override;
 
 };
 #endif

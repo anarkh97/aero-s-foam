@@ -9,6 +9,7 @@ class TriangleSommerBC : public SommerElement {
 public:
 	TriangleSommerBC(int, int, int, Element *_el = nullptr, int eType = 3);
 
+	int getElementType() const override { return 3; }
 	int numNodes() const override { return 3; }
 
 	int getNode(int nd) const override { return nn[nd]; }

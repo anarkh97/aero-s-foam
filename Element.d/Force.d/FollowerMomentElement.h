@@ -14,6 +14,7 @@ public:
 	FollowerMomentElement(int* _nn);
 	~FollowerMomentElement();
 
+	int getElementType() const override { return 143; }
 	Category getCategory() const override { return Category::Structural; }
 	void setFrame(EFrame *) override;
 	bool hasRot() const override { return true; }

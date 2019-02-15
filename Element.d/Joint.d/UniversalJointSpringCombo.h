@@ -7,6 +7,8 @@ class UniversalJointSpringCombo : public SuperElement
 {
 public:
 	UniversalJointSpringCombo(int*);
+
+	int getElementType() const override { return 222; }
 	Category getCategory() const override { return Category::Structural; }
 	int getTopNumber() const override;
 	bool hasRot() const override { return true; }

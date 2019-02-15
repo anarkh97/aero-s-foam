@@ -10,6 +10,7 @@ private:
 public:
     Membrane(int*);
 
+	int getElementType() const override { return 19; }
     Category getCategory() const override { return Category::Structural; }
     Element *clone() override;
 

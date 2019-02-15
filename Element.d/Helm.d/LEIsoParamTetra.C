@@ -31,9 +31,6 @@ LEIsoParamTetra::LEIsoParamTetra(int o, int* nodenums) {
  nn = new int[orderc];
  int i;
  for(i=0;i<orderc;i++) nn[i] = nodenums[i];
-
- setWeight(order-1);
- setTrueWeight(order-1);
 }
 
 
@@ -197,5 +194,15 @@ int LEIsoParamTetra::getDecFace(int iFace, int *fn) {
 int LEIsoParamTetra::getTopNumber() const
 {
  return -1;
+}
+
+double LEIsoParamTetra::weight() const
+{
+	return order-1;
+}
+
+double LEIsoParamTetra::trueWeight() const
+{
+	return order-1;
 }
 

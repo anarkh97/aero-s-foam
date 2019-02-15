@@ -19,9 +19,6 @@ HelmIsoParamQuad::HelmIsoParamQuad(int o, int* nodenums) {
  int ordersq = order*order;
  nn = new int[ordersq];
  for(i=0;i<ordersq;i++) nn[i] = nodenums[i];
-
- setWeight(order);
- setTrueWeight(order);
 }
 
 
@@ -219,5 +216,15 @@ HelmIsoParamQuad::numNodes() const {
 int HelmIsoParamQuad::getTopNumber() const
 {
     return -1;
+}
+
+double HelmIsoParamQuad::weight() const
+{
+	return order;
+}
+
+double HelmIsoParamQuad::trueWeight() const
+{
+	return order;
 }
 

@@ -11,6 +11,8 @@ class RevoluteJoint : public SuperElement
 {
 public:
 	RevoluteJoint(int*);
+
+	int getElementType() const override { return 123; }
 	Category getCategory() const override { return Category::Structural; }
 	int getTopNumber() const override;
 	bool hasRot() const override { return true; }

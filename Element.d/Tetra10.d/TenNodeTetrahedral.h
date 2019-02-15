@@ -17,6 +17,7 @@ public:
 	TenNodeTetrahedral(int*);
 	~TenNodeTetrahedral();
 
+	int getElementType() const override { return 25; }
 	Category getCategory() const override { return Category::Structural; }
 	Element *clone() override;
 

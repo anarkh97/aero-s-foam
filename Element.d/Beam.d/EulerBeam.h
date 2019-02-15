@@ -17,7 +17,7 @@ class EulerBeam : public Element,
 public:
 
 	explicit EulerBeam(int*);
-
+	int getElementType() const override { return 6; }
 	Category getCategory() const override { return Category::Structural; }
 	Element *clone() override;
 

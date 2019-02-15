@@ -13,6 +13,7 @@ class HelmLagQuadGal: public HelmElement, public Element {
 public:
 	HelmLagQuadGal(int,int*);
 
+	int getElementType() const override { return 43; }
 	FullSquareMatrix stiffness(const CoordSet&, double *d, int flg) const override;
 	FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg) const override;
 	FullSquareMatrix acousticm(CoordSet&, double *d) override;
@@ -36,6 +37,17 @@ public:
 	int getTopNumber() const override {return 163;}
 
 	PrioInfo examine(int sub, MultiFront *mf) override;
+	double weight() const override;
+	double trueWeight() const override;
+
+};
+
+class HelmLagQuadGal63 : public HelmLagQuadGal {
+public:
+	using HelmLagQuadGal::HelmLagQuadGal;
+
+	int getElementType() const override { return 63; }
+
 };
 #endif
 

@@ -10,6 +10,7 @@ public:
 	explicit QuadRadiation(int*);
 	~QuadRadiation() override;
 
+	int getElementType() const override { return 58; }
 	Category getCategory() const override { return Category::Thermal; }
 	Element *clone() override;
 

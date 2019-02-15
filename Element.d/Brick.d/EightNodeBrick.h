@@ -18,6 +18,7 @@ public:
 	explicit EightNodeBrick(int*);
 	~EightNodeBrick() override;
 
+	int getElementType() const override { return 17; }
 	Category getCategory() const override { return Category::Structural; }
 	Element *clone() override;
 

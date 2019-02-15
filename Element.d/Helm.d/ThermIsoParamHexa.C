@@ -21,9 +21,6 @@ ThermIsoParamHexa::ThermIsoParamHexa(int o, int* nodenums) {
  int orderc = order*order*order;
  nn = new int[orderc];
  for(i=0;i<orderc;i++) nn[i] = nodenums[i];
-
- setWeight(order);
- setTrueWeight(order);
 }
 
 
@@ -178,5 +175,20 @@ ThermIsoParamHexa::numNodes() const {
     return order*order*order;
   else
     return(8);   // to ignore effect of mid-size nodes in dec
+}
+
+double ThermIsoParamHexa::weight() const
+{
+	return order;
+}
+
+double ThermIsoParamHexa::trueWeight() const
+{
+	return order;
+}
+
+int ThermIsoParamHexa::getElementType() const
+{
+	return 109;
 }
 

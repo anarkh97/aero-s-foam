@@ -10,6 +10,7 @@ public:
 
 	explicit TorSpring(int*);
 
+	int getElementType() const override { return 11; }
 	Category getCategory() const override { return Category::Structural; }
 	Element *clone() override;
 

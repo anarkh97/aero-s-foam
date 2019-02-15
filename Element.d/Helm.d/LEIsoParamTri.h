@@ -15,6 +15,7 @@ class LEIsoParamTri: public Element {
 public:
 	LEIsoParamTri(int,int*);
 
+	int getElementType() const override { return 101; }
 	FullSquareMatrix stiffness(const CoordSet&, double *d, int flg) const override;
 	FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg) const override;
 	double  getMass(const CoordSet& cs) const override;
@@ -34,6 +35,8 @@ public:
 	int* nodes(int *) const override;
 
 //        PrioInfo examine(int sub, MultiFront *mf) override;
+	double weight() const override;
+	double trueWeight() const override;
 
 };
 #endif

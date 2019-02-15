@@ -9,6 +9,7 @@ private:
 public:
 	TriangleBulk(int*);
 
+	int getElementType() const override { return 84; }
 	Category getCategory() const override { return Category::Thermal; }
 	Element *clone() override;
 

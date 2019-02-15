@@ -17,6 +17,8 @@ class RigidTwoNodeTrussWithMass : public ConstantDistanceConstraint
 {
 public:
 	explicit RigidTwoNodeTrussWithMass(int*);
+
+	int getElementType() const override { return 65; }
 	int getTopNumber() const override { return 101; }
 	bool isRigidElement() const override { return true; }
 	bool isSafe() const override { return false; }

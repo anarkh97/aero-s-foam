@@ -11,6 +11,8 @@ class TranslationalJoint : public SuperElement
 {
 public:
 	TranslationalJoint(int*);
+
+	int getElementType() const override { return 121; }
 	Category getCategory() const override { return Category::Structural; }
 	int getTopNumber() const override;
 	bool hasRot() const override { return true; }

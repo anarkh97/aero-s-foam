@@ -13,5 +13,8 @@ template <typename Scalar>
 std::pair<GenSolver<Scalar> *, GenSparseMatrix<Scalar> *>
     getCholmod(const Connectivity *cn, const EqNumberer *_dsa);
 
+template <typename Scalar>
+std::pair<GenSolver<Scalar> *, GenSparseMatrix<Scalar> *>
+getCholmod(const Connectivity *cn, const DofSetArray &dsa, const ConstrainedDSA &cdsa);
 
 #endif //FEM_CHOLDMOD_H

@@ -310,12 +310,12 @@ GenSolverFactory<Scalar>::createSolver(const Connectivity *con, const DofSetArra
 					sparse = (GenSparseMatrix<Scalar> *) s;
 				} break;
 #endif
-//				case 18: { // CholMod
-//					auto p = getCholmod<Scalar>(con, eqnum);
-//					solver = p.first;
-//					sparse = p.second;
-//				}
-//				break;
+				case 18: { // CholMod
+					auto p = getCholmod<Scalar>(con, *dsa, *cdsa);
+					solver = p.first;
+					sparse = p.second;
+				}
+				break;
 //				case 19: { // Pardiso in MKL
 //					auto p = getPardiso<Scalar>(con, eqnum);
 //					solver = p.first;

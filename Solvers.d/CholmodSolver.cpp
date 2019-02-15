@@ -27,6 +27,7 @@ class CholmodSolver :
 	public GenDBSparseMatrix<Scalar>, public GenSolver<Scalar> {
 public:
 	CholmodSolver(const Connectivity *cn, const EqNumberer *_dsa);
+	CholmodSolver(const Connectivity *cn, const DofSetArray &dsa, const ConstrainedDSA &cdsa);
 
 	~CholmodSolver() = default;
 
@@ -56,6 +57,12 @@ CholmodSolver<Scalar>::CholmodSolver(const Connectivity *cn, const EqNumberer *_
 {
 }
 
+template <typename Scalar>
+CholmodSolver<Scalar>::CholmodSolver(const Connectivity *cn, const DofSetArray &dsa, const ConstrainedDSA &cdsa)  :
+	GenDBSparseMatrix<Scalar>(cn, &dsa, &cdsa)
+{
+}
+
 
 template<typename Scalar>
 int CholmodSolver<Scalar>::neqs() const
@@ -73,7 +80,7 @@ long CholmodSolver<Scalar>::size() const
 template<typename Scalar>
 void CholmodSolver<Scalar>::solve(const Scalar *rhs, Scalar *solution)
 {
-	GenStackVector<Scalar> b(const_cast<Scalar *>(rhs), size()), x(solution, size());
+	GenStackVector<Scalar> b(const_cast<Scalar *>(rhs), neqs()), x(solution, neqs());
 	impl->solve(b, x);
 }
 
@@ -117,9 +124,24 @@ getCholmod(const Connectivity *cn, const EqNumberer *dsa)
 	return { solver, solver};
 }
 
+template <typename Scalar>
+std::pair<GenSolver<Scalar> *, GenSparseMatrix<Scalar> *>
+getCholmod(const Connectivity *cn, const DofSetArray &dsa, const ConstrainedDSA &cdsa)
+{
+	auto solver = new CholmodSolver<Scalar>(cn, dsa, cdsa);
+	return { solver, solver};
+}
+
 #endif // WITH_CHOLMOD
 
 template std::pair<GenSolver<double> *, GenSparseMatrix<double> *>
 getCholmod<double>(const Connectivity *cn, const EqNumberer *_dsa);
 template std::pair<GenSolver<std::complex<double>> *, GenSparseMatrix<std::complex<double>> *>
 getCholmod<std::complex<double>>(const Connectivity *cn, const EqNumberer *_dsa);
+
+
+template std::pair<GenSolver<double> *, GenSparseMatrix<double> *>
+getCholmod<double>(const Connectivity *cn, const DofSetArray &dsa, const ConstrainedDSA &cdsa);
+
+template std::pair<GenSolver<std::complex<double>> *, GenSparseMatrix<std::complex<double>> *>
+getCholmod<std::complex<double>>(const Connectivity *cn, const DofSetArray &dsa, const ConstrainedDSA &cdsa);

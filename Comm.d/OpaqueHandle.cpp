@@ -36,6 +36,13 @@ TypeHandle CommTypeTrait<long>::typeHandle() {
 }
 
 template <>
+TypeHandle CommTypeTrait<size_t>::typeHandle() {
+	static_assert(sizeof(size_t) == sizeof(unsigned long),
+		"size_t is not compatible with unsigned long");
+	return TypeHandle{(MPI_Datatype)MPI_UNSIGNED_LONG};
+}
+
+template <>
 TypeHandle CommTypeTrait<std::complex<double>>::typeHandle() {
 	return TypeHandle{(MPI_Datatype)MPI_DOUBLE_COMPLEX};
 }

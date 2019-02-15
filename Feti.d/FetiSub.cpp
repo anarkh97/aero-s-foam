@@ -101,22 +101,22 @@ void FetiBaseSub::setLocalMpcToBlock(const Connectivity *mpcToBlock, const Conne
 	if(numMPC > 0) {
 		int i, j;
 
-		std::vector<int> ptr(numMPC+1); for(i=0; i<=numMPC; ++i) ptr[i] = i;
+		std::vector<size_t> ptr(numMPC+1); for(i=0; i<=numMPC; ++i) ptr[i] = i;
 		std::vector<int> tgt(numMPC); for(i=0; i<numMPC; ++i) tgt[i] = localToGlobalMPC[i];
 		localMpcToBlock = Connectivity(numMPC, std::move(ptr), std::move(tgt)).transcon(mpcToBlock);
 
-		std::vector<int> target(localMpcToBlock->numConnect());
-		std::vector<int> pointer(numMPC+1);
-		int count = 0;
+		std::vector<int> target;
+		target.reserve(localMpcToBlock->numConnect());
+		std::vector<size_t> pointer(numMPC+1);
 		for(i=0; i<numMPC; ++i) {
-			pointer[i] = count;
+			pointer[i] = target.size();
 			int gi = localToGlobalMPC[i];
 			for(j=0; j<localMpcToBlock->num(i); ++j) {
 				int jBlock = (*localMpcToBlock)[i][j];
-				target[count++] = blockToMpc->cOffset(jBlock, gi);
+				target.push_back(blockToMpc->cOffset(jBlock, gi));
 			}
 		}
-		pointer[numMPC] = count;
+		pointer[numMPC] = target.size();
 		localMpcToBlockMpc = new Connectivity(numMPC, std::move(pointer), std::move(target));
 
 		// HB & PJSA: for assembleBlockCCtsolver & extractBlockMpcResidual
@@ -129,7 +129,7 @@ void FetiBaseSub::setLocalMpcToBlock(const Connectivity *mpcToBlock, const Conne
 			blockToBlockMpc = std::make_unique<Connectivity>(*blockToLocalMpc);
 			// over-write the target array
 			auto &array = blockToBlockMpc->tgt();
-			count = 0;
+			size_t count = 0;
 			for(int iblk=0; iblk<blockToLocalMpc->csize(); ++iblk) {
 				for(i=0; i<blockToLocalMpc->num(iblk); ++i) {
 					int j = (*blockToLocalMpc)[iblk][i];
@@ -140,18 +140,17 @@ void FetiBaseSub::setLocalMpcToBlock(const Connectivity *mpcToBlock, const Conne
 		}
 
 		int size = totalInterfSize;
-		std::vector<int> point(size + 1);
+		std::vector<size_t> point(size + 1);
 		std::vector<int> targ;
 		targ.reserve(numMPC);
-		count = 0;
 		for(i=0; i<size; ++i) {
-			point[i] = count;
+			point[i] = targ.size();
 			if(boundDofFlag[i] == 2) {
 				int li = -1 - scomm->boundDofT(SComm::all,i);
 				targ.push_back(li);
 			}
 		}
-		point[size] = count;
+		point[size] = targ.size();
 		Connectivity boundDofToMpc(size, std::move(point), std::move(targ));
 		mpcToBoundDof = boundDofToMpc.alloc_reverse();
 	}
@@ -4688,7 +4687,7 @@ FetiSub<Scalar>::sendNeighbCCtsolver(FSCommPattern<Scalar> *cctPat, const Connec
 			FSSubRecInfo<Scalar> sInfo = cctPat->getSendBuffer(subNum(), neighb);
 			for (j = 0; j < numMPC; ++j) {
 				int gj = localToGlobalMPC[j];
-				if (mpcToSub->offset(gj, neighb) > -1) {
+				if (mpcToSub->offset(gj, neighb) != ((size_t) -1) ) {
 					sInfo.data[count++] = localCCtsolver->getone(j, j);
 					for (k = j + 1; k < numMPC; ++k) {
 						int gk = localToGlobalMPC[k];
@@ -5202,11 +5201,11 @@ FetiSub<Scalar>::gatherDOFList(FSCommPattern<int> *pat) {
 	}
 
 	std::vector<int> boundDofs(nbdofs);
-	std::vector<int> boundDofPointer(nbneighb + 1);
+	std::vector<size_t> boundDofPointer(nbneighb + 1);
 	boundDofPointer[0] = 0;
 	std::vector<int> boundNeighbs(nbneighb);
 	std::vector<int> wetDofs(nwdofs);
-	std::vector<int> wetDofPointer(nwneighb + 1);
+	std::vector<size_t> wetDofPointer(nwneighb + 1);
 	wetDofPointer[0] = 0;
 	std::vector<int> wetNeighbs(nwneighb);
 	nbdofs = 0;

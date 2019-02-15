@@ -25,8 +25,8 @@ FSCommStructure::makeSendAndRecvConnectivities()
 
 	// Now count the send and receives (actually they should be the same for
 	// a symmetric communication
-	std::vector<int> sendPtr(numNeighbCPUs+1, 0);
-	std::vector<int> recvPtr(numNeighbCPUs+1, 0);
+	std::vector<size_t> sendPtr(numNeighbCPUs+1, 0);
+	std::vector<size_t> recvPtr(numNeighbCPUs+1, 0);
 
 	MapIter iter = channelMap.begin();
 	while(iter != channelMap.end()) {

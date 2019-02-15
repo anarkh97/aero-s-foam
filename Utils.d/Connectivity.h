@@ -37,11 +37,11 @@ T *__getPtr(gsl::span<T> &s) { return s.data(); }
 template<typename A>
 class DirectAccess {
 public :
-	static int getNum(const A* oc, int i)
+	static auto getNum(const A* oc, int i)
 	{return oc->num(i); }
 	static const int * getData(const A* oc, int i)
 	{return __getPtr( (*oc)[i] );}
-	static int getNumTarget(const A *oc)
+	static auto getNumTarget(const A *oc)
 	{return oc->getNumTarget();}
 	/*static int * getTarget(A* oc)
 	  {return oc->getTarget();}*/
@@ -81,7 +81,7 @@ public :
     }
 	int csize() const {return(Accessor::getSize(static_cast<const A*>(this)));}
 	int num(int i) const {return(Accessor::getNum(static_cast<const A*>(this),i));}
-	int getNumTarget() const {return(Accessor::getNumTarget(static_cast<const A*>(this)));}
+	size_t getNumTarget() const {return(Accessor::getNumTarget(static_cast<const A*>(this)));}
 	void print() const
 	{
 		for(int i = 0; i < csize(); ++i )
@@ -118,7 +118,7 @@ class Connectivity : public BaseConnectivity<Connectivity,DirectAccess<Connectiv
 {
 protected:
 	int size;           // size of pointer
-	std::vector<int> pointer;       // pointer to target
+	std::vector<size_t> pointer;       // pointer to target
 	std::vector<int> target;        // value of the connectivity
 	std::vector<float> weight;      // weights of pointer (or 0)
 
@@ -126,11 +126,11 @@ public:
 	using IndexType = int;
 	using IndexCount = unsigned int;
 
-	int getNumTarget() const {return target.size(); }
+	size_t getNumTarget() const {return target.size(); }
 	int * getTarget() {return target.data(); }
 	const int * getTarget() const {return target.data(); }
-        int * getPointer() {return pointer.data(); }
-	const int * getPointer() const {return pointer.data(); }
+    auto getPointer() {return pointer.data(); }
+	auto getPointer() const {return pointer.data(); }
 
 	/** \brief Factory static method.
 	 *
@@ -160,8 +160,8 @@ public:
 	template <class A>
 	Connectivity(const SetAccess<A> &sa);
 	Connectivity(int _size, int *_pointer, int *_target, int _removeable=1, float *_weight = 0);
-	Connectivity(int _size, std::vector<int> _pointer, std::vector<int> _target,
-		             std::vector<float> _weight = std::vector<float>{});
+	Connectivity(int _size, std::vector<size_t> _pointer, std::vector<int> _target,
+	             std::vector<float> _weight = std::vector<float>{});
 	Connectivity(int _size, int *count);
 	Connectivity(int _size, int count);
 	Connectivity(BinFileHandler &, bool oldSower = false);
@@ -213,16 +213,16 @@ public:
 	gsl::span<int> operator[](int i);
 	/// \brief Obtain the number of source nodes.
 	int csize() const;
-	int numConnect() const; // Total number of connections
+	size_t numConnect() const; // Total number of connections
 	/// \brief Get all targets.
 	auto &allTargets() const { return target; }
 	int num(int) const;
 	int num(int, int*) const;
-	int offset(int i)  const { return pointer[i]; } // Begining of ith part
-	int offset(int i,int j) const; // returns a unique id for connection i to j
-	int cOffset(int i,int j) const; // returns offset(i,j) - pointer[i]
+	size_t offset(int i)  const { return pointer[i]; } // Begining of ith part
+	ptrdiff_t offset(int i,int j) const; // returns a unique id for connection i to j
+	ptrdiff_t cOffset(int i,int j) const; // returns offset(i,j) - pointer[i]
 	bool locate(int i,int j) const
-	{ for(int k=pointer[i]; k<pointer[i+1]; ++k) if(target[k] == j) return true; return false; }
+	{ for(auto k=pointer[i]; k<pointer[i+1]; ++k) if(target[k] == j) return true; return false; }
 
 	Connectivity* alloc_reverse() const
 	{ return new Connectivity{BaseConnectivity<Connectivity>::reverse()}; } // creates t->s from s->t
@@ -242,7 +242,7 @@ public:
 	void print(FILE * = stderr, int node=-1) const;
 	int findMaxDist(int *) const;
 	int findProfileSize(EqNumberer *eqNumber, int unroll=1) const;
-	const std::vector<int> &ptr() const { return pointer; }
+	const auto &ptr() const { return pointer; }
 	auto &tgt() { return target; }
 	auto &tgt() const { return target; }
 	/** \brief Create a connectivity that appends a given connectivity at the end of this one.
@@ -290,7 +290,7 @@ Connectivity::operator[](int i) const { return { target.data() +pointer[i], num(
 inline gsl::span<int>
 Connectivity::operator[](int i) { return { target.data() +pointer[i], num(i) }; }
 
-inline int
+inline size_t
 Connectivity::numConnect() const { return getNumTarget(); }
 
 inline bool
@@ -346,7 +346,7 @@ public:
 		else
 			return getNewCacheVal(i);
 	}
-	int getNumTarget() const {
+	size_t getNumTarget() const {
 		int n = csize();
 		int res = 0;
 		for(int i = 0; i < n; ++i)
@@ -364,7 +364,7 @@ BaseConnectivity<A,Accessor>::reverse() const
 {
 	// The reverse connectivity has the same size as the original
 	int size = csize(); //Accessor::getSize(static_cast<A*>(this));
-	int numTarget = getNumTarget(); //Accessor::getNumTarget(static_cast<A*>(this));
+	auto numTarget = getNumTarget(); //Accessor::getNumTarget(static_cast<A*>(this));
 	std::vector<int> res_target(numTarget);
 
 	// Find the max of target
@@ -376,7 +376,7 @@ BaseConnectivity<A,Accessor>::reverse() const
 		for(int j = 0; j < nTg; ++j) maxtarg = std::max(tg[j],maxtarg);
 	}
 	int res_size = maxtarg+1;
-	std::vector<int> res_pointer(res_size+1);
+	std::vector<size_t> res_pointer(res_size+1);
 	for(i = 0; i <= res_size; ++i) res_pointer[i] = 0;
 
 	// Now do a first pass to fill in res_pointer
@@ -421,8 +421,8 @@ Connectivity* BaseConnectivity<A,Accessor>::transcon(const BaseConnectivity<B, A
 	std::vector<int>flags(tgmax, -1);
 
 	// Compute the new pointers
-	std::vector<int> np(size+1);
-	int cp = 0;
+	std::vector<size_t> np(size+1);
+	size_t cp = 0;
 	for(i = 0; i < size; ++i) {
 		np[i] = cp;
 		int nTg =  num(i); //Accessor<A>::getNum(static_cast<A*>(this), i);
@@ -479,7 +479,7 @@ Connectivity BaseConnectivity<A,Accessor>::transcon(const BaseConnectivity<B,AB>
 	std::vector<int>flags(tgmax, -1);
 
 	// Compute the new pointers
-	std::vector<int> np(size+1);
+	std::vector<size_t> np(size+1);
 	int cp = 0;
 	for(i = 0; i < size; ++i) {
 		np[i] = cp;
@@ -584,44 +584,41 @@ BaseConnectivity<A,Accessor>::altReverse(float * w)
 	// PJSA: 12-12-05 this version of reverse maintains the original ordering
 	// The reverse connectivity has the same size as the original
 	int size = csize(); //Accessor::getSize(static_cast<A*>(this));
-	int numTarget = getNumTarget(); //Accessor::getNumTarget(static_cast<A*>(this));
-	int *res_target = new int[numTarget];
+	auto numTarget = getNumTarget(); //Accessor::getNumTarget(static_cast<A*>(this));
+	std::vector<int> res_target(numTarget);
 
 	// Find the max of target
 	int maxtarg = 0;
-	int i;
-	for(i=0; i < size; ++i) {
+	for (int i=0; i < size; ++i) {
 		int nTg = Accessor::getNum(static_cast<A*>(this), i);
 		auto tg = Accessor::getData(static_cast<A*>(this), i);
 		for(int j = 0; j < nTg; ++j) maxtarg = std::max(tg[j],maxtarg);
 	}
-	int res_size = maxtarg+1;
-	int *res_pointer = new int[res_size+1];
-	for(i = 0; i <= res_size; ++i) res_pointer[i] = 0;
+	auto res_size = maxtarg+1;
+	std::vector<size_t> res_pointer(res_size+1, 0);
 
 	// Now do a first pass to fill in res_pointer
-	for(i=0; i < size; ++i) {
+	for(int i=0; i < size; ++i) {
 		int nTg = Accessor::getNum(static_cast<A*>(this), i);
 		auto tg = Accessor::getData(static_cast<A*>(this), i);
 		for(int j = 0; j < nTg; ++j) res_pointer[tg[j]+1]++;
 	}
 
-	int *count = new int[res_size];
-	for(i = 1; i <= res_size; ++i) {
+	std::vector<int> count(res_size, 0);
+	for(size_t i = 1; i <= res_size; ++i)
 		res_pointer[i] += res_pointer[i-1];
-		count[i-1] = 0;
-	}
 
 	// Second pass fills in target
-	for(i=0; i < size; ++i) {
+	for(int i=0; i < size; ++i) {
 		int nTg = Accessor::getNum(static_cast<A*>(this), i);
 		auto tg = Accessor::getData(static_cast<A*>(this), i);
 		for(int j = 0; j < nTg; ++j)
 			res_target[res_pointer[tg[j]] + count[tg[j]]++] = i;
 	}
-	delete [] count;
 
-	Connectivity *res = new Connectivity(res_size, res_pointer, res_target, 1, w);
+	Connectivity *res =
+		new Connectivity(res_size, std::move(res_pointer), std::move(res_target),
+			w == nullptr ? std::vector<float>{} : std::vector<float>{w, w+size});
 	return res;
 }
 
@@ -646,8 +643,8 @@ Connectivity* BaseConnectivity<A,Accessor>::altTranscon(const BaseConnectivity<B
 	for(i = 0; i < tgmax; ++i) flags[i] = -1;
 
 	// Compute the new pointers
-	std::vector<int> np(size+1);
-	int cp = 0;
+	std::vector<size_t> np(size+1);
+	size_t cp = 0;
 	for(i = 0; i < size; ++i) {
 		np[i] = cp;
 		int nTg =  num(i); //Accessor<A>::getNum(static_cast<A*>(this), i);
@@ -724,7 +721,7 @@ Connectivity Connectivity::fromLinkRange(const RangeT &range) {
 		maxIdx = std::max(maxIdx, idx);
 	}
 	auto size = maxIdx+1;
-	std::vector<int> pointers(size+1, 0);
+	std::vector<size_t> pointers(size+1, 0);
 	for(auto &p : range)
 		++pointers[map(p.first)];
 	for(size_t i = 0; i < size; ++i)
@@ -742,7 +739,7 @@ Connectivity Connectivity::fromElements(Connectivity::IndexCount size, TargetCou
                                         TargetLister lister)
 {
 	using TargetType = int;
-	using PointerType = int;
+	using PointerType = size_t;
 	std::vector<PointerType> pointer;
 	// Find out the number of targets we will have
 	pointer.reserve(size+1);

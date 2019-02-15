@@ -1595,8 +1595,8 @@ Domain::makeSommerToNode()
 {
     int size = numSommer;
     // Find out the number of targets we will have
-    std::vector<int> pointer(size+1) ;
-    int pp = 0;
+    std::vector<size_t> pointer(size+1) ;
+    size_t pp = 0;
     for(int i=0; i < size; ++i) {
         pointer[i] = pp;
         pp += sommer[i] ? sommer[i]->numNodes() : 0;
@@ -1611,7 +1611,7 @@ Domain::makeSommerToNode()
             sommer[i]->nodes(target.data()+pointer[i]);
     }
 
-    return { size, pointer, target };
+    return { size, std::move(pointer), std::move(target) };
 }
 
 Connectivity *

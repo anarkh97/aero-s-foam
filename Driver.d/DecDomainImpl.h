@@ -3267,113 +3267,113 @@ GenDecDomain<Scalar>::makeGlobalMpcToMpc(Connectivity *_procMpcToMpc)
 {
 // This function constructs the global mpcToMpc connectivity which will be used
 // to assemble the matrix CC^T for the generalized preconditioner (rixen/dual method)
-  int i, j, k;
-  int pid = myCPU;
-  std::vector<int> size(numCPU);
-  std::vector<int> numtarget(numCPU);
-  for(i=0; i<numCPU; ++i) {
-    if(i == pid) {
-      size[i] = _procMpcToMpc->csize();
-      numtarget[i] = _procMpcToMpc->numConnect();
-    }
-    else {
-      size[i] = 0;
-      numtarget[i] = 0;
-    }
-  }
+	int i, j, k;
+	int pid = myCPU;
+	std::vector<int> size(numCPU);
+	std::vector<int> numtarget(numCPU);
+	for(i=0; i<numCPU; ++i) {
+		if(i == pid) {
+			size[i] = _procMpcToMpc->csize();
+			numtarget[i] = _procMpcToMpc->numConnect();
+		}
+		else {
+			size[i] = 0;
+			numtarget[i] = 0;
+		}
+	}
 #ifdef DISTRIBUTED
 	communicator->globalSum(size);
 	communicator->globalSum(numtarget);
 #endif
 
-  int totSize = 0;
-  int totNumtarget = 0;
-  for(i=0; i<numCPU; ++i) {
-    totSize += size[i];
-    totNumtarget += numtarget[i];
-  }
+	int totSize = 0;
+	size_t totNumtarget = 0;
+	for(i=0; i<numCPU; ++i) {
+		totSize += size[i];
+		totNumtarget += numtarget[i];
+	}
 
 	std::vector<int> pointer(totSize+numCPU);
 	std::vector<int> target(totNumtarget);
-  int startp = 0;
-  int startt = 0;
-  for(i=0; i<pid; ++i) {
-    startp += size[i]+1;
-    startt += numtarget[i];
-  }
-  for(i=0; i<totSize+numCPU; ++i) pointer[i] = 0;
-  for(i=0; i<totNumtarget; ++i) target[i] = 0;
-  for(i=0; i<size[pid]; ++i)
-    pointer[startp + i] = _procMpcToMpc->offset(i);
-  pointer[startp + size[pid]] = _procMpcToMpc->numConnect();
-  for(i=0; i<numtarget[pid]; ++i)
-    target[startt + i] = _procMpcToMpc->getTargetValue(i);
+	int startp = 0;
+	size_t startt = 0;
+	for(i=0; i<pid; ++i) {
+		startp += size[i]+1;
+		startt += numtarget[i];
+	}
+	for(i=0; i<totSize+numCPU; ++i) pointer[i] = 0;
+	for(i=0; i<totNumtarget; ++i) target[i] = 0;
+	for(i=0; i<size[pid]; ++i)
+		pointer[startp + i] = _procMpcToMpc->offset(i);
+	pointer[startp + size[pid]] = _procMpcToMpc->numConnect();
+	for(i=0; i<numtarget[pid]; ++i)
+		target[startt + i] = _procMpcToMpc->getTargetValue(i);
 #ifdef DISTRIBUTED
-    communicator->globalSum(pointer);
-    communicator->globalSum(target);
+	communicator->globalSum(pointer);
+	communicator->globalSum(target);
 #endif
 
-  // now all the _procMpcToMpc connectivity data is stored in size, pointer and target
-  std::vector<Connectivity> tmpMpcToMpc;
+	// now all the _procMpcToMpc connectivity data is stored in size, pointer and target
+	std::vector<Connectivity> tmpMpcToMpc;
 	tmpMpcToMpc.reserve(numCPU);
-  for(i=0; i<numCPU; ++i) {
-    startp = 0; startt = 0;
-    for(j=0; j<i; ++j) {
-      startp += size[j]+1;
-      startt += numtarget[j];
-    }
-    tmpMpcToMpc.emplace_back(size[i], &pointer[startp], &target[startt], 0);
-  }
-  // now each processor has the _procMpcToMpc connectivities for all other processors
-  Connectivity subToCpu = cpuToSub->reverse();
-  mpcToCpu = std::make_unique<Connectivity>( mpcToSub_dual->transcon(subToCpu) );
-  int csize = mpcToCpu->csize();
+	for(i=0; i<numCPU; ++i) {
+		startp = 0; startt = 0;
+		for(j=0; j<i; ++j) {
+			startp += size[j]+1;
+			startt += numtarget[j];
+		}
+		tmpMpcToMpc.emplace_back(size[i], &pointer[startp], &target[startt], 0);
+	}
+	// now each processor has the _procMpcToMpc connectivities for all other processors
+	Connectivity subToCpu = cpuToSub->reverse();
+	mpcToCpu = std::make_unique<Connectivity>( mpcToSub_dual->transcon(subToCpu) );
+	int csize = mpcToCpu->csize();
 	std::vector<int> flags(csize);
-  for(i=0; i<csize; ++i) flags[i] = -1;
-  // identify the number of connections from MPC i
-  std::vector<int> np(csize+1);
-  int cp = 0;
-  for(i=0; i<csize; ++i) {
-    np[i] = cp;
-    for(j=0; j < mpcToCpu->num(i); ++j) {
-      int cpu = (*mpcToCpu)[i][j];
-      for(k=0; k < tmpMpcToMpc[cpu].num(i); ++k) {
-        int mpck = tmpMpcToMpc[cpu][i][k];
-        if(flags[mpck] != i) {
-          cp++;
-          flags[mpck] = i;
-        }
-      }
-    }
-  }
-  np[csize] = cp;
+	for(i=0; i<csize; ++i) flags[i] = -1;
+	// identify the number of connections from MPC i
+	std::vector<size_t> np(csize+1);
+	size_t cp = 0;
+	for(i=0; i<csize; ++i) {
+		np[i] = cp;
+		for(j=0; j < mpcToCpu->num(i); ++j) {
+			int cpu = (*mpcToCpu)[i][j];
+			for(k=0; k < tmpMpcToMpc[cpu].num(i); ++k) {
+				int mpck = tmpMpcToMpc[cpu][i][k];
+				if(flags[mpck] != i) {
+					cp++;
+					flags[mpck] = i;
+				}
+			}
+		}
+	}
+	np[csize] = cp;
 
-  // Now allocate and fill the new target
-  for(i=0; i<csize; ++i) flags[i] = -1;
+	// Now allocate and fill the new target
+	for(i=0; i<csize; ++i) flags[i] = -1;
 	std::vector<int> ntg(cp);
-  cp = 0;
-  for(i=0; i<csize; ++i) {
-    np[i] = cp;
-    for(j=0; j < mpcToCpu->num(i); ++j) {
-      int cpu = (*mpcToCpu)[i][j];
-      for(k=0; k < tmpMpcToMpc[cpu].num(i); ++k) {
-        int mpck = tmpMpcToMpc[cpu][i][k];
-        if(flags[mpck] != i) {
-          ntg[cp] = mpck;
-          cp++;
-          flags[mpck] = i;
-        }
-      }
-    }
-  }
+	cp = 0;
+	for(i=0; i<csize; ++i) {
+		np[i] = cp;
+		for(j=0; j < mpcToCpu->num(i); ++j) {
+			int cpu = (*mpcToCpu)[i][j];
+			for(k=0; k < tmpMpcToMpc[cpu].num(i); ++k) {
+				int mpck = tmpMpcToMpc[cpu][i][k];
+				if(flags[mpck] != i) {
+					ntg[cp] = mpck;
+					cp++;
+					flags[mpck] = i;
+				}
+			}
+		}
+	}
 
 #ifdef USE_MUMPS
-  if(domain->solInfo().solvercntl->fetiInfo.cct_cntl->subtype == FetiInfo::mumps && domain->solInfo().solvercntl->fetiInfo.cct_cntl->mumps_icntl[18] == 3) {
+	if(domain->solInfo().solvercntl->fetiInfo.cct_cntl->subtype == FetiInfo::mumps && domain->solInfo().solvercntl->fetiInfo.cct_cntl->mumps_icntl[18] == 3) {
     procMpcToMpc = _procMpcToMpc;
   } else
 #endif
-  delete _procMpcToMpc;
-  mpcToMpc = std::make_unique<Connectivity>(csize, std::move(np), std::move(ntg));
+	delete _procMpcToMpc;
+	mpcToMpc = std::make_unique<Connectivity>(csize, std::move(np), std::move(ntg));
 }
 
 template<class Scalar>

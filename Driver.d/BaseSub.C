@@ -1624,15 +1624,15 @@ BaseSub::makeMpcInterface(Connectivity *subToMpc, const Connectivity &lmpcToSub,
     }
     Connectivity *mpcNeighbToMpc = new Connectivity(numMpcNeighb, pointer, target);
 
-    std::vector<int> ptr(numMpcNeighb+1);
+    std::vector<size_t> ptr(numMpcNeighb+1);
     ptr[0] = 0;
     for(i = 0; i < numMpcNeighb; ++i)
         ptr[i+1] = ptr[i] + mpcNeighbSize[i];
-    std::vector<int> tgt( ptr[numMpcNeighb] );
-    i = 0;
+    std::vector<int> tgt;
+    tgt.reserve( ptr[numMpcNeighb] );
     for(j = 0; j < numMpcNeighb; ++j) {
         for(k = 0; k < mpcNeighbSize[j]; ++k)
-            tgt[i++] = (*mpcNeighbToMpc)[j][k];
+            tgt.push_back((*mpcNeighbToMpc)[j][k]);
     }
     auto mpcInterfaceDOFs = std::make_unique<Connectivity>( numMpcNeighb, std::move(ptr), std::move(tgt) );
     scomm->setTypeSpecificList( SComm::mpc, std::move(mpcNeighb), std::move(mpcInterfaceDOFs) );
@@ -1685,14 +1685,15 @@ BaseSub::makeFsiInterface(const Connectivity *subToFsi, const Connectivity &fsiT
     }
     Connectivity fsiNeighbToFsi(numFsiNeighb, pointer, target);
 
-    std::vector<int> ptr(numFsiNeighb+1);
+    std::vector<size_t> ptr(numFsiNeighb+1);
     ptr[0] = 0;
-    for(i = 0; i < numFsiNeighb; ++i) ptr[i+1] = ptr[i] + fsiNeighbSize[i];
-    std::vector<int> tgt( ptr[numFsiNeighb] );
-    i = 0;
+    for(i = 0; i < numFsiNeighb; ++i)
+    	ptr[i+1] = ptr[i] + fsiNeighbSize[i];
+    std::vector<int> tgt;
+    tgt.reserve( ptr[numFsiNeighb] );
     for(j = 0; j < numFsiNeighb; ++j) {
         for(k = 0; k < fsiNeighbSize[j]; ++k)
-            tgt[i++] = fsiNeighbToFsi[j][k];
+            tgt.push_back( fsiNeighbToFsi[j][k] );
     }
     auto fsiInterfaceDOFs = std::make_unique<Connectivity>(numFsiNeighb, std::move(ptr), std::move(tgt) );
     scomm->setTypeSpecificList(SComm::fsi,

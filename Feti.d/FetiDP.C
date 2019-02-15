@@ -862,14 +862,13 @@ GenFetiDPSolver<Scalar>::makeKcc()
  */
 template <typename Scalar>
 Connectivity GenFetiDPSolver<Scalar>::makeCornerToSub() {
-	std::vector<int> pointer(this->glNumSub + 1);
-	for(int i=0; i < this->glNumSub + 1; ++i) pointer[i] = 0;
+	std::vector<size_t> pointer(this->glNumSub + 1, 0);
 	for(int iSub=0; iSub < this->nsub; ++iSub)
 			pointer[this->subdomains[iSub]->subNum()] = this->subdomains[iSub]->numCorners();
 #ifdef DISTRIBUTED
 	this->fetiCom->globalSum(this->glNumSub, pointer.data());
 #endif
-	int total = 0;
+	size_t total = 0;
 	for(int iSub=0; iSub < this->glNumSub; ++iSub) {
 			int tmp = pointer[iSub];
 			pointer[iSub] = total;
@@ -901,8 +900,7 @@ Connectivity GenFetiDPSolver<Scalar>::makeCornerToSub() {
 	delete [] glCornerNodes;
 	if(verboseFlag) filePrint(stderr, " ... Total Number of Corners %5d  ...\n", glNumCorners);
 
-	std::vector<int> target(total);
-	for(int i=0; i<total; ++i) target[i] = 0;
+	std::vector<int> target(total, 0);
 	for(int iSub=0; iSub < this->nsub; ++iSub) {
 			int numCorner    = this->subdomains[iSub]->numCorners();
 			auto &cornerNodes = this->subdomains[iSub]->getCornerNodes();

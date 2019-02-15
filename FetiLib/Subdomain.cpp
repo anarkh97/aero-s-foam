@@ -21,7 +21,7 @@ Connectivity dofToNode(const FetiLib::DOFInfo &dofInfo) {
 
 template <typename S>
 Connectivity dofToDof(const FetiLib::SparseMatrix<S> &matrix) {
-	std::vector<int> pointers{matrix.outerIndexPtr(), matrix.outerIndexPtr()+matrix.outerSize()};
+	std::vector<size_t> pointers{matrix.outerIndexPtr(), matrix.outerIndexPtr()+matrix.outerSize()};
 	std::vector<int> targets{matrix.innerIndexPtr(), matrix.innerIndexPtr()+matrix.innerSize()};
 	return {static_cast<int>(pointers.size()-1), std::move(pointers), std::move(targets)};
 }

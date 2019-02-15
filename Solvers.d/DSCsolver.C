@@ -21,7 +21,8 @@ extern Communicator *structCom;
 #include <Solvers.d/DSCsolver.h>
 #ifdef DISTRIBUTED
 #include <Solvers.d/DSCVer1/DSC_LIB/dscmain.h>
-int tglobal_ns, *ta_index, *ta_struc, *treplication,
+// TODO This is horrible! Global variables?
+int tglobal_ns, *ta_index = nullptr, *ta_struc, *treplication,
 		*ta_nonz_index;
 real_number_type *ta_nonz;
 #endif
@@ -56,7 +57,11 @@ DSCsolver::DSCsolver(Connectivity *cn, EqNumberer *eqNums, int s_number)
  // This is what is needed !!!
  // These things come from the connectivity
  tglobal_ns   = numNodes; // Number of "nodes"
- ta_index     = const_cast<int *>(cn->ptr().data());  // TODO This is horrible! Global variable?
+ if(ta_index != nullptr)
+ 	delete [] ta_index;
+ ta_index = new int[cn->ptr().size()];
+ for(size_t i = 0; i < cn->ptr().size(); ++i)
+ 	ta_index[i] = cn->ptr()[i];
  ta_struc     = (*cn)[0].data();
 
  // This comes from the eqNums

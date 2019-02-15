@@ -4012,7 +4012,7 @@ ControlInterface* GeoSource::getUserSuppliedFunction()
 //--------------------------------------------------------------------
 
 void GeoSource::outputElemStress(int fileNum, double *stressData,
-								 int numOutElems, const std::vector<int> &offsets, double time)
+								 int numOutElems, const std::vector<size_t> &offsets, double time)
 {
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;
@@ -4035,7 +4035,7 @@ void GeoSource::outputElemStress(int fileNum, double *stressData,
 }
 
 void GeoSource::outputElemStress(int fileNum, DComplex *stressData,
-								 int numOutElems, const std::vector<int> &offsets, double time)
+								 int numOutElems, const std::vector<size_t> &offsets, double time)
 {
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;
@@ -4776,7 +4776,7 @@ GeoSource::getDecomposition()
 			  subToClus[i] = 0;
 		  numClusters = 1;
 		  std::vector<int> target(numSub); std::iota(target.begin(), target.end(), 0);
-		  std::vector<int> ptr(2);
+		  std::vector<size_t> ptr(2);
 		  ptr[0] = 0;
 		  ptr[1] = numSub;
 		  clusToSub = std::make_unique<Connectivity>(1,std::move(ptr),std::move(target));

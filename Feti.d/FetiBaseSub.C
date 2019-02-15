@@ -392,7 +392,7 @@ FetiBaseSub::gatherDOFListPlus(FSCommPattern<int> *pat)
 	}
 
 	std::vector<int> boundDofs(nbdofs);
-	std::vector<int> boundDofPointer(scomm->numNeighb + 1);
+	std::vector<size_t> boundDofPointer(scomm->numNeighb + 1);
 	boundDofPointer[0] = 0;
 	nbdofs = 0;
 	for (iSub = 0; iSub < scomm->numNeighb; ++iSub) {

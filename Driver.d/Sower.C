@@ -66,7 +66,7 @@ Sower::Sower(Connectivity *subToElem, Elemset &eset, int nClus, ResizeArray<Surf
 			fprintf(stderr, " *** ERROR: CLUSMAP file is for %d clusters\n", numCLUS);
 			exit(-1);
 		}
-		std::vector<int> clusp(nClus + 2);
+		std::vector<size_t> clusp(nClus + 2);
 		std::vector<int> subs(nSub + 1);
 		int nSubFile = 0;
 		int i, j, k = 0, m, n;

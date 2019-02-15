@@ -572,8 +572,8 @@ public:
 	void outputEnergies(int, double, DComplex, DComplex, DComplex, DComplex, DComplex, DComplex);
 	void outputElemVectors(int, double *, int, double time = -1.0);
 	void outputElemVectors(int, DComplex *, int, double time = -1.0);
-	void outputElemStress(int, double *, int, const std::vector<int> &offsets, double = -1.0);
-	void outputElemStress(int, DComplex *, int, const std::vector<int> &, double = -1.0);
+	void outputElemStress(int, double *, int, const std::vector<size_t> &offsets, double = -1.0);
+	void outputElemStress(int, DComplex *, int, const std::vector<size_t> &, double = -1.0);
 	void openOutputFiles(int *outNodes = 0, int *outIndex = 0, int num = 0);
 	void openSensorOutputFiles();
 	void openOutputFilesForPita(int sliceRank);

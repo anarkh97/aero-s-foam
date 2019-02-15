@@ -540,7 +540,7 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDP(unique_ptr<const Connectivity> su
 	Connectivity elemToSubCoarse = decCoarse->reverse();
 	auto CPUMapCoarse = std::make_unique<Connectivity>(this->cpuToSub->transcon(elemToSubCoarse));
 
-	std::vector<int> pointer(this->glNumSub+1, 0);
+	std::vector<size_t> pointer(this->glNumSub+1, 0);
 
 	// Create a super-element for each subdomain and put it in the coarseDomain.
 

@@ -186,21 +186,19 @@ Connectivity::Connectivity(int _size, int count)
 
 Connectivity::~Connectivity() {}
 
-int
+ptrdiff_t
 Connectivity::offset(int i, int j) const
 {
-	int ii;
-	for(ii = pointer[i]; ii < pointer[i+1]; ++ii)
+	for(auto ii = pointer[i]; ii < pointer[i+1]; ++ii)
 		if(target[ii] == j) return ii;
 
 	return -1; // We didn't find a connection between i and j
 }
 
-int
+ptrdiff_t
 Connectivity::cOffset(int i, int j) const
 {
-	int ii;
-	for(ii = pointer[i]; ii < pointer[i+1]; ++ii)
+	for(auto ii = pointer[i]; ii < pointer[i+1]; ++ii)
 		if(target[ii] == j) return (ii - pointer[i]);
 
 	return -1; // We didn't find a connection between i and j
@@ -228,8 +226,8 @@ Connectivity::transconOne( const Connectivity* tc) const
 	// and choose one target per tc->pointer (max occurrence)
 	// At the same time build new pointers np
 
-	int cp = 0;
-	std::vector<int> np(size+1);
+	size_t cp = 0;
+	std::vector<size_t> np(size+1);
 	int ii;
 	for(i = 0; i < size; ++i) {
 		np[i] = cp;
@@ -729,7 +727,7 @@ Connectivity::print(FILE *f, int node) const
 int
 Connectivity::findMaxDist(int *renum) const
 {
-	int count = numNonZeroP();
+	size_t count = numNonZeroP();
 	int i;
 	int maxdist = 0;
 	int localDist;
@@ -793,7 +791,7 @@ Connectivity::append(const Connectivity &con2) const
 	int size2 = con2.csize();
 
 	int i;
-	std::vector<int> cp(size1 + size2+1);
+	std::vector<size_t> cp(size1 + size2+1);
 	int fp = 0;
 	for(i = 0; i < size1; ++i) {
 		cp[i] = fp;
@@ -833,8 +831,8 @@ Connectivity::combine(const Connectivity *con2, std::vector<int> &cmap, const st
 	int *tmp2 = (int *) dbg_alloca(sizeof(int)*size2);
 	for(i=0; i<size2; ++i) tmp2[i] = -1;
 
-	std::vector<int> cp(size1 + size2+1);
-	int fp = 0;
+	std::vector<size_t> cp(size1 + size2+1);
+	size_t fp = 0;
 	for(i = 0; i < size1; ++i) {
 		cp[i] = fp;
 		fp += num(i);
@@ -847,7 +845,7 @@ Connectivity::combine(const Connectivity *con2, std::vector<int> &cmap, const st
 			}
 		}
 	}
-	int count = 0;
+	size_t count = 0;
 	for(i = 0; i < size2; ++i) {
 		if(tmp2[i] == -1) {
 			cp[count+size1] = fp;
@@ -900,7 +898,7 @@ Connectivity::connexGroups() {
 	std::vector<bool> seen(size, false);
 	std::vector<int> group;
 	group.reserve(size);
-	std::vector<int> ptr;
+	std::vector<size_t> ptr;
 	ptr.reserve(2); // The most common case.
 	for(int i = 0; i < size; ++i)
 		if(seen[i] == false) {
@@ -928,13 +926,13 @@ Connectivity *
 Connectivity::trim(Connectivity *marker)
 {
 	int i,j;
-	int count;
+	size_t count;
 	count = 0;
 	for(i = 0; i < numConnect(); ++i)
 		if(marker->num( target[i] ) > 1)
 			count++;
 	std::vector<int> ntrg(count);
-	std::vector<int> nptr(size+1);
+	std::vector<size_t> nptr(size+1);
 	count = 0;
 	for(i = 0; i < size; ++i) {
 		nptr[i] = count;
@@ -952,12 +950,12 @@ Connectivity
 Connectivity::modify()
 {
 	int i,j;
-	int count;
+	size_t count;
 	count = 0;
 	for(i = 0; i < size; ++i)
 		if(num(i) == 0) count++;
 	std::vector<int> ntrg( getNumTarget()+count );
-	std::vector<int> nptr( size+1 );
+	std::vector<size_t> nptr( size+1 );
 	count = 0;
 	for(i = 0; i < size; ++i) {
 		nptr[i] = count;
@@ -975,7 +973,7 @@ Connectivity
 Connectivity::withSelfConnection() const
 {
 	auto ntrg = std::vector<int>{};
-	auto nptr = std::vector<int>{};
+	auto nptr = std::vector<size_t>{};
 	ntrg.reserve(size+target.size());
 	nptr.reserve(pointer.size());
 	for(int i = 0; i < size; ++i) {
@@ -997,7 +995,7 @@ Connectivity *
 Connectivity::modifyAlt()
 {
 	int i,j;
-	int count;
+	size_t count;
 	count = 0;
 	for(i = 0; i < size; ++i)
 		for(j = 0; j < num(i); ++j)
@@ -1018,13 +1016,13 @@ Connectivity
 Connectivity::combineAll(int addSize, int *cmap)
 {
 	int i,j,k;
-	int count;
+	size_t count;
 	bool foundi, foundj;
 	//count = 0;
 	//for(i = 0; i < size; ++i)
 	//if(num(i) == 0) count++;
 	std::vector<int> ntrg( getNumTarget()+(addSize)*(addSize) );
-	std::vector<int> nptr( size+1 );
+	std::vector<size_t> nptr( size+1 );
 
 	count = 0;
 	for(i = 0; i < size; ++i) {
@@ -1289,7 +1287,7 @@ Connectivity::Connectivity(FILE *f, int numtarget)
 	pointer.push_back(target.size());
 }
 
-Connectivity::Connectivity(int _size, std::vector<int> _pointer, std::vector<int> _target,
+Connectivity::Connectivity(int _size, std::vector<size_t> _pointer, std::vector<int> _target,
                            std::vector<float> _weight) : size(_size),
                                                          pointer(std::move(_pointer)),
                                                          target(std::move(_target)), weight(std::move(_weight)){

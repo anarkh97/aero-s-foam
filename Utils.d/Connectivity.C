@@ -371,6 +371,15 @@ Connectivity::findPseudoDiam(int *s, int *e, int *mask) const
 	return;
 }
 
+/** \brief Form a rooted layered structure of a graph.
+ *
+ * @param[in] root Root node of the layer
+ * @param[out] xls Pointer to the beginning of each layer.
+ * @param[out] ls Nodes of the graph, layer by layer.
+ * @param[out] w Maximum width of a layer.
+ * @param mask
+ * @return Number of layers.
+ */
 int
 Connectivity::rootLS(int root, int *xls, int *ls, int &w, int *mask) const
 {

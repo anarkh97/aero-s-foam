@@ -30,7 +30,7 @@ if(USE_CHOLMOD)
 				PRIVATE
 				CholmodImp.h CholmodImp.cpp
 				)
-		target_compile_definitions(solver PUBLIC WITH_CHOLMOD)
+		target_compile_definitions(solver PUBLIC WITH_CHOLMOD=1)
 		target_include_directories(solver PRIVATE ${CHOLMOD_INCLUDE_DIR})
 		target_link_libraries(solver PUBLIC ${CHOLMOD_LIBRARIES})
 	endif (CHOLMOD_INCLUDE_DIR AND CHOLMOD_LIBRARIES)

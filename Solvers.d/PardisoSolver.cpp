@@ -13,6 +13,9 @@
 #include <Math.d/DBSparseMatrix.h>
 #include <mkl_pardiso.h>
 #include <mkl_types.h>
+#include <mkl_service.h>
+
+//#include <mkl.h>
 
 namespace New {
 
@@ -264,11 +267,16 @@ long PardisoSolver<Scalar>::size() const
 	return 0;
 }
 
+
+
 template<typename Scalar>
 PardisoSolver<Scalar>::PardisoSolver(const Connectivity *cn, const EqNumberer *_dsa)
 	: New::DBSparseMatrix<Scalar>(*cn, *_dsa, [](int r, int c) { return c >= r; })
 {
-
+	//mkl_set_num_threads(16);
+	mkl_domain_set_num_threads( 16, MKL_DOMAIN_PARDISO );
+	//MKL_Domain_Set_Num_Threads( 16, 4 );
+    
 	n = static_cast<MKL_INT>(this->numCol());
 	for (int i = 0; i < 64; ++i)
 		pt[i] = nullptr;
@@ -298,7 +306,7 @@ PardisoSolver<Scalar>::PardisoSolver(const Connectivity *cn, const EqNumberer *_
 	iparm[26] = 0;        //  Don't check that the matrix format is OK.
 	maxfct = 1;           /* Maximum number of numerical factorizations. */
 	mnum = 1;             /* Which factorization to use. */
-	msglvl = 0;           /* Print statistical information in file */
+	msglvl = 1;           /* Print statistical information in file */
 	error = 0;            /* Initialize error flag */
 	mtype = -2;       /* Real symmetric indefinite matrix */
 	MKL_INT nrhs = 1;     /* Number of right hand sides. */
@@ -347,6 +355,7 @@ void PardisoSolver<Scalar>::reSolve(Scalar *rhs)
 	MKL_INT phase = 33;
 	iparm[7] = 2;         /* Max numbers of iterative refinement steps. */
 	iparm[5] = 1; // Store the result in place of the input.
+	msglvl = 0;
 
 	std::vector<Scalar> dx(n,-100);
 	PARDISO (pt, &maxfct, &mnum, &mtype, &phase,
@@ -363,6 +372,7 @@ void PardisoSolver<Scalar>::factor()
 {
 	MKL_INT nrhs = 1;     /* Number of right hand sides. */
 	MKL_INT phase = 22;
+	msglvl =1;
 
 	PARDISO (pt, &maxfct, &mnum, &mtype, &phase,
 	         &n, this->getA(), ptr.data(), tg.data(), nullptr, &nrhs, iparm, &msglvl, nullptr, nullptr, &error);;

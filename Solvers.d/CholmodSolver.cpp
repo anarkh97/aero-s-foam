@@ -17,6 +17,15 @@ getCholmod(const Connectivity *cn, const EqNumberer *_dsa)
 	std::cerr << "Cholmod is not available in this version of the code. Crash will ensue." << std::endl;
 	return {nullptr, nullptr};
 }
+
+template <typename Scalar>
+std::pair<GenSolver<Scalar> *, GenSparseMatrix<Scalar> *>
+getCholmod(const Connectivity *cn, const DofSetArray &dsa, const ConstrainedDSA &cdsa)
+{
+	std::cerr << "Cholmod is not available in this version of the code. Crash will ensue." << std::endl;
+	return {nullptr, nullptr};
+}
+
 #else // WITH_CHOLMOD
 #include "CholmodImp.h"
 

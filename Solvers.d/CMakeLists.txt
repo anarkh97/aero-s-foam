@@ -20,6 +20,10 @@ if(USE_CHOLMOD)
 	message("Cholmod libraries: ${CHOLMOD_LIBRARIES}")
 	if (CHOLMOD_INCLUDE_DIR AND CHOLMOD_LIBRARIES)
 		message("Will use CholMod and ${CHOLMOD_FOUND}")
+		find_library(RT_LIBRARY rt)
+		if(RT_LIBRARY)
+			list(APPEND CHOLMOD_LIBRARIES ${RT_LIBRARY})
+		endif(RT_LIBRARY)
 		# pass whether we use choldmod or not to the base CMakeLists.
 		set (CHOLMOD_FOUND ${CHOLMOD_FOUND} PARENT_SCOPE)
 		target_sources(solver

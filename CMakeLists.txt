@@ -7,6 +7,7 @@ cmake_policy(SET CMP0076 NEW)
 option(USE_MPI "Use MPI" ON)
 option(USE_CHOLMOD "Attempt to use Choldmod" ON)
 option(USE_PARDISO "Attempt to use MKL Pardiso" ON)
+option(TRY_ACME "Try to use ACME" OFF)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake" "/usr/local/include/eigen3/cmake/")
 
@@ -139,7 +140,7 @@ IF(UNIX)
 		ENDIF(MPI_FOUND AND NOT WITH_ZOLTAN EQUAL 0)
 
 		# acme
-		IF(NOT WITH_ACME EQUAL 0)
+		IF(TRY_ACME)
 			IF(NOT MPI_FOUND)
 				SET(ACME_FOUND TRUE)
 				add_definitions(-DUSE_ACME -DCONTACT_NO_MPI -DCONTACT_NO_EXODUS_OUTPUT -DCONTACT_DEBUG_PRINT_LEVEL=0)
@@ -151,7 +152,7 @@ IF(UNIX)
 					SET(INC_DIR ${INC_DIR} "Acme.d/search" "Acme.d/enforcement")
 				ENDIF(ZOLTAN_FOUND)
 			ENDIF(NOT MPI_FOUND)
-		ENDIF(NOT WITH_ACME EQUAL 0)
+		ENDIF(TRY_ACME)
 
 		# arpack
 		IF(NOT WITH_ARPACK EQUAL 0)

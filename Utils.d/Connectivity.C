@@ -101,19 +101,23 @@ Connectivity::Connectivity(const Elemset &els, Connectivity *nodeToElem)
 Connectivity::Connectivity(BinFileHandler& f, bool oldSower)
 {
 	if(!oldSower) {
-		f.read(&size,1);
+		size_t rsize;
+		f.read(&rsize,1);
+		size = rsize;
 		pointer.resize(size);
 		--size;
 		f.read(pointer.data(),size+1);
-		int numtarget;
+		size_t numtarget;
 		f.read(&numtarget,1);
 		target.resize(numtarget);
 		f.read(target.data(),numtarget);
 	}
 	else {
 		//cerr << " *** WARNING: using OLD_SOWER ::Connectivity(BinFileHandler& f) \n";
-		int numtarget;
-		f.read(&size, 1);
+		size_t numtarget;
+		size_t rsize;
+		f.read(&rsize, 1);
+		size = rsize;
 		f.read(&numtarget, 1);
 		pointer.resize(size+1);
 		target.resize(numtarget);
@@ -124,10 +128,10 @@ Connectivity::Connectivity(BinFileHandler& f, bool oldSower)
 
 size_t Connectivity::write(BinFileHandler& f) const
 {
-	int _size = size+1;
+	size_t _size = size+1;
 	f.write(&_size,1);
 	f.write(pointer.data(),_size);
-	int numtarget = getNumTarget();
+	size_t numtarget = getNumTarget();
 	f.write(&numtarget,1);
 	f.write(target.data(),numtarget);
 	return 0;
@@ -147,16 +151,15 @@ size_t Connectivity::write(FILE *f) const
 
 size_t Connectivity::writeg(BinFileHandler& f) const
 {
-	int _size = size+1;
+	size_t _size = size+1;
 	f.write(&_size,1);
 	f.write(pointer.data(),_size);
-	int numtarget = getNumTarget();
+	size_t numtarget = getNumTarget();
 	f.write(&numtarget,1);
-	GlobalInt *gtarget = new GlobalInt[numtarget];
-	for(int i = 0; i < numtarget; i++)
+	std::vector<GlobalInt> gtarget(numtarget);
+	for(size_t i = 0; i < numtarget; i++)
 		gtarget[i] = target[i];
-	f.write(gtarget,numtarget);
-	delete [] gtarget;
+	f.write(gtarget.data(),numtarget);
 	return 0;
 }
 
@@ -165,8 +168,7 @@ Connectivity::Connectivity(int _size, int *_count)
 	size    = _size;
 	pointer.resize(size+1);
 	pointer[0] = 0;
-	int i;
-	for(i=0; i < _size; ++i)
+	for(size_t i=0; i < _size; ++i)
 		pointer[i+1] = pointer[i] + _count[i];
 	target.resize(pointer[size], -1);
 }
@@ -176,11 +178,11 @@ Connectivity::Connectivity(int _size, int count)
 	size    = _size;
 	pointer.resize(size+1);
 	pointer[0] = 0;
-	for(int i=0; i < _size; ++i)
+	for(size_t i=0; i < _size; ++i)
 		pointer[i+1] = pointer[i] + count;
 	int numtarget = pointer[size];
 	target.reserve(numtarget);
-	for(int i=0; i < numtarget; ++i)
+	for(size_t i=0; i < numtarget; ++i)
 		target.push_back(i);
 }
 
@@ -790,30 +792,29 @@ Connectivity::append(const Connectivity &con2) const
 	int size1 = csize();
 	int size2 = con2.csize();
 
-	int i;
 	std::vector<size_t> cp(size1 + size2+1);
-	int fp = 0;
-	for(i = 0; i < size1; ++i) {
+	size_t fp = 0;
+	for(int i = 0; i < size1; ++i) {
 		cp[i] = fp;
 		fp += num(i);
 	}
-	for(i = 0; i < size2; ++i) {
+	for(int i = 0; i < size2; ++i) {
 		cp[i+size1] = fp;
 		fp += con2.num(i);
 	}
 	cp[size1 + size2] = fp;
 
-	std::vector<int> ct (fp);
-	fp = 0;
-	for(i=0; i<size1; ++i) {
+	std::vector<int> ct;
+	ct.reserve(cp.back());
+	for(int i=0; i<size1; ++i) {
 		int j;
 		for(j =0; j < num(i); ++j)
-			ct[fp++] = (*this)[i][j];
+			ct.push_back((*this)[i][j]);
 	}
-	for(i = 0; i < size2; ++i) {
+	for(int i = 0; i < size2; ++i) {
 		int j;
 		for(j =0; j < con2.num(i); ++j)
-			ct[fp++] = con2[i][j];
+			ct.push_back(con2[i][j]);
 	}
 
 	return { size1+size2, std::move(cp), std::move(ct) };
@@ -826,10 +827,8 @@ Connectivity::combine(const Connectivity *con2, std::vector<int> &cmap, const st
 	int i, j;
 	int size1 = csize();
 	int size2 = con2->csize();
-	int *tmp1 = (int *) dbg_alloca(sizeof(int)*size1);
-	for(i=0; i<size1; ++i) tmp1[i] = -1;
-	int *tmp2 = (int *) dbg_alloca(sizeof(int)*size2);
-	for(i=0; i<size2; ++i) tmp2[i] = -1;
+	std::vector<int> tmp1(size1,-1);
+	std::vector<int> tmp2(size2, -1);
 
 	std::vector<size_t> cp(size1 + size2+1);
 	size_t fp = 0;
@@ -876,7 +875,7 @@ Connectivity::combine(const Connectivity *con2, std::vector<int> &cmap, const st
 				ct[fp++] = -1 - (*con2)[i][j]; // merged are -ve
 		}
 	}
-	cmap = new_cmap;
+	cmap = std::move(new_cmap);
 
 	size      = size1+count;
 	pointer   = cp;
@@ -926,8 +925,7 @@ Connectivity *
 Connectivity::trim(Connectivity *marker)
 {
 	int i,j;
-	size_t count;
-	count = 0;
+	size_t count = 0;
 	for(i = 0; i < numConnect(); ++i)
 		if(marker->num( target[i] ) > 1)
 			count++;
@@ -1000,16 +998,18 @@ Connectivity::modifyAlt()
 	for(i = 0; i < size; ++i)
 		for(j = 0; j < num(i); ++j)
 			if((*this)[i][j] == i) count++;
-	int *ntrg = new int[getNumTarget()-count];
-	int *nptr = new int[size+1];
-	count = 0;
+	std::vector<int> ntrg;
+	ntrg.reserve(getNumTarget()-count);
+	std::vector<size_t> nptr;
+	nptr.reserve(size+1);
+
 	for(i = 0; i < size; ++i) {
-		nptr[i] = count;
+		nptr.push_back(ntrg.size());
 		for(j = 0; j < num(i); ++j)
-			if((*this)[i][j] != i) ntrg[count++] = (*this)[i][j];
+			if((*this)[i][j] != i) ntrg.push_back((*this)[i][j]);
 	}
-	nptr[size] = count;
-	return new Connectivity(size, nptr, ntrg);
+	nptr.push_back(ntrg.size());
+	return new Connectivity(size, std::move(nptr), std::move(ntrg));
 }
 
 Connectivity

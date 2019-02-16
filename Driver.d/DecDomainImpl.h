@@ -647,89 +647,90 @@ template<class Scalar>
 void
 GenDecDomain<Scalar>::preProcess()
 {
- if(domain->solInfo().solvercntl->type == SolverSelection::Direct) { // Makes global renumbering, connectivities and dofsets
-   domain->preProcessing();
+	if(domain->solInfo().solvercntl->type == SolverSelection::Direct) { // Makes global renumbering, connectivities and dofsets
+		domain->preProcessing();
 
-   int numdof = domain->numdof();
-   int *bc = new int[numdof];
-   double *bcx = new double[numdof];
-   domain->make_bc(bc, bcx);
-   delete [] bc;
-   delete [] bcx;
+		int numdof = domain->numdof();
+		std::vector<int> bc(numdof);
+		std::vector<double> bcx(numdof);
+		domain->make_bc(bc, bcx);
 
-   domain->make_constrainedDSA();
-   domain->makeAllDOFs();
- }
- //soweredInput = geoSource->binaryInput;
+		domain->make_constrainedDSA();
+		domain->makeAllDOFs();
+	}
+	//soweredInput = geoSource->binaryInput;
 
- if(!subToElem) {
-   if(verboseFlag) filePrint(stderr, " ... Reading Decomposition File     ...\n");
-   if(soweredInput) geoSource->getBinaryDecomp(); else
-   subToElem = geoSource->getDecomposition();
-   //subToElem->sortTargets(); // JAT 021915 // PJSA 11-16-2006
- }
+	if(!subToElem) {
+		if(verboseFlag) filePrint(stderr, " ... Reading Decomposition File     ...\n");
+		if(soweredInput)
+			geoSource->getBinaryDecomp();
+		else
+			subToElem = geoSource->getDecomposition();
+		//subToElem->sortTargets(); // JAT 021915 // PJSA 11-16-2006
+	}
 
- makeSubToSubEtc();
+	makeSubToSubEtc();
 
-	if(subToSub) globalNumSub = subToSub->csize(); // JAT 021915 // JAT 021916
+	if(subToSub)
+		globalNumSub = subToSub->csize(); // JAT 021915 // JAT 021916
 
 	if(soweredInput)
 		globalNumSub = communicator->globalMax(geoSource->subToNode_sparse->csize());
 
- if(!cpuToSub) getCPUMap();
+	if(!cpuToSub) getCPUMap();
 
- if(verboseFlag) filePrint(stderr, " ... Making the Subdomains          ...\n");
- makeSubDomains();
+	if(verboseFlag) filePrint(stderr, " ... Making the Subdomains          ...\n");
+	makeSubDomains();
 
- preProcessBCsEtc();
+	preProcessBCsEtc();
 
- preProcessFSIs();// FLuid-Structure Interaction
+	preProcessFSIs();// FLuid-Structure Interaction
 
 	if(soweredInput)
 		buildSharedNodeComm(geoSource->nodeToSub_sparse, geoSource->subToNode_sparse);
 	else
 		buildSharedNodeComm(nodeToSub.get(), subToNode.get());
 
- makeCorners();// Corners for FETI-DP
+	makeCorners();// Corners for FETI-DP
 
- getSharedDOFs();
+	getSharedDOFs();
 
- preProcessMPCs();//Multi-Point Constraint
+	preProcessMPCs();//Multi-Point Constraint
 
- getSharedFSIs();
+	getSharedFSIs();
 
- getSharedMPCs();
+	getSharedMPCs();
 
- paralApply(subDomain, &BaseSub::mergeInterfaces);
- paralApply(subDomain, &GenSubDomain<Scalar>::applySplitting);
+	paralApply(subDomain, &BaseSub::mergeInterfaces);
+	paralApply(subDomain, &GenSubDomain<Scalar>::applySplitting);
 
- //paralApply(subDomain, &GenSubDomain<Scalar>::initSrc);
- makeInternalInfo();
+	//paralApply(subDomain, &GenSubDomain<Scalar>::initSrc);
+	makeInternalInfo();
 
- makeNodeInfo();
+	makeNodeInfo();
 
 #ifdef DISTRIBUTED
- if( ! coarseLevel ) {
-	 geoSource->setNumNodalOutput();
-	 if (geoSource->getNumNodalOutput()) {
-		 for (int i = 0; i < numSub; ++i)
-			 geoSource->distributeOutputNodesX(subDomain[i], (nodeToSub_copy) ? nodeToSub_copy.get()
-			                                                                  : nodeToSub.get()); // make sure each node always gets
-		 // assigned to the same subdomain.
-	 }
- }
+	if( ! coarseLevel ) {
+		geoSource->setNumNodalOutput();
+		if (geoSource->getNumNodalOutput()) {
+			for (int i = 0; i < numSub; ++i)
+				geoSource->distributeOutputNodesX(subDomain[i], (nodeToSub_copy) ? nodeToSub_copy.get()
+				                                                                 : nodeToSub.get()); // make sure each node always gets
+			// assigned to the same subdomain.
+		}
+	}
 #endif
 
- // compute the number of unconstrained dofs for timing file and screen output
- GenDistrVector<int> toto(masterSolVecInfo());
- toto = 1;
- domain->setNumDofs(toto.sqNorm()+domain->nDirichlet()+domain->nCDirichlet());
+	// compute the number of unconstrained dofs for timing file and screen output
+	GenDistrVector<int> toto(masterSolVecInfo());
+	toto = 1;
+	domain->setNumDofs(toto.sqNorm()+domain->nDirichlet()+domain->nCDirichlet());
 
- // free up some memory
- if(domain->solInfo().solvercntl->type != SolverSelection::Direct && domain->solInfo().aeroFlag < 0) {
- 	elemToSub.reset();
-   //if(!geoSource->elemOutput() && elemToNode) { delete elemToNode; elemToNode = 0; }
- }
+	// free up some memory
+	if(domain->solInfo().solvercntl->type != SolverSelection::Direct && domain->solInfo().aeroFlag < 0) {
+		elemToSub.reset();
+		//if(!geoSource->elemOutput() && elemToNode) { delete elemToNode; elemToNode = 0; }
+	}
 }
 
 template<class Scalar>

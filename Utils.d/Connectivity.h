@@ -480,7 +480,7 @@ Connectivity BaseConnectivity<A,Accessor>::transcon(const BaseConnectivity<B,AB>
 
 	// Compute the new pointers
 	std::vector<size_t> np(size+1);
-	int cp = 0;
+	size_t cp = 0;
 	for(i = 0; i < size; ++i) {
 		np[i] = cp;
 		int nTg =  num(i); //Accessor<A>::getNum(static_cast<A*>(this), i);
@@ -537,11 +537,11 @@ Connectivity* BaseConnectivity<A,Accessor>::transcon(const BaseConnectivity<B, A
 	std::vector<int>flags(tgmax, -1);
 
 	// Compute the new pointers
-	int *np = new int[size+1];
-	int cp = 0;
+	std::vector<size_t> np(size+1);
+	size_t cp = 0;
 	for(i = 0; i < size; ++i) {
 		np[i] = cp;
-		int nTg =  num(i); //Accessor<A>::getNum(static_cast<A*>(this), i);
+		auto nTg =  num(i); //Accessor<A>::getNum(static_cast<A*>(this), i);
 		auto tg = (*this)[i]; //Accessor<A>::getData(static_cast<A*>(this), i);
 		for(j = 0; j < nTg; ++j) {
 			int intermed = tg[j];
@@ -557,7 +557,7 @@ Connectivity* BaseConnectivity<A,Accessor>::transcon(const BaseConnectivity<B, A
 
 	// Now allocate and fill the new target
 	flags.assign(tgmax, -1);
-	int *ntg = new int[cp];
+	std::vector<int> ntg(cp);
 	cp = 0;
 	for(i = 0; i < size; ++i) {
 		int nTg = num(i); //Accessor<A>::getNum(static_cast<A*>(this), i);
@@ -573,7 +573,7 @@ Connectivity* BaseConnectivity<A,Accessor>::transcon(const BaseConnectivity<B, A
 				}
 		}
 	}
-	Connectivity *res = new Connectivity(size, np, ntg);
+	Connectivity *res = new Connectivity(size, std::move(np), std::move(ntg));
 	return res;
 }
 
@@ -696,7 +696,7 @@ Connectivity::Connectivity(const SetAccess<A> &sa)
 
 	// Find out the number of targets we will have
 	pointer.resize(size+1) ;
-	int pp = 0;
+	size_t pp = 0;
 	for(i=0; i < size; ++i) {
 		pointer[i] = pp;
 		pp += sa.numNodes(i);
@@ -767,8 +767,11 @@ template<typename TargetLister>
 Connectivity Connectivity::fromElements(Connectivity::IndexCount numSources, TargetLister lister)
 {
 	return fromElements(numSources,
-		[&lister](auto idx) { const auto &tg = lister(idx); return std::distance(tg.begin(), tg.end()); },
-		lister);
+	                    [&lister](auto idx) {
+		                    const auto &tg = lister(idx);
+		                    return std::distance(tg.begin(), tg.end());
+	                    },
+	                    lister);
 //	using TargetType = int;
 //	using PointerType = int;
 //	std::vector<PointerType> pointer;

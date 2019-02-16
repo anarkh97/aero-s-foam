@@ -326,82 +326,82 @@ NonLinStatic::getRHS(Vector& rhs)
 void
 NonLinStatic::preProcess(bool factor)
 {
- // Allocate space for the Static Timers
- if(!times) times = new StaticTimers;
+	// Allocate space for the Static Timers
+	if(!times) times = new StaticTimers;
 
- startTimerMemory(times->preProcess, times->memoryPreProcess);
+	startTimerMemory(times->preProcess, times->memoryPreProcess);
 
- times->timePre -= getTime();
- domain->preProcessing();
- times->timePre += getTime();
+	times->timePre -= getTime();
+	domain->preProcessing();
+	times->timePre += getTime();
 
- int numdof = domain->numdof();
+	int numdof = domain->numdof();
 
- times->makeBCs -= getTime();
- int *bc = (int *) dbg_alloca(sizeof(int)*numdof);
- if(!bcx) bcx = new double[numdof];
+	times->makeBCs -= getTime();
+	std::vector<int> bc(numdof);
+	if(!bcx) bcx = new double[numdof];
 
- // Make the boundary conditions info
- domain->make_bc(bc, bcx);
- if(!reactions) { 
-   reactions = new Vector(domain->nDirichlet()); 
-   reactions->zero();
- }
+	// Make the boundary conditions info
+	domain->make_bc(bc.data(), bcx);
+	if(!reactions) {
+		reactions = new Vector(domain->nDirichlet());
+		reactions->zero();
+	}
 
- times->makeBCs += getTime();
+	times->makeBCs += getTime();
 
- // Now, call make_constrainedDSA(bc) to 
- // built c_dsa that will incorporate all 
- // the boundary conditions info
+	// Now, call make_constrainedDSA(bc) to
+	// built c_dsa that will incorporate all
+	// the boundary conditions info
 
- times->makeDOFs -= getTime();
- domain->make_constrainedDSA(bc);
- domain->makeAllDOFs();
- times->makeDOFs += getTime();
+	times->makeDOFs -= getTime();
+	domain->make_constrainedDSA(bc);
+	domain->makeAllDOFs();
+	times->makeDOFs += getTime();
 
- stopTimerMemory(times->preProcess, times->memoryPreProcess);
- AllOps<double> allOps;
+	stopTimerMemory(times->preProcess, times->memoryPreProcess);
+	AllOps<double> allOps;
 
- long buildMem = -memoryUsed();
- times->timeBuild -= getTime();
+	long buildMem = -memoryUsed();
+	times->timeBuild -= getTime();
 
- if(domain->solInfo().rbmflg) {
-   Rbm *rigidBodyModes = domain->constructRbm(); // new policy is to construct rbms if GRBM is requested in input file
-                                                 // but only use them when it is appropriate to do so. In nonlinear statics it is not
-                                                 // since the nullity of the tangent stiffness matrix may be less than the nullity
-                                                 // of the number of rigid body modes
-   delete rigidBodyModes;
- }
- 
- domain->buildOps<double>(allOps, 1.0, 0.0, 0.0, (Rbm *) NULL, kelArray,
-                          (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL, factor);
- times->timeBuild += getTime();
- buildMem += memoryUsed();
+	if(domain->solInfo().rbmflg) {
+		Rbm *rigidBodyModes = domain->constructRbm(); // new policy is to construct rbms if GRBM is requested in input file
+		// but only use them when it is appropriate to do so. In nonlinear statics it is not
+		// since the nullity of the tangent stiffness matrix may be less than the nullity
+		// of the number of rigid body modes
+		delete rigidBodyModes;
+	}
 
- solver = allOps.sysSolver;
- spm = allOps.spm;
- prec = allOps.prec;
- spp = allOps.spp;
+	domain->buildOps<double>(allOps, 1.0, 0.0, 0.0, (Rbm *) NULL, kelArray,
+	                         (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL, factor);
+	times->timeBuild += getTime();
+	buildMem += memoryUsed();
 
- if(!allCorot) { // first time only
-   // ... CREATE THE ARRAY OF ELEMENT COROTATORS
-   startTimerMemory(times->preProcess, times->memoryPreProcess);
-   times->corotatorTime -= getTime();
-   allCorot = new Corotator *[domain->numElements()];
-   domain->createCorotators(allCorot);
-   times->corotatorTime += getTime();
- }
+	solver = allOps.sysSolver;
+	spm = allOps.spm;
+	prec = allOps.prec;
+	spp = allOps.spp;
 
- if(!kelArray) { // first time only
-   // ... CREATE THE ARRAY OF ELEMENT STIFFNESS MATRICES
-   times->kelArrayTime -= getTime();
-   domain->createKelArray(kelArray);
-   times->kelArrayTime += getTime();
-   stopTimerMemory(times->preProcess, times->memoryPreProcess);
- }
+	if(!allCorot) { // first time only
+		// ... CREATE THE ARRAY OF ELEMENT COROTATORS
+		startTimerMemory(times->preProcess, times->memoryPreProcess);
+		times->corotatorTime -= getTime();
+		allCorot = new Corotator *[domain->numElements()];
+		domain->createCorotators(allCorot);
+		times->corotatorTime += getTime();
+	}
 
- // Set the nonlinear tolerance used for convergence
- tolerance = domain->solInfo().getNLInfo().tolRes;
+	if(!kelArray) { // first time only
+		// ... CREATE THE ARRAY OF ELEMENT STIFFNESS MATRICES
+		times->kelArrayTime -= getTime();
+		domain->createKelArray(kelArray);
+		times->kelArrayTime += getTime();
+		stopTimerMemory(times->preProcess, times->memoryPreProcess);
+	}
+
+	// Set the nonlinear tolerance used for convergence
+	tolerance = domain->solInfo().getNLInfo().tolRes;
 }
 
 Solver *

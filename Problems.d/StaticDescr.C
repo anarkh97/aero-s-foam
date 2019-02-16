@@ -105,87 +105,87 @@ template<class T, class VectorType, class SolverType>
 void
 SingleDomainStatic<T, VectorType, SolverType>::preProcess()
 {
- // Allocate space for the Static Timers
- times = new StaticTimers;
+	// Allocate space for the Static Timers
+	times = new StaticTimers;
 
- startTimerMemory(times->preProcess, times->memoryPreProcess);
+	startTimerMemory(times->preProcess, times->memoryPreProcess);
 
- // Makes renumbering, connectivities and dofsets
- domain->preProcessing();
+	// Makes renumbering, connectivities and dofsets
+	domain->preProcessing();
 
- int numdof = domain->numdof();
+	int numdof = domain->numdof();
 
- times->makeBCs -= getTime();
- int *bc = (int *) dbg_alloca(sizeof(int)*numdof);
- bcx     = new T[numdof];
+	times->makeBCs -= getTime();
+	std::vector<int> bc(numdof);
+	bcx     = new T[numdof];
 
- // Make boundary conditions info
- if(domain->getImplicitFlag() || domain->nCDirichlet()) {
-   if(domain->getImplicitFlag()) bcxC = new DComplex[numdof * domain->getNumWaveDirections()];
-   else bcxC = new DComplex[numdof];
-   ((HData *)domain)->make_bc(domain, bc, bcxC);
-   for(int i=0; i<numdof; ++i) ScalarTypes::copy(bcx[i],bcxC[i]); // temp fix, needs to be done for every direction before post processing
- }
- else domain->make_bc(bc,bcx);
- times->makeBCs += getTime();
+	// Make boundary conditions info
+	if(domain->getImplicitFlag() || domain->nCDirichlet()) {
+		if(domain->getImplicitFlag()) bcxC = new DComplex[numdof * domain->getNumWaveDirections()];
+		else bcxC = new DComplex[numdof];
+		((HData *)domain)->make_bc(domain, bc.data(), bcxC);
+		for(int i=0; i<numdof; ++i) ScalarTypes::copy(bcx[i],bcxC[i]); // temp fix, needs to be done for every direction before post processing
+	}
+	else domain->make_bc(bc.data(),bcx);
+	times->makeBCs += getTime();
 
- // Now, call make_constrainedDSA(bc) to  built c_dsa 
- // that will incorporate all the boundary conditions info
- times->makeDOFs -= getTime();
- domain->make_constrainedDSA(bc);
- domain->makeAllDOFs();
- times->makeDOFs += getTime();
+	// Now, call make_constrainedDSA(bc) to  built c_dsa
+	// that will incorporate all the boundary conditions info
+	times->makeDOFs -= getTime();
+	domain->make_constrainedDSA(bc);
+	domain->makeAllDOFs();
+	times->makeDOFs += getTime();
 
- // if we have initial displacements, we have to consider
- // the nonlinear tangent stiffness matrix instead of the
- // linear stiffness matrix. This is due to the prestress.
+	// if we have initial displacements, we have to consider
+	// the nonlinear tangent stiffness matrix instead of the
+	// linear stiffness matrix. This is due to the prestress.
 
- kelArray  = 0;
- geomState = 0;
- allCorot  = 0;
+	kelArray  = 0;
+	geomState = 0;
+	allCorot  = 0;
 
- if(domain->numInitDisp6() > 0 && domain->solInfo().gepsFlg == 1) {
-   FullSquareMatrix *geomKelArray=0, *dummy=0;
-   domain->computeGeometricPreStress(allCorot, geomState, kelArray, times,
-                                     geomKelArray, dummy);
- }
+	if(domain->numInitDisp6() > 0 && domain->solInfo().gepsFlg == 1) {
+		FullSquareMatrix *geomKelArray=0, *dummy=0;
+		domain->computeGeometricPreStress(allCorot, geomState, kelArray, times,
+		                                  geomKelArray, dummy);
+	}
 
- stopTimerMemory(times->preProcess, times->memoryPreProcess);
+	stopTimerMemory(times->preProcess, times->memoryPreProcess);
 
- int useProjector = domain->solInfo().filterFlags;
- int useHzemFilter = domain->solInfo().hzemFilterFlag;
- int useSlzemFilter = domain->solInfo().slzemFilterFlag;
+	int useProjector = domain->solInfo().filterFlags;
+	int useHzemFilter = domain->solInfo().hzemFilterFlag;
+	int useSlzemFilter = domain->solInfo().slzemFilterFlag;
 
- if(!rigidBodyModes) {
-   // ... Construct geometric rigid body modes if necessary
-   if(useProjector || domain->solInfo().rbmflg) {
-     rigidBodyModes = domain->constructRbm();
-     if(useProjector) std::cout << " ... RBM Filter Requested           ..." << std::endl;
-   }
-   // ... Construct "thermal rigid body mode" if necessary
-   else if(useHzemFilter || domain->solInfo().hzemFlag) {
-     rigidBodyModes = domain->constructHzem();
-     if(useHzemFilter) std::cout << " ... HZEM Filter Requested          ..." << std::endl;
-   }
-   // ... Construct "sloshing rigid body mode" if necessary
-   else if(useSlzemFilter || domain->solInfo().slzemFlag) {
-     rigidBodyModes = domain->constructSlzem();
-     if(useSlzemFilter) std::cout << " ... SLZEM Filter Requested         ..." << std::endl;
-   }
- }
+	if(!rigidBodyModes) {
+		// ... Construct geometric rigid body modes if necessary
+		if(useProjector || domain->solInfo().rbmflg) {
+			rigidBodyModes = domain->constructRbm();
+			if(useProjector) std::cout << " ... RBM Filter Requested           ..." << std::endl;
+		}
+			// ... Construct "thermal rigid body mode" if necessary
+		else if(useHzemFilter || domain->solInfo().hzemFlag) {
+			rigidBodyModes = domain->constructHzem();
+			if(useHzemFilter) std::cout << " ... HZEM Filter Requested          ..." << std::endl;
+		}
+			// ... Construct "sloshing rigid body mode" if necessary
+		else if(useSlzemFilter || domain->solInfo().slzemFlag) {
+			rigidBodyModes = domain->constructSlzem();
+			if(useSlzemFilter) std::cout << " ... SLZEM Filter Requested         ..." << std::endl;
+		}
+	}
 
- if(domain->solInfo().rbmflg || domain->solInfo().hzemFlag || domain->solInfo().slzemFlag) {
-   domain->template getSolverAndKuc<T>(allOps, kelArray, rigidBodyModes);
- }
- else {
-   domain->template getSolverAndKuc<T>(allOps, kelArray, (Rbm*)NULL); 
- }
- solver = allOps.sysSolver;
- kuc = allOps.Kuc;
- kcc = allOps.Kcc;
+	if(domain->solInfo().rbmflg || domain->solInfo().hzemFlag || domain->solInfo().slzemFlag) {
+		domain->template getSolverAndKuc<T>(allOps, kelArray, rigidBodyModes);
+	}
+	else {
+		domain->template getSolverAndKuc<T>(allOps, kelArray, (Rbm*)NULL);
+	}
+	solver = allOps.sysSolver;
+	kuc = allOps.Kuc;
+	kcc = allOps.Kcc;
 
- if(useProjector || useHzemFilter || useSlzemFilter)
-   projector_prep(rigidBodyModes, allOps.M);
+	if(useProjector || useHzemFilter || useSlzemFilter)
+		projector_prep(rigidBodyModes, allOps.M);
 }
 
 template<class T, class VectorType, class SolverType>

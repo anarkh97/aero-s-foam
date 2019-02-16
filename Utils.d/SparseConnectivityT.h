@@ -7,12 +7,12 @@
 template<typename IndexType, typename DataType>
 class SparseConnectivityAccessorT {
  public:
-  static IndexType getNum(std::pair<std::map<IndexType,int>, ConnectivityT<int,DataType>*> &o, IndexType i)
+  static IndexType getNum(std::pair<std::map<IndexType,int>, ConnectivityT<size_t,DataType>*> &o, IndexType i)
     { typename std::map<IndexType,int>::const_iterator it = o.first.find(i);
       return (it != o.first.end()) ? o.second->num(it->second) : 0; }
-  static IndexType getSize(const std::pair<std::map<IndexType,int>,ConnectivityT<int,DataType>*> &o)
+  static IndexType getSize(const std::pair<std::map<IndexType,int>,ConnectivityT<size_t,DataType>*> &o)
     { return o.first.rbegin()->first+1; }
-  static gsl::span<const DataType> getData(std::pair<std::map<IndexType,int>,ConnectivityT<int,DataType>*> &o,
+  static gsl::span<const DataType> getData(std::pair<std::map<IndexType,int>,ConnectivityT<size_t,DataType>*> &o,
       IndexType i, gsl::span<DataType> nd)
     {
       typename std::map<IndexType,int>::const_iterator it = o.first.find(i);
@@ -32,10 +32,10 @@ class SparseConnectivityAccessorT {
 
 #include <Types.h>
 
-typedef std::pair<std::map<int,int>,ConnectivityT<int,gl_num_t>*> SparsePairType1;
+typedef std::pair<std::map<int,int>,ConnectivityT<size_t,gl_num_t>*> SparsePairType1;
 typedef ImplicitConnectivityT<SparsePairType1*, SparseConnectivityAccessorT<int,gl_num_t> > SparseConnectivityType1;
 
-typedef std::pair<std::map<gl_num_t,int>,ConnectivityT<int,int>*> SparsePairType2;
+typedef std::pair<std::map<gl_num_t,int>,ConnectivityT<size_t,int>*> SparsePairType2;
 typedef ImplicitConnectivityT<SparsePairType2*, SparseConnectivityAccessorT<gl_num_t,int> > SparseConnectivityType2;
 
 template <typename _IndexType, typename _DataType>

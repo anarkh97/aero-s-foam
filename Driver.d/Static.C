@@ -849,7 +849,7 @@ Domain::make_constrainedDSA()
 }
 
 void
-Domain::make_constrainedDSA(int *bc)
+Domain::make_constrainedDSA(const int *bc)
 {
  // c_dsa = constrained dof set array
  // dsa   = dof set array

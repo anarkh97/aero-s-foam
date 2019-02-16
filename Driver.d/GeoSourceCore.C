@@ -2497,122 +2497,123 @@ void GeoSource::outputElemVectors(int fileNum, DComplex *data,
 // now same function exists not reading from file
 void GeoSource::getTextDecomp(bool sowering)
 {
-  MatrixTimers &mt = domain->getTimers();
-  startTimerMemory(mt.readDecomp, mt.memoryDecomp);
+	MatrixTimers &mt = domain->getTimers();
+	startTimerMemory(mt.readDecomp, mt.memoryDecomp);
 
-  // Get Decomposition File pointer
-  FILE *f = cinfo->decPtr;
+	// Get Decomposition File pointer
+	FILE *f = cinfo->decPtr;
 
-  if(f == 0)
-	f = fopen("DECOMPOSITION","r");
+	if(f == 0)
+		f = fopen("DECOMPOSITION","r");
 
 	if(f == 0) {
-	  filePrint(stderr," **************************************************\n");
-	  filePrint(stderr," *** ERROR: DECOMPOSITION file does not exist   ***\n");
-	  filePrint(stderr," ***        Please provide a DECOMPOSITION file ***\n");
-	  filePrint(stderr," **************************************************\n");
-	  exit(-1);
+		filePrint(stderr," **************************************************\n");
+		filePrint(stderr," *** ERROR: DECOMPOSITION file does not exist   ***\n");
+		filePrint(stderr," ***        Please provide a DECOMPOSITION file ***\n");
+		filePrint(stderr," **************************************************\n");
+		exit(-1);
 	}
 
-  // get decomposition
-  if(subToElem) {
-	fprintf(stderr," ... Already read Decomposition\n");
-	return;
-  }
-  mt.memorySubToElem -= memoryUsed();
-  // Allocate memory for subdomain to element connectivity
-  int *connect = new int[nElem];
-
-  // Get the number of subdomains in Decomposition file
-  int numSub;
-  int error = fscanf(f,"%d",&numSub);
-
-  // Decomposition file error checking
-  if(error == 0) {
-	char s1[14],s2[40],s3[4],s4[40];
-	int error = fscanf(f,"%s%s%s%s",s1,s2,s3,s4);
+	// get decomposition
+	if(subToElem) {
+		fprintf(stderr," ... Already read Decomposition\n");
+		return;
+	}
+	mt.memorySubToElem -= memoryUsed();
+	// Allocate memory for subdomain to element connectivity
+	int *connect = new int[nElem];
 
 	// Get the number of subdomains in Decomposition file
-	error = fscanf(f,"%d",&numSub);
-  }
+	int numSub;
+	int error = fscanf(f,"%d",&numSub);
 
-  int *cx = new int[numSub+1];
+	// Decomposition file error checking
+	if(error == 0) {
+		char s1[14],s2[40],s3[4],s4[40];
+		int error = fscanf(f,"%s%s%s%s",s1,s2,s3,s4);
 
-  int curEle = 0;
-  int isub;
-  for (isub = 0; isub < numSub; ++isub) {
-	int nele;
-	int n = fscanf(f,"%d",&nele);
-	cx[isub] = curEle;
-	if(curEle + nele > numElem()) {
-	  fprintf(stderr," *** ERROR: This decomposition contains more elements "
-                     "than the original mesh:\n");
-	  fprintf(stderr," *** %d vs %d\n", curEle + nele, nElem);
-	  exit(1);
+		// Get the number of subdomains in Decomposition file
+		error = fscanf(f,"%d",&numSub);
 	}
 
-	int iele;
-	for (iele = 0; iele < nele; ++iele) {
-	  int n = fscanf(f,"%d",connect+curEle);
-	  connect[curEle] -= 01;
-	  curEle++;
+	int *cx = new int[numSub+1];
+
+	int curEle = 0;
+	int isub;
+	for (isub = 0; isub < numSub; ++isub) {
+		int nele;
+		int n = fscanf(f,"%d",&nele);
+		cx[isub] = curEle;
+		if(curEle + nele > numElem()) {
+			fprintf(stderr," *** ERROR: This decomposition contains more elements "
+			               "than the original mesh:\n");
+			fprintf(stderr," *** %d vs %d\n", curEle + nele, nElem);
+			exit(1);
+		}
+
+		int iele;
+		for (iele = 0; iele < nele; ++iele) {
+			int n = fscanf(f,"%d",connect+curEle);
+			connect[curEle] -= 01;
+			curEle++;
+		}
 	}
-  }
 
-  cx[numSub] = curEle;
-  // PHIL FIX THIS
-  /*int iele = 0;
-  int cEle = 0;
-  for(isub = 0; isub < numSub; ++isub) {
-	for(; iele < cx[isub+1]; iele++)
-	  if(glToPckElems.find(connect[iele]) != glToPckElems.end())
-		connect[cEle++] =  connect[iele];
-	cx[isub+1] = cEle;
-	}*/
+	cx[numSub] = curEle;
+	// PHIL FIX THIS
+	/*int iele = 0;
+	int cEle = 0;
+	for(isub = 0; isub < numSub; ++isub) {
+	  for(; iele < cx[isub+1]; iele++)
+		if(glToPckElems.find(connect[iele]) != glToPckElems.end())
+		  connect[cEle++] =  connect[iele];
+	  cx[isub+1] = cEle;
+	  }*/
 
-  if(domain->solInfo().isNonLin() && domain->GetnContactSurfacePairs() && !domain->tdenforceFlag()) {
-	optDec = new Decomposition();
-	optDec->nsub = numSub;
-	optDec->pele = new int[numSub+1];
-	optDec->eln  = new int[curEle];
-	for(int i=0; i<=numSub; i++) optDec->pele[i] = cx[i];
-	for(int i=0; i<curEle; i++) optDec->eln[i] = connect[i];
-  }
+	if(domain->solInfo().isNonLin() && domain->GetnContactSurfacePairs() && !domain->tdenforceFlag()) {
+		optDec = new Decomposition();
+		optDec->nsub = numSub;
+		optDec->pele = new int[numSub+1];
+		optDec->eln  = new int[curEle];
+		for(int i=0; i<=numSub; i++) optDec->pele[i] = cx[i];
+		for(int i=0; i<curEle; i++) optDec->eln[i] = connect[i];
+	}
 
-  subToElem = new Connectivity(numSub,cx,connect);
+	subToElem = new Connectivity(numSub,cx,connect);
 
-  subToElem->renumberTargets(glToPckElems);
+	subToElem->renumberTargets(glToPckElems);
 
-  mt.memorySubToElem += memoryUsed();
+	mt.memorySubToElem += memoryUsed();
 
-  stopTimerMemory(mt.readDecomp, mt.memoryDecomp);
+	stopTimerMemory(mt.readDecomp, mt.memoryDecomp);
 #ifdef DISTRIBUTED
-  if(!binaryInput) {
-	if(conName) {
-	  BinFileHandler connectivityFile(conName, "rb");
-	  clusToSub = std::make_unique<Connectivity>(connectivityFile, true);
-	  Connectivity *subToClusConnect = clusToSub->alloc_reverse();
-	  subToClus.resize(numSub);
-	  for(int i = 0; i < numSub; i++) subToClus[i] = (*subToClusConnect)[i][0];
-	  delete subToClusConnect;
-	  numClusters = clusToSub->csize();
+	if(!binaryInput) {
+		if(conName) {
+			BinFileHandler connectivityFile(conName, "rb");
+			clusToSub = std::make_unique<Connectivity>(connectivityFile, true);
+			Connectivity *subToClusConnect = clusToSub->alloc_reverse();
+			subToClus.resize(numSub);
+			for(int i = 0; i < numSub; i++)
+				subToClus[i] = (*subToClusConnect)[i][0];
+			delete subToClusConnect;
+			numClusters = clusToSub->csize();
+		}
+		else {
+			subToClus.resize(numSub);
+			for(int i = 0; i < numSub; i++)
+				subToClus[i] = 0;
+			numClusters = 1;
+			int *ptr = new int[2];
+			int *target = new int[numSub];
+			for(int i = 0; i < numSub; i++)
+				target[i] = i;
+			ptr[0] = 0;
+			ptr[1] = numSub;
+			clusToSub = std::make_unique<Connectivity>(1,ptr,target);
+			numClusNodes = nGlobNodes;
+			numClusElems = nElem; //HB: not sure this is be always correct (i.e. phantoms els ...)
+		}
 	}
-	else {
-	  subToClus.resize(numSub);
-	  for(int i = 0; i < numSub; i++)
-		subToClus[i] = 0;
-	  numClusters = 1;
-	  int *ptr = new int[2];
-	  int *target = new int[numSub];
-	  for(int i = 0; i < numSub; i++)
-		target[i] = i;
-	  ptr[0] = 0;
-	  ptr[1] = numSub;
-	clusToSub = std::make_unique<Connectivity>(1,ptr,target);
-	  numClusNodes = nGlobNodes;
-	  numClusElems = nElem; //HB: not sure this is be always correct (i.e. phantoms els ...)
-	}
-  }
 #endif
 }
 
@@ -4745,98 +4746,103 @@ void GeoSource::writeDistributedInputFiles(int nCluster, Domain *domain, int nCp
 std::unique_ptr<Connectivity>
 GeoSource::getDecomposition()
 {
-  if(binaryInput) getBinaryDecomp();
-  else if(!optDec) getTextDecomp();
-  else {
-	int i;
-	int numSub = optDec->nsub;
-	// Allocate memory for offsets
-	int *cx = new int[numSub+1];
-	// Allocate memory for subdomain to element connectivity
-	nElem=0;
-	for(i=0; i<numSub; i++) nElem += optDec->num(i);
-	int *connect = new int[nElem];
-	for(i=0; i<=numSub; i++) cx[i] = optDec->pele[i];
-	for(i=0; i<nElem; i++) connect[i] = optDec->eln[i];
-	subToElem = new Connectivity(numSub,cx,connect);
-	subToElem->renumberTargets(glToPckElems);  // required if gaps in element numbering
+	if(binaryInput)
+		getBinaryDecomp();
+	else if(!optDec)
+		getTextDecomp();
+	else {
+		int i;
+		int numSub = optDec->nsub;
+		// Allocate memory for offsets
+		int *cx = new int[numSub+1];
+		// Allocate memory for subdomain to element connectivity
+		nElem=0;
+		for(i=0; i<numSub; i++) nElem += optDec->num(i);
+		int *connect = new int[nElem];
+		for(i=0; i<=numSub; i++) cx[i] = optDec->pele[i];
+		for(i=0; i<nElem; i++) connect[i] = optDec->eln[i];
+		subToElem = new Connectivity(numSub,cx,connect);
+		subToElem->renumberTargets(glToPckElems);  // required if gaps in element numbering
 
 #ifdef DISTRIBUTED
-	  if(conName) {
-		  BinFileHandler connectivityFile(conName, "rb");
-		  clusToSub = std::make_unique<Connectivity>(connectivityFile, true);
-		  Connectivity subToClusConnect = clusToSub->reverse();
-		  subToClus.resize(numSub);
-		  for(int i = 0; i < numSub; i++) subToClus[i] = subToClusConnect[i][0];
-		  numClusters = clusToSub->csize();
-	  }
-	  else {
-		  subToClus.resize(numSub);
-		  for(int i = 0; i < numSub; i++)
-			  subToClus[i] = 0;
-		  numClusters = 1;
-		  std::vector<int> target(numSub); std::iota(target.begin(), target.end(), 0);
-		  std::vector<size_t> ptr(2);
-		  ptr[0] = 0;
-		  ptr[1] = numSub;
-		  clusToSub = std::make_unique<Connectivity>(1,std::move(ptr),std::move(target));
-		  numClusNodes = nGlobNodes;
-		  numClusElems = nElem; //HB: not sure this is be always correct (i.e. phantoms els ...)
-	  }
+		if(conName) {
+			BinFileHandler connectivityFile(conName, "rb");
+			clusToSub = std::make_unique<Connectivity>(connectivityFile, true);
+			Connectivity subToClusConnect = clusToSub->reverse();
+			subToClus.resize(numSub);
+			for(int i = 0; i < numSub; i++)
+				subToClus[i] = subToClusConnect[i][0];
+			numClusters = clusToSub->csize();
+		}
+		else {
+			subToClus.resize(numSub);
+			for(int i = 0; i < numSub; i++)
+				subToClus[i] = 0;
+			numClusters = 1;
+			std::vector<int> target(numSub); std::iota(target.begin(), target.end(), 0);
+			std::vector<size_t> ptr(2);
+			ptr[0] = 0;
+			ptr[1] = numSub;
+			clusToSub = std::make_unique<Connectivity>(1,std::move(ptr),std::move(target));
+			numClusNodes = nGlobNodes;
+			numClusElems = nElem; //HB: not sure this is be always correct (i.e. phantoms els ...)
+		}
 #endif
-  }
-  if(matchName != NULL && !unsortedSubToElem) unsortedSubToElem = new Connectivity(*subToElem);
-  return std::make_unique<Connectivity>( *subToElem );
+	}
+	if(matchName != NULL && !unsortedSubToElem) unsortedSubToElem = new Connectivity(*subToElem);
+	return std::make_unique<Connectivity>( *subToElem );
 }
 
 void GeoSource::getBinaryDecomp()
 {
-  if(!subToElem) {
-	int myID = structCom->myID();
-	std::ostringstream oss;
+	if(!subToElem) {
+		int myID = structCom->myID();
+		std::ostringstream oss;
 
-	FILE *f = fopen(mapName,"r"); // JAT 080515
-	if(f == 0) {
-	  filePrint(stderr, "*** ERROR: Cannot open CPU Map file %s\n", mapName);
-	  exit(-1);
-	}
-	cpuToSub = std::make_shared<Connectivity>(f,0);
-	fclose(f);
-	int numCPU = cpuToSub->csize();
-	if(numCPU != structCom->numCPUs()) {
-	  fprintf(stderr, " *** ERROR: CPU Map file %s is for %d CPUs\n", mapName, numCPU);
-	  exit(-1);
-	}
+		FILE *f = fopen(mapName,"r"); // JAT 080515
+		if(f == 0) {
+			filePrint(stderr, "*** ERROR: Cannot open CPU Map file %s\n", mapName);
+			exit(-1);
+		}
+		cpuToSub = std::make_shared<Connectivity>(f,0);
+		fclose(f);
+		int numCPU = cpuToSub->csize();
+		if(numCPU != structCom->numCPUs()) {
+			fprintf(stderr, " *** ERROR: CPU Map file %s is for %d CPUs\n", mapName, numCPU);
+			exit(-1);
+		}
 
-	int firstSubInCPU = (*cpuToSub)[myID][0]; // JAT 080315
-    for(int i = 0; i < cpuToSub->num(myID); ++i) {
-      if(subToClus[(*cpuToSub)[myID][i]] != subToClus[firstSubInCPU]) {
-        fprintf(stderr, " *** ERROR: Subdomains mapped to CPU %d are not in the same cluster\n", myID);
-        exit(-1);
-      }
-    }
-	oss << decomposition_ << subToClus[firstSubInCPU]+1;
-	BinFileHandler fp(oss.str().c_str(), "rb");
+		int firstSubInCPU = (*cpuToSub)[myID][0]; // JAT 080315
+		for(int i = 0; i < cpuToSub->num(myID); ++i) {
+			if(subToClus[(*cpuToSub)[myID][i]] != subToClus[firstSubInCPU]) {
+				fprintf(stderr, " *** ERROR: Subdomains mapped to CPU %d are not in the same cluster\n", myID);
+				exit(-1);
+			}
+		}
+		oss << decomposition_ << subToClus[firstSubInCPU]+1;
+		BinFileHandler fp(oss.str().c_str(), "rb");
 
-	ConnectivityT<int,int> csubToSub2(fp);
-	ConnectivityT<int,gl_node_idx> *csubToNode = new ConnectivityT<int,gl_node_idx>(fp);
-	ConnectivityT<int,gl_node_idx> cnodeToNode(fp);
-	ConnectivityT<int,int> *cnodeToSub = new ConnectivityT<int,int>(fp);
+		ConnectivityT<size_t,int> csubToSub2(fp);
+		ConnectivityT<size_t,gl_node_idx> *csubToNode = new ConnectivityT<size_t,gl_node_idx>(fp);
+		ConnectivityT<size_t,gl_node_idx> cnodeToNode(fp);
+		ConnectivityT<size_t,int> *cnodeToSub = new ConnectivityT<size_t,int>(fp);
 
-	std::map<gl_sub_idx, lc_sub_idx> glToLocSub2;
-	for(int j=0; j<csubToSub2.csize(); ++j) glToLocSub2.insert(std::pair<int,int>(csubToSub2[j][0], j));
-	std::map<gl_node_idx, lc_node_idx> glToLocNode;
-	for(int j=0; j<cnodeToNode.csize(); ++j) glToLocNode.insert(std::pair<gl_node_idx,int>(cnodeToNode[j][0], j));
-    numClusNodes = cnodeToNode.csize();
+		std::map<gl_sub_idx, lc_sub_idx> glToLocSub2;
+		for(int j=0; j<csubToSub2.csize(); ++j)
+			glToLocSub2.insert(std::pair<int,int>(csubToSub2[j][0], j));
+		std::map<gl_node_idx, lc_node_idx> glToLocNode;
+		for(int j=0; j<cnodeToNode.csize(); ++j)
+			glToLocNode.insert(std::pair<gl_node_idx,int>(cnodeToNode[j][0], j));
+		numClusNodes = cnodeToNode.csize();
 
-	SparsePairType1 *subnode = new SparsePairType1(glToLocSub2,csubToNode);
-	subToNode_sparse = new SparseConnectivityType1(subnode);
+		SparsePairType1 *subnode = new SparsePairType1(glToLocSub2,csubToNode);
+		subToNode_sparse = new SparseConnectivityType1(subnode);
 
-	SparsePairType2 *nodesub = new SparsePairType2(glToLocNode,cnodeToSub);
-	nodeToSub_sparse = new SparseConnectivityType2(nodesub);
+		SparsePairType2 *nodesub = new SparsePairType2(glToLocNode,cnodeToSub);
+		nodeToSub_sparse = new SparseConnectivityType2(nodesub);
 
 #ifdef SOWER_DEBUG
-	for(int i=0; i<structCom->numCPUs(); ++i) {
+		for(int i=0; i<structCom->numCPUs(); ++i) {
 	  if(i == structCom->myID()) {
 		//std::cerr << "subToElem_sparse = \n"; subToElem_sparse->print();
 		//std::cerr << "elemToSub_sparse = \n"; elemToSub_sparse->print();
@@ -4845,7 +4851,7 @@ void GeoSource::getBinaryDecomp()
 	  }
 	}
 #endif
-  }
+	}
 }
 
 void GeoSource::readGlobalBinaryData()

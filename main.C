@@ -725,7 +725,8 @@ int main(int argc, char** argv)
    geoSource->transformCoords();
  }
 
- if(geoSource->binaryInput) geoSource->readGlobalBinaryData();
+ if(geoSource->binaryInput)
+ 	geoSource->readGlobalBinaryData();
 #ifdef SOWER_SURFS
  else {
 #endif

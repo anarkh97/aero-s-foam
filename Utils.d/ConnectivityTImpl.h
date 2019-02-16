@@ -22,11 +22,11 @@ ConnectivityT<IndexType,DataType,Map>::ConnectivityT(IndexType _size, IndexType 
 template<typename IndexType, typename DataType, typename Map>
 ConnectivityT<IndexType,DataType,Map>::ConnectivityT(BinFileHandler& f, bool oldSower)
 {
-	IndexType size;
+	size_t size;
 	f.read(&size,1);
 	pointer.resize(size);
 	f.read(pointer.data(),size);
-	IndexType numtarget = pointer.back();
+	size_t numtarget = pointer.back();
 	f.read(&numtarget,1);
 	target.resize(numtarget);
 	f.read(target.data(),numtarget);
@@ -35,10 +35,10 @@ ConnectivityT<IndexType,DataType,Map>::ConnectivityT(BinFileHandler& f, bool old
 template<typename IndexType, typename DataType, typename Map>
 size_t ConnectivityT<IndexType,DataType,Map>::write(BinFileHandler& f) const
 {
-	IndexType _size = pointer.size();
+	size_t _size = pointer.size();
 	f.write(&_size,1);
 	f.write(pointer.data(),_size);
-	IndexType numtarget = getNumTarget();
+	size_t numtarget = getNumTarget();
 	f.write(&numtarget,1);
 	f.write(target.data(),numtarget);
 	return 0;

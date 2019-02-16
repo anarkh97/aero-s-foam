@@ -498,6 +498,12 @@ public:
 	bool getSowering() { return sowering;}
 	void make_bc(int *bc, double *bcx);
 	void make_bc(int *bc, DComplex *bcxC);
+	void make_bc(gsl::span<int> bc, gsl::span<double> bcx) {
+		make_bc(bc.data(), bcx.data());
+	}
+	void make_bc(gsl::span<int> bc, gsl::span<DComplex> bcx) {
+		make_bc(bc.data(), bcx.data());
+	}
 	void makeAllDOFs();
 	void makeAllDOFsFluid();
 	void setNumShapeVars(int _numS) { numShapeVars = _numS; }
@@ -1194,7 +1200,11 @@ public:
 	void getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, Rbm *rbm, bool factorize=true);
 
 	void make_constrainedDSA();
-	void make_constrainedDSA(int *bc);
+	void make_constrainedDSA(const int *bc);
+
+	void make_constrainedDSA(gsl::span<const int> bc) {
+		make_constrainedDSA(bc.data());
+	}
 	void make_constrainedDSA(int fake);
 
 	// returns the number of dof

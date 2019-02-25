@@ -30,7 +30,7 @@ public:
 	explicit SuperElement(bool = false);
 
 	~SuperElement() override;
-	Category getCategory() const override { return Category::Undefined; }
+	Category getCategory() const override { return subElems[0]->getCategory(); }
 
 	double * getPreviouslyComputedSubExternalForce(int i) { return (sub_extf) ? sub_extf[i] : 0; }
 

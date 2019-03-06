@@ -31,7 +31,7 @@ typedef struct {
    
 typedef struct {
    int num;
-   int nd[125];
+   int nd[500];
 } NumList;
 
 struct NumedElem {

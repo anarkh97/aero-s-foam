@@ -3400,7 +3400,7 @@ NodeNums:
 	Integer
 	{ $$.num = 1; $$.nd[0] = $1-1;}
 	| NodeNums Integer
-	{ if($$.num == 125) return -1; 
+	{ if($$.num == 500) return -1; 
           $$.nd[$$.num] = $2-1; $$.num++;}
 	;
 BC_Data:

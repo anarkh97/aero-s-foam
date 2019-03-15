@@ -535,8 +535,8 @@ GenFetiDPSolver<Scalar>::makeKcc()
 			groupToSub = groupToBody->transcon(bodyToSub);
 			subToGroup = groupToSub->alloc_reverse();
 		}
-		if(renumber.xcomp) delete [] renumber.xcomp;
-		if(renumber.renum) delete [] renumber.renum;
+		delete [] renumber.xcomp;
+		delete [] renumber.renum;
 		delete subToMpc;
 		delete mpcToBody;
 	}
@@ -1246,144 +1246,140 @@ GenFetiDPSolver<Scalar>::solveCG(const GenDistrVector<Scalar> &_f, GenDistrVecto
  printSummary(iter);
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenFetiDPSolver<Scalar>::solveGMRES(const GenDistrVector<Scalar> &_f, GenDistrVector<Scalar> &u)
 {
 	GenDistrVector<Scalar> f{_f}; // The force gets redistributed between subdomains.
- this->times.solve -= getTime(); 
- t7 = -getTime();
- if(this->oSetGMRES->numDir() > 0) this->oSetGMRES->reInit(); // just in case someone tries to use MRHS with GMRES
+	this->times.solve -= getTime();
+	t7 = -getTime();
+	if(this->oSetGMRES->numDir() > 0) this->oSetGMRES->reInit(); // just in case someone tries to use MRHS with GMRES
 
- GenDistrVector<Scalar> &ur = this->wksp->ret_ur(); ur.zero();
- GenDistrVector<Scalar> &dur = this->wksp->ret_du(); dur.zero();
- GenDistrVector<Scalar> &lambda0 = this->wksp->ret_lambda();
- GenDistrVector<Scalar> &r = this->wksp->ret_r(); r.zero();
- GenDistrVector<Scalar> &z = this->wksp->ret_z(); z.zero();
- GenDistrVector<Scalar> &Fp = this->wksp->ret_Fp(); Fp.zero();
- GenVector<Scalar> &uc = this->wksp->ret_uc();
- GenVector<Scalar> &duc = this->wksp->ret_duc();
- GenDistrVector<Scalar> &deltaU  = this->wksp->ret_deltaU(); deltaU.zero();
+	GenDistrVector<Scalar> &ur = this->wksp->ret_ur(); ur.zero();
+	GenDistrVector<Scalar> &dur = this->wksp->ret_du(); dur.zero();
+	GenDistrVector<Scalar> &lambda0 = this->wksp->ret_lambda();
+	GenDistrVector<Scalar> &r = this->wksp->ret_r(); r.zero();
+	GenDistrVector<Scalar> &z = this->wksp->ret_z(); z.zero();
+	GenDistrVector<Scalar> &Fp = this->wksp->ret_Fp(); Fp.zero();
+	GenVector<Scalar> &uc = this->wksp->ret_uc();
+	GenVector<Scalar> &duc = this->wksp->ret_duc();
+	GenDistrVector<Scalar> &deltaU  = this->wksp->ret_deltaU(); deltaU.zero();
 
- GenDistrVector<Scalar> &fr = this->wksp->ret_fr(); 
- GenVector<Scalar> &fc = this->wksp->ret_fc();
- GenDistrVector<Scalar> &fw = this->wksp->ret_fw();
+	GenDistrVector<Scalar> &fr = this->wksp->ret_fr();
+	GenVector<Scalar> &fc = this->wksp->ret_fc();
+	GenDistrVector<Scalar> &fw = this->wksp->ret_fw();
 
- double ff = extractForceVectors(f, fr, fc, fw);
+	double ff = extractForceVectors(f, fr, fc, fw);
 
- computeL0(lambda0, f);
+	computeL0(lambda0, f);
 
- // Solve uc = Kcc^-1(  fc + Krr^-1 Krc^T lambda0) 
- //          = Kcc^-1(  fc )
- // Solve ur = Krr^-1 ( fr - Br^T lambda0 - Krc uc)
- //   and  r = Br ur
- localSolveAndJump(fr, lambda0, ur, fc, uc, r, fw);
+	// Solve uc = Kcc^-1(  fc + Krr^-1 Krc^T lambda0)
+	//          = Kcc^-1(  fc )
+	// Solve ur = Krr^-1 ( fr - Br^T lambda0 - Krc uc)
+	//   and  r = Br ur
+	localSolveAndJump(fr, lambda0, ur, fc, uc, r, fw);
 
- double r0Norm2 = r.sqNorm();  
- if(verboseFlag) filePrint(stderr," ... Initial residual norm %e\n", sqrt(r0Norm2) );
- if(r0Norm2 == 0.0) {  mergeSolution(ur, uc, u, lambda0); return; }
+	double r0Norm2 = r.sqNorm();
+	if(verboseFlag) filePrint(stderr," ... Initial residual norm %e\n", sqrt(r0Norm2) );
+	if(r0Norm2 == 0.0) {  mergeSolution(ur, uc, u, lambda0); return; }
 
- // Precondition r, 
- double error = preCondition(r, z);  // z = F^-1 r
+	// Precondition r,
+	double error = preCondition(r, z);  // z = F^-1 r
 
 // if((fetiInfo->numPrint() > 0) && (fetiInfo->numPrint() < 10))
- if(verboseFlag)
-   filePrint(stderr," Iteration  Relative Primal Error  Relative Preconditioned Dual Error\n");
+	if(verboseFlag)
+		filePrint(stderr," Iteration  Relative Primal Error  Relative Preconditioned Dual Error\n");
 
- GenDistrVector<Scalar> *rzero = new GenDistrVector<Scalar>(this->interface);
- GenDistrVector<Scalar> *zzero = new GenDistrVector<Scalar>(this->interface);
- GenDistrVector<Scalar> *medvec = new GenDistrVector<Scalar>(this->interface);
- GenDistrVector<Scalar> *lambda = new GenDistrVector<Scalar>(this->interface);
+	GenDistrVector<Scalar> rzero(this->interface);
+	GenDistrVector<Scalar> zzero(this->interface);
+	GenDistrVector<Scalar> medvec(this->interface);
+	GenDistrVector<Scalar> lambda(this->interface);
 
- *rzero = r;
- *zzero = z; 
+	rzero = r;
+	zzero = z;
 
- this->initGMRES(z);
+	this->initGMRES(z);
 
- bool primalresidual = fetiInfo->gmresResidual;
- int J = 0;
- const int ReStep = fetiInfo->maxortho; // for restarted GMRES
+	bool primalresidual = fetiInfo->gmresResidual;
+	int J = 0;
+	const int ReStep = fetiInfo->maxortho; // for restarted GMRES
 
- for(int iter = 0; true; ++iter) {
-   // Arnoldi iteration (Algorithm see Saad SISC) 
-   for (int j=0; j<ReStep; j++, J++, ++iterTotal) {
+	for(int iter = 0; true; ++iter) {
+		// Arnoldi iteration (Algorithm see Saad SISC)
+		for (int j=0; j<ReStep; j++, J++, ++iterTotal) {
 
-     localSolveAndJump(z, dur, duc, Fp); // Fp = F*z
+			localSolveAndJump(z, dur, duc, Fp); // Fp = F*z
 
-     error = preCondition(Fp, *medvec);   // medvec = M^-1*Fp
+			error = preCondition(Fp, medvec);   // medvec = M^-1*Fp
 
-     // Do Arnoldi step 
-     double resGMRES = this->orthoAddGMRES(z, *medvec);   
+			// Do Arnoldi step
+			double resGMRES = this->orthoAddGMRES(z, medvec);
 
-     if((fabs(resGMRES)<=sqrt(this->epsilon2*ff)) || (J == this->maxiter-1) || primalresidual) {
+			if((fabs(resGMRES)<=sqrt(this->epsilon2*ff)) || (J == this->maxiter-1) || primalresidual) {
 
-       primalresidual = true; // Since now we compute the primal residual in each step
-         
-       this->GMRESSolution(*lambda);
+				primalresidual = true; // Since now we compute the primal residual in each step
 
-       localSolveAndJump(*lambda, dur, duc, Fp);  // Fp = F*lambda
+				this->GMRESSolution(lambda);
 
-       r.linC(1.0,*rzero,1.0,Fp); // r = r0 + Fp
+				localSolveAndJump(lambda, dur, duc, Fp);  // Fp = F*lambda
 
-       error = preCondition(r, *medvec); // medvec = M^-1*r
+				r.linC(1.0,rzero,1.0,Fp); // r = r0 + Fp
 
-       bool isConverged = ((sqrt(error) < sqrt(this->epsilon2*ff)) || (J == this->maxiter-1));
+				error = preCondition(r, medvec); // medvec = M^-1*r
 
-       if(verboseFlag && (isConverged || ((fetiInfo->numPrint() > 0) && (J % fetiInfo->numPrint() == 0))))
-         filePrint(stderr, "%4d %23.6e %23.6e\n", iter*ReStep+j,sqrt(error/ff),fabs(resGMRES)/sqrt(ff));
+				bool isConverged = ((sqrt(error) < sqrt(this->epsilon2*ff)) || (J == this->maxiter-1));
 
-       // Determine convergence
-       if (isConverged) {
-         // For timing and records
-         this->times.iterations[this->numSystems].stagnated = 0; 
-         // Store number of iterations, primal error and dual error
-         this->setAndStoreInfo(iter*ReStep+j, error/ff, resGMRES*resGMRES/ff);
-         if(this->numSystems == 1) this->times.memoryFETI += memoryUsed();
-         this->times.solve += getTime();
-         this->times.iterations[this->numSystems-1].cpuTime = this->times.solve;
+				if(verboseFlag && (isConverged || ((fetiInfo->numPrint() > 0) && (J % fetiInfo->numPrint() == 0))))
+					filePrint(stderr, "%4d %23.6e %23.6e\n", iter*ReStep+j,sqrt(error/ff),fabs(resGMRES)/sqrt(ff));
 
-         t7 += getTime();
-         printSummary(iter*ReStep+j+1);
+				// Determine convergence
+				if (isConverged) {
+					// For timing and records
+					this->times.iterations[this->numSystems].stagnated = 0;
+					// Store number of iterations, primal error and dual error
+					this->setAndStoreInfo(iter*ReStep+j, error/ff, resGMRES*resGMRES/ff);
+					if(this->numSystems == 1) this->times.memoryFETI += memoryUsed();
+					this->times.solve += getTime();
+					this->times.iterations[this->numSystems-1].cpuTime = this->times.solve;
 
-         *lambda += lambda0;
-         ur += dur;
-         uc += duc;
-         ur += deltaU; // make solution compatible u += deltaU
-         mergeSolution(ur, uc, u, *lambda);
+					t7 += getTime();
+					printSummary(iter*ReStep+j+1);
 
-         if(rzero) delete rzero;
-         if(zzero) delete zzero;
-         if(medvec) delete medvec;
-         if(lambda) delete lambda; 
-         return;
-       }
-     } 
-     else 
-       if(verboseFlag && ((fetiInfo->numPrint() > 0) && (j % fetiInfo->numPrint() == 0)))
-         filePrint(stderr, "%4d %47.6e\n", iter*ReStep+j, fabs(resGMRES)/sqrt(ff));
-   }
+					lambda += lambda0;
+					ur += dur;
+					uc += duc;
+					ur += deltaU; // make solution compatible u += deltaU
+					mergeSolution(ur, uc, u, lambda);
 
-   // restart GMRES
-   if(verboseFlag) filePrint(stderr, " *** Krylov Space Full - Restarting GMRES \n");
-   if(!primalresidual) {
-     this->GMRESSolution(*lambda);  // compute incremental solution lambda
-     localSolveAndJump(*lambda, dur, duc, Fp); // Fp = F*lambda
-     r.linC(1.0,*rzero,1.0,Fp); // r = rzero + Fp;
-   }
-   *rzero       = r;
-   uc += duc;
-   ur += dur;
+					return;
+				}
+			}
+			else
+			if(verboseFlag && ((fetiInfo->numPrint() > 0) && (j % fetiInfo->numPrint() == 0)))
+				filePrint(stderr, "%4d %47.6e\n", iter*ReStep+j, fabs(resGMRES)/sqrt(ff));
+		}
 
-   error = preCondition(Fp, *medvec);  // medvec = M^-1*Fp
-   z.linC(1.0,*zzero,1.0,*medvec); // z = zzero + medvec;
-   *zzero = z;
+		// restart GMRES
+		if(verboseFlag) filePrint(stderr, " *** Krylov Space Full - Restarting GMRES \n");
+		if(!primalresidual) {
+			this->GMRESSolution(lambda);  // compute incremental solution lambda
+			localSolveAndJump(lambda, dur, duc, Fp); // Fp = F*lambda
+			r.linC(1.0,rzero,1.0,Fp); // r = rzero + Fp;
+		}
+		rzero       = r;
+		uc += duc;
+		ur += dur;
 
-   lambda0 += (*lambda);
-   primalresidual = fetiInfo->gmresResidual;  // primalresidual might not be reached after restart
+		error = preCondition(Fp, medvec);  // medvec = M^-1*Fp
+		z.linC(1.0,zzero,1.0,medvec); // z = zzero + medvec;
+		zzero = z;
 
-   this->oSetGMRES->reInit(); // Reinitialize Krylov space and set z of last step as initial vector
-   this->initGMRES(z);
- }
+		lambda0 += lambda;
+		primalresidual = fetiInfo->gmresResidual;  // primalresidual might not be reached after restart
+
+		this->oSetGMRES->reInit(); // Reinitialize Krylov space and set z of last step as initial vector
+		this->initGMRES(z);
+	}
 }
 
 template<class Scalar>

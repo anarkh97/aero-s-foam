@@ -4789,7 +4789,7 @@ GeoSource::getDecomposition()
 		}
 #endif
 	}
-	if(matchName != NULL && !unsortedSubToElem) unsortedSubToElem = new Connectivity(*subToElem);
+	if(matchName != nullptr && !unsortedSubToElem) unsortedSubToElem = new Connectivity(*subToElem);
 	return std::make_unique<Connectivity>( *subToElem );
 }
 
@@ -4823,9 +4823,9 @@ void GeoSource::getBinaryDecomp()
 		BinFileHandler fp(oss.str().c_str(), "rb");
 
 		ConnectivityT<size_t,int> csubToSub2(fp);
-		ConnectivityT<size_t,gl_node_idx> *csubToNode = new ConnectivityT<size_t,gl_node_idx>(fp);
+		auto *csubToNode = new ConnectivityT<size_t,gl_node_idx>(fp);
 		ConnectivityT<size_t,gl_node_idx> cnodeToNode(fp);
-		ConnectivityT<size_t,int> *cnodeToSub = new ConnectivityT<size_t,int>(fp);
+		auto *cnodeToSub = new ConnectivityT<size_t,int>(fp);
 
 		std::map<gl_sub_idx, lc_sub_idx> glToLocSub2;
 		for(int j=0; j<csubToSub2.csize(); ++j)
@@ -4835,10 +4835,10 @@ void GeoSource::getBinaryDecomp()
 			glToLocNode.insert(std::pair<gl_node_idx,int>(cnodeToNode[j][0], j));
 		numClusNodes = cnodeToNode.csize();
 
-		SparsePairType1 *subnode = new SparsePairType1(glToLocSub2,csubToNode);
+		auto *subnode = new SparsePairType1(glToLocSub2,csubToNode);
 		subToNode_sparse = new SparseConnectivityType1(subnode);
 
-		SparsePairType2 *nodesub = new SparsePairType2(glToLocNode,cnodeToSub);
+		auto *nodesub = new SparsePairType2(glToLocNode,cnodeToSub);
 		nodeToSub_sparse = new SparseConnectivityType2(nodesub);
 
 #ifdef SOWER_DEBUG

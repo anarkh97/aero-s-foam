@@ -1336,8 +1336,8 @@ GenBLKSparseMatrix<Scalar>::allocateMemory()
         metis_options[METIS_OPTION_RTYPE] = METIS_RTYPE_SEP2SIDED;
         metis_options[METIS_OPTION_COMPRESS] = 1;
         metis_options[METIS_OPTION_CCORDER ] = 1;
-        metis_options[METIS_OPTION_PFACTOR] = 200;
-        metis_options[METIS_OPTION_NSEPS] = 2;
+        metis_options[METIS_OPTION_PFACTOR] = 400;
+        metis_options[METIS_OPTION_NSEPS] = 4;
 
         int res = callMetis(&numUncon, xlindx, lindx, nullptr, metis_options.data(), perm, invp);
         if(res != METIS_OK) {

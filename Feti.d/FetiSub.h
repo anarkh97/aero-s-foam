@@ -228,6 +228,9 @@ protected:
 	std::vector<int> ccToC; //!< Mapping from cc_dsa to c_dsa. All indices are >= 0
 	std::vector<int> cToCC; //!< Mapping from c_dsa to cc_dsa. Indices for corner DOFs are < 0.
 	bool isMixedSub = false;
+	bool isThermalSub = false;
+	bool isUndefinedSub = false;
+	bool isFluidSub = false;
 
 	std::vector<int> weight; ///!< \brief DOF weights (i.e. number of subd sharing that dof).
 	std::vector<int> weightPlus; ///!< \brief DOF weights (i.e. number of subd sharing that dof) including corner DOFs.

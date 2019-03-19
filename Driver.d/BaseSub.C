@@ -104,6 +104,11 @@ BaseSub::initHelm(Domain &dom)
   }
   if(solInfo().getFetiInfo().dph_flag && salinasFlag) isMixedSub = true; // assume salinas doesn't know
   //if(isMixedSub) filePrint(stderr," -> sub %d is a mixed fluid/structure subdomain\n",subNumber); //HB
+  if(!isMixedSub) {
+    isThermalSub = packedEset[0]->getCategory() == Element::Thermal;
+    isUndefinedSub = packedEset[0]->getCategory() == Element::Undefined;
+    isFluidSub = isFluid(0);
+  }
 }
 
 

@@ -338,7 +338,7 @@ protected:
 	/// \brief wave numbers for FETI-DPH for this subdomain only in SALINAS.
 	double k_f = 0.0, k_p = 0.0, k_s = 0.0, k_s2 = 0.0;
 	double *neighbK_p = nullptr, *neighbK_s = nullptr, *neighbK_s2 = nullptr, *neighbK_f = nullptr;  // neighbors' wave numbers
-	double Ymod, Prat = 0.0, Dens = 0.0, Thih = 0.0, Sspe = 0.0;  // Young's modulus, Poisson ration, density, thickness, speed of sound
+	double Ymod = 0.0, Prat = 0.0, Dens = 0.0, Thih = 0.0, Sspe = 0.0;  // Young's modulus, Poisson ration, density, thickness, speed of sound
 	double *neighbYmod = nullptr, *neighbPrat = nullptr, *neighbDens = nullptr, *neighbThih = nullptr, *neighbSspe = nullptr;  // neighbor's values
 
 	long memK = 0;       //!< memory necessary to store K(s)

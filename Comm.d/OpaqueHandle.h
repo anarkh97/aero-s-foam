@@ -118,11 +118,13 @@ struct CommTypeTrait<std::vector<T>> {
 	static constexpr bool isFixedSize() { return false; }
 };
 
+/*
 template <typename T>
 struct CommTypeTrait<std::complex<T>> {
 	static TypeHandle typeHandle() { return CommTypeTrait<T>::typeHandle(); }
 	static int count(const T &v) { return 2; }
 	static constexpr bool isFixedSize() { return true; }
 };
+*/
 
 #endif //FEM_OPAQUEHANDLE_H

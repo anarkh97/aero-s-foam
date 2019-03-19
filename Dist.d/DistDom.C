@@ -253,7 +253,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
 #ifdef DISTRIBUTED
 
     int *subToClus = geoSource->getSubToClus();
-    int clusterId = subToClus[this->localSubToGl[0]];
+    int clusterId = (this->numSub > 0) ? subToClus[this->localSubToGl[0]] : 0;
     int firstCpuInCluster = (clusToCpu) ? (*clusToCpu)[clusterId][0] : 0;
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
       if(oinfo[iInfo].type == OutputInfo::Farfield || 
@@ -272,7 +272,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         continue;
       }
       else if(oinfo[iInfo].nodeNumber == -1 && this->firstOutput) {
-        if(this->communicator->cpuNum() == firstCpuInCluster) geoSource->createBinaryOutputFile(iInfo,this->localSubToGl[0],x);
+        if(this->communicator->cpuNum() == firstCpuInCluster && this->numSub > 0) geoSource->createBinaryOutputFile(iInfo,this->localSubToGl[0],x);
         else geoSource->computeAndCacheHeaderLength(iInfo);
       }
     }
@@ -1538,7 +1538,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
 #ifdef DISTRIBUTED
 
     int *subToClus = geoSource->getSubToClus();
-    int clusterId = subToClus[this->localSubToGl[0]];
+    int clusterId = (this->numSub > 0) ? subToClus[this->localSubToGl[0]] : 0;
     int firstCpuInCluster = (clusToCpu) ? (*clusToCpu)[clusterId][0] : 0;
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
       if(oinfo[iInfo].type == OutputInfo::Farfield || oinfo[iInfo].type == OutputInfo::AeroForce
@@ -1549,7 +1549,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         continue;
       }
       else if(oinfo[iInfo].nodeNumber == -1 && this->firstOutput) {
-        if(this->communicator->cpuNum() == firstCpuInCluster) geoSource->createBinaryOutputFile(iInfo,this->localSubToGl[0],x);
+        if(this->communicator->cpuNum() == firstCpuInCluster && this->numSub > 0) geoSource->createBinaryOutputFile(iInfo,this->localSubToGl[0],x);
         else geoSource->computeAndCacheHeaderLength(iInfo);
       }
     }

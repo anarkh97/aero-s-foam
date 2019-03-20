@@ -663,8 +663,6 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDP(unique_ptr<const Connectivity> su
 		elemToNode = std::move(subToCorner);
 
 	decCoarseDomain->setElemToNode(std::move(elemToNode));
-	if (elemToNode == subToCorner)
-		elemToNode = 0;
 	decCoarseDomain->setSubToElem(std::move(decCoarse));
 	decCoarseDomain->setCPUMap(std::move(CPUMapCoarse));
 	decCoarseDomain->preProcess();

@@ -26,7 +26,7 @@ const ConstrainedDSA * FetiBaseSub::getCCDSA() const {
 
 
 void
-FetiBaseSub::markCornerDofs(int *glCornerDofs) const
+FetiBaseSub::markCornerDofs(gsl::span<int> glCornerDofs) const
 {
 	for(int i=0; i<numCRN; ++i)
 		glCornerDofs[glCornerNodes[i]] |= cornerDofs[i].list();

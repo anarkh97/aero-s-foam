@@ -132,7 +132,7 @@ public:
 
 	const std::vector<int> &getCornerNodes() const { return glCornerNodes; }
 	std::vector<int> &getCornerNodes() { return glCornerNodes; }
-	void markCornerDofs(int *glCornerDofs) const;
+	void markCornerDofs(gsl::span<int> glCornerDofs) const;
 	void makeKccDofs(DofSetArray *cornerEqs, int augOffset, Connectivity *subToEdge, int mpcOffset = 0);
 	void makeKccDofsExp2(int nsub, FetiBaseSub **sd, int augOffset, Connectivity *subToEdge);
 

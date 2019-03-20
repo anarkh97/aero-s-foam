@@ -424,15 +424,14 @@ GenFetiDPSolver<Scalar>::makeKcc()
 	if(coarseToSub && coarseToSub != cornerToSub) delete coarseToSub;
 	if(subToCoarse != subToCorner.get()) delete subToCoarse;
 
-	int *glCornerDofs = new int[glNumCorners];
-	for(int i = 0; i < glNumCorners; ++i) glCornerDofs[i] = 0;
-	for(int iSub = 0; iSub < this->nsub; ++iSub) this->subdomains[iSub]->markCornerDofs(glCornerDofs);
+	if ( !isFeti(fetiInfo->coarse_cntl->type) ) {
+		std::vector<int> glCornerDofs(glNumCorners, 0);
+		for(int iSub = 0; iSub < this->nsub; ++iSub)
+			this->subdomains[iSub]->markCornerDofs(glCornerDofs);
 #ifdef DISTRIBUTED
-	this->fetiCom->globalMpiOp(glNumCorners, glCornerDofs, MPI_BOR); // MPI_BOR is an mpi bitwise or
+		this->fetiCom->globalMpiOp(glNumCorners, glCornerDofs.data(), MPI_BOR); // MPI_BOR is an mpi bitwise or
 #endif
-	if(!isFeti(fetiInfo->coarse_cntl->type)) {
 		for(int i = 0; i < glNumCorners; ++i) cornerEqs->mark(i, glCornerDofs[i]);
-		delete [] glCornerDofs;
 
 		if(this->glNumMpc_primal > 0) {
 			for(int iMPC=0; iMPC<this->glNumMpc_primal; ++iMPC)
@@ -443,12 +442,12 @@ GenFetiDPSolver<Scalar>::makeKcc()
 
 	if(fetiInfo->augment == FetiInfo::Gs) {
 		this->times.numRBMs = 0;
-		int *numRBMPerSub = new int[this->glNumSub];
+		std::vector<int> numRBMPerSub(this->glNumSub);
 		for(int iSub=0; iSub<this->glNumSub; ++iSub) numRBMPerSub[iSub] = 0;
 		for(int iSub=0; iSub<this->nsub; ++iSub)
 			numRBMPerSub[this->subdomains[iSub]->subNum()] = this->subdomains[iSub]->numRBM();
 #ifdef DISTRIBUTED
-		this->fetiCom->globalSum(this->glNumSub,numRBMPerSub);
+		this->fetiCom->globalSum(numRBMPerSub);
 #endif
 		if(!isFeti(fetiInfo->coarse_cntl->type)) {
 			for(int iSub=0; iSub<this->glNumSub; ++iSub) {
@@ -456,12 +455,11 @@ GenFetiDPSolver<Scalar>::makeKcc()
 				this->times.numRBMs += numRBMPerSub[iSub];
 			}
 		}
-		delete [] numRBMPerSub;
 	}
 
 	if(fetiInfo->isEdgeAugmentationOn()) {
 		this->times.numEdges = 0;
-		int *edgeWeights = new int[this->edgeToSub->csize()];
+		std::vector<int> edgeWeights(this->edgeToSub->csize());
 		for(int i=0; i<this->edgeToSub->csize(); ++i) edgeWeights[i] = 0;
 		for(int iSub=0; iSub<this->nsub; ++iSub) {
 			int numNeighbor = this->subdomains[iSub]->numNeighbors();
@@ -479,7 +477,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 			}
 		}
 #ifdef DISTRIBUTED
-		this->fetiCom->globalSum(this->edgeToSub->csize(), edgeWeights);
+		this->fetiCom->globalSum(edgeWeights);
 #endif
 		if(!isFeti(fetiInfo->coarse_cntl->type)) {
 			for(int iEdge=0; iEdge<this->edgeToSub->csize(); ++iEdge) {
@@ -487,7 +485,6 @@ GenFetiDPSolver<Scalar>::makeKcc()
 				this->times.numEdges += edgeWeights[iEdge];
 			}
 		}
-		delete [] edgeWeights;
 	}
 
 	if(!isFeti(fetiInfo->coarse_cntl->type)) {
@@ -512,10 +509,10 @@ GenFetiDPSolver<Scalar>::makeKcc()
 
 		// Find out which bodies are connected together by mpcs
 		// a collection of inter-connected bodies is referred to as a group
-		Connectivity *subToMpc = this->mpcToSub_primal->alloc_reverse();
-		Connectivity bodyToMpc = bodyToSub->transcon(*subToMpc);
-		Connectivity *mpcToBody = bodyToMpc.alloc_reverse();
-		Connectivity bodyToBodyTmp = bodyToMpc.transcon(*mpcToBody);
+		Connectivity subToMpc = this->mpcToSub_primal->reverse();
+		Connectivity bodyToMpc = bodyToSub->transcon(subToMpc);
+		Connectivity mpcToBody = bodyToMpc.reverse();
+		Connectivity bodyToBodyTmp = bodyToMpc.transcon(mpcToBody);
 		Connectivity bodyToBody = bodyToBodyTmp.withSelfConnection();
 		compStruct renumber = bodyToBody.renumByComponent(1);  // 1 = sloan renumbering
 		nGroups = renumber.numComp;
@@ -537,8 +534,6 @@ GenFetiDPSolver<Scalar>::makeKcc()
 		}
 		delete [] renumber.xcomp;
 		delete [] renumber.renum;
-		delete subToMpc;
-		delete mpcToBody;
 	}
 	if(!mbgflag) { // one body per group
 		groupToSub = bodyToSub;

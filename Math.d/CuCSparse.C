@@ -10,19 +10,11 @@ inline void init(DComplex &d) { d = DComplex(0.0,0.0); }
 inline void init(double &d) { d = 0.0; }
 
 template<class Scalar>
-GenCuCSparse<Scalar>::~GenCuCSparse()
-{
- if(Kuc && myKuc) { delete [] Kuc; Kuc=0; }
-}
-
-template<class Scalar>
 void
 GenCuCSparse<Scalar>::clean_up()
 {
- if(Kuc && myKuc) {
-   delete [] Kuc;
-   Kuc=0;
- }
+ Kuc.clear();
+ Kuc.shrink_to_fit();
 }
 
 template<class Scalar>
@@ -62,13 +54,9 @@ template<class Scalar>
 GenCuCSparse<Scalar>::GenCuCSparse(const Connectivity *con, const DofSetArray *dsa, const int *bc) :
 SparseData(con,dsa,bc)
 {
- // Allocate Kuc
- Kuc = new Scalar[xunonz[numConstrained]];
+ // Allocate Kuc and initialize to zero.
+ Kuc.assign(xunonz[numConstrained], Scalar(0));
 
- // Initialize it to zero
- zeroAll();
-
- myKuc = 1;
 }
 
 template<class Scalar>
@@ -77,13 +65,8 @@ SparseData(con,dsa,c_dsa)
 {
  // Allocate Kuc
  if(numConstrained>0) {
-   Kuc = new Scalar[xunonz[numConstrained]];
-   zeroAll();
+   Kuc.assign(xunonz[numConstrained], Scalar(0));
  }
- else {
-   Kuc=0;
- }
- myKuc = 1;
 }
 
 template<class Scalar>
@@ -92,19 +75,18 @@ GenCuCSparse<Scalar>::GenCuCSparse(const Connectivity *con, const DofSetArray *d
 : SparseData(con,dsa,glBoundMap,glInternalMap)
 {
  // Allocate Kuc and initialize it to zero.
- Kuc = new Scalar[xunonz[numConstrained]];
+ Kuc.resize(xunonz[numConstrained]);
 
  // Initialize it to zero
  zeroAll();
 
- myKuc = 1;
 }
 
 template<class Scalar>
 GenCuCSparse<Scalar>::GenCuCSparse(LMPCons **mpc, int numMPC, const DofSetArray *c_dsa) :
   SparseData(mpc, numMPC, c_dsa)
 {
-  Kuc = new Scalar[xunonz[numConstrained]];
+  Kuc.resize(xunonz[numConstrained]);
   int i, mstart, mstop, m;
   for(i=0; i<numConstrained; ++i) {
     mstart = xunonz[i];
@@ -113,7 +95,6 @@ GenCuCSparse<Scalar>::GenCuCSparse(LMPCons **mpc, int numMPC, const DofSetArray 
       Kuc[m] = mpc[i]->terms[m].template val<Scalar>();
     }
   }
-  myKuc = 1;
 }
 
 template<class Scalar>
@@ -123,7 +104,7 @@ GenCuCSparse<Scalar>::GenCuCSparse(int numInterface, const int *allBoundDofs,
 {
  if(ldm < 0) ldm = numInterface;
  // Allocate Kuc and initialize it to zero.
- Kuc = new Scalar[xunonz[numConstrained]];
+ Kuc.resize(xunonz[numConstrained]);
  neq=numInterface;
 
  // fill the matrix with the modes
@@ -135,17 +116,13 @@ GenCuCSparse<Scalar>::GenCuCSparse(int numInterface, const int *allBoundDofs,
      Kuc[m] = modes[(m-mstart) + i*ldm];
    }
  }
- myKuc = 1;
 }
 
 template<class Scalar>
-GenCuCSparse<Scalar>::GenCuCSparse(int num, int _neq, int *xyzCount,
-                                   int *xyzList, Scalar *xyzCoefs)
- : SparseData(num, xyzCount, xyzList)
+GenCuCSparse<Scalar>::GenCuCSparse(int cnt, int neq, gsl::span<int> count, gsl::span<int> list, std::vector<Scalar> val)
+ : SparseData(cnt, count.data(), list.data()),  Kuc(std::move(val))
 {
- neq = _neq;
- Kuc = xyzCoefs;
- myKuc = 1;
+	this->neq = neq;
 }
 
 template<class Scalar>

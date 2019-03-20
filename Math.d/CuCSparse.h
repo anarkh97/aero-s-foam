@@ -12,8 +12,7 @@ class LMPCons;
  * \details This is a rectangular matrix that needs to be stored in sparse format) */
 template<class Scalar>
 class GenCuCSparse : public SparseData, public GenSparseMatrix<Scalar> {
-    Scalar *Kuc;
-    int myKuc;
+    std::vector<Scalar> Kuc;
   public:
     GenCuCSparse(const Connectivity *con, const DofSetArray *dsa, const int *bc);
     GenCuCSparse(const Connectivity *con, const DofSetArray *dsa, const DofSetArray *c_dsa);
@@ -34,8 +33,17 @@ class GenCuCSparse : public SparseData, public GenSparseMatrix<Scalar> {
 
     GenCuCSparse(LMPCons **mpc, int numMPC, const DofSetArray *c_dsa);
     GenCuCSparse(int numInterface, const int *glbmap, int numRBM, Scalar *rbms, int lda = -1);
-    GenCuCSparse(int, int, int *, int *, Scalar*);
-    virtual ~GenCuCSparse();
+    /**
+     *
+     * @param num Number of constraint DOFs.
+     * @param neq Number of unconstrained DOFs.
+     * @param count Count of terms per constrained DOF.
+     * @param list Unconstrained indices of each term.
+     * @param val Values of the terms.
+     */
+	GenCuCSparse(int num, int neq, gsl::span<int> count, gsl::span<int> list, std::vector<Scalar> val);
+
+	~GenCuCSparse() override = default;
 
     double getMemoryUsed() const override;
 

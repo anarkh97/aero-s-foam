@@ -2086,9 +2086,9 @@ FetiSub<Scalar>::formKccStar() {
 				for (int k = 0; k < numEquations; ++k)
 					if (std::abs(Kave[i][k]) > 0.0) nz++;
 
-			int *KACount = new int[nAve];
-			int *KAList = new int[nz];
-			Scalar *KACoefs = new Scalar[nz];
+			std::vector<int> KACount(nAve);
+			std::vector<int> KAList(nz);
+			std::vector<Scalar> KACoefs(nz);
 			nz = 0;
 			for (int i = 0; i < nAve; ++i) {
 				KACount[i] = 0;
@@ -2101,7 +2101,7 @@ FetiSub<Scalar>::formKccStar() {
 					}
 			}
 
-			this->Grc = std::make_unique<GenCuCSparse<Scalar>>(nAve, numEquations, KACount, KAList, KACoefs);
+			this->Grc = std::make_unique<GenCuCSparse<Scalar>>(nAve, numEquations, KACount, KAList, std::move(KACoefs));
 
 			if (this->Src->num() == 2)
 				this->Src->setSparseMatrix(1, this->Grc);
@@ -2111,8 +2111,6 @@ FetiSub<Scalar>::formKccStar() {
 				fprintf(stderr, "unsupported number of blocks in Src\n");
 				exit(1);
 			}
-
-			delete[] KACount;
 
 			for (int i = 0; i < nRHS; ++i)
 				for (int j = 0; j < numEquations; ++j)
@@ -2989,7 +2987,7 @@ FetiBaseSub::makeKccDofsExp2(int nsub, FetiBaseSub **sd,
 
 void
 getOneDirection(double d, int i,int j, int k, int &nnum, int numWaves,
-                double *wDir_x, double *wDir_y, double *wDir_z)
+                std::vector<double> &wDir_x, std::vector<double> &wDir_y, std::vector<double> &wDir_z)
 {
 	double x = -0.5 + d*i;
 	double y = -0.5 + d*j;
@@ -3027,7 +3025,8 @@ getOneDirection(double d, int i,int j, int k, int &nnum, int numWaves,
 }
 
 void
-getDirections(int numDirec, int numWaves, double *&wDir_x, double *&wDir_y, double *&wDir_z)
+getDirections(int numDirec, int numWaves,
+	std::vector<double> &wDir_x, std::vector<double> &wDir_y, std::vector<double> &wDir_z)
 {
 	if(numDirec == 0) return;
 
@@ -3064,9 +3063,9 @@ getDirections(int numDirec, int numWaves, double *&wDir_x, double *&wDir_y, doub
 	}
 
 	double d = 1.0/n;
-	wDir_x = new double[numWaves*fullNumDirec];
-	wDir_y = new double[numWaves*fullNumDirec];
-	wDir_z = new double[numWaves*fullNumDirec];
+	wDir_x.resize(numWaves*fullNumDirec);
+	wDir_y.resize(numWaves*fullNumDirec);
+	wDir_z.resize(numWaves*fullNumDirec);
 
 	int i,j,k;
 	int nnum = 0;
@@ -3190,13 +3189,10 @@ FetiSub<Scalar>::makeAverageEdgeVectors() {
 		if (edgeDofSize[iSub] > 0) nE++;
 	}
 
-	int *xyzCount = new int[nE * numR];
-	for (i = 0; i < numR * nE; ++i)
-		xyzCount[i] = 0;
+	std::vector<int> xyzCount(nE * numR, 0);
 
 	nE = 0;
-	int nDof = 0;
-	if (numR > 1) nDof = 1;
+	int nDof = (numR > 1) ? 1 : 0;
 
 	for (iSub = 0; iSub < scomm->numNeighb; ++iSub) {
 		if (edgeDofSize[iSub] == 0) continue;
@@ -3229,8 +3225,8 @@ FetiSub<Scalar>::makeAverageEdgeVectors() {
 	}
 
 // --------------------------------------------------------
-	int *xyzList = new int[totalLengthGrc];
-	Scalar *xyzCoefs = new Scalar[totalLengthGrc];
+	std::vector<int> xyzList(totalLengthGrc);
+	std::vector<Scalar> xyzCoefs(totalLengthGrc);
 	int xOffset = 0;
 	int xrOffset = 0;
 	nE = 0;
@@ -3293,10 +3289,9 @@ FetiSub<Scalar>::makeAverageEdgeVectors() {
 		if (used) nE++;
 	}
 	this->Grc = std::make_unique<GenCuCSparse<Scalar>>(numR * nE, cc_dsa->size(),
-	                                                   xyzCount, xyzList, xyzCoefs);
+	                                                   xyzCount, xyzList, std::move(xyzCoefs));
 	// Src->setSparseMatrices(1, Grc);
 	this->Src->addSparseMatrix(this->Grc);
-	delete[] xyzCount;
 }
 
 template<class Scalar>
@@ -3338,16 +3333,16 @@ FetiSub<Scalar>::makeEdgeVectorsPlus(bool isFluidSub, bool isThermalSub,
 	}
 
 	// To store the Directions of the long and transverse waves
-	double *d_x = (double *) dbg_alloca(sizeof(double) * numDirec);
-	double *d_y = (double *) dbg_alloca(sizeof(double) * numDirec);
-	double *d_z = (double *) dbg_alloca(sizeof(double) * numDirec);
-	double *t_x = (double *) dbg_alloca(sizeof(double) * numDirec);
-	double *t_y = (double *) dbg_alloca(sizeof(double) * numDirec);
-	double *t_z = (double *) dbg_alloca(sizeof(double) * numDirec);
+	std::vector<double> d_x(numDirec);
+	std::vector<double> d_y(numDirec);
+	std::vector<double> d_z(numDirec);
+	std::vector<double> t_x(numDirec);
+	std::vector<double> t_y(numDirec);
+	std::vector<double> t_z(numDirec);
 
-	double *wDir_x = 0;
-	double *wDir_y = 0;
-	double *wDir_z = 0;
+	std::vector<double> wDir_x;
+	std::vector<double> wDir_y;
+	std::vector<double> wDir_z;
 
 	double pi = 3.141592653589793;
 	if (spaceDim == 2) {
@@ -3403,7 +3398,7 @@ FetiSub<Scalar>::makeEdgeVectorsPlus(bool isFluidSub, bool isThermalSub,
 	int numInterfNodes = sharedNodes.numConnect();
 	int nQPerNeighb = numR + numDirec * numWaves * numCS;
 	int lQ = nQPerNeighb * numdofperNode * numInterfNodes;
-	double *Q = new double[lQ];
+	std::vector<double> Q(lQ);
 	bool *isUsed = (bool *) dbg_alloca(sizeof(bool) * (nQPerNeighb * scomm->numNeighb));
 	for (i = 0; i < nQPerNeighb * scomm->numNeighb; ++i)
 		isUsed[i] = false;
@@ -3682,10 +3677,10 @@ FetiSub<Scalar>::makeEdgeVectorsPlus(bool isFluidSub, bool isThermalSub,
 	}
 
 	if (numdofperNode == 6)
-		GramSchmidt(Q, isUsed, DofSet::XYZdisp | DofSet::XYZrot, nQPerNeighb,
+		GramSchmidt(Q.data(), isUsed, DofSet::XYZdisp | DofSet::XYZrot, nQPerNeighb,
 		            getFetiInfo().augmentimpl == FetiInfo::Primal);
 	else
-		GramSchmidt(Q, isUsed, desired, nQPerNeighb, getFetiInfo().augmentimpl == FetiInfo::Primal);
+		GramSchmidt(Q.data(), isUsed, desired, nQPerNeighb, getFetiInfo().augmentimpl == FetiInfo::Primal);
 
 	int *nQAdd = (int *) dbg_alloca(sizeof(int) * (scomm->numNeighb));
 	int *nQAddWaves = (int *) dbg_alloca(sizeof(int) * (scomm->numNeighb));
@@ -3792,21 +3787,12 @@ FetiSub<Scalar>::makeEdgeVectorsPlus(bool isFluidSub, bool isThermalSub,
 	}
 	if (total != oldTot) fprintf(stderr, "Non match %d %d\n", total, oldTot);
 
-	int *HelmList = new int[totalLengthGrc];
-	Scalar *HelmCoefs = new Scalar[totalLengthGrc];
-	int *TempList = new int[totalLengthGrc];
-	Scalar *TempCoefs = new Scalar[totalLengthGrc];
-	int *xyzList = new int[totalLengthGrc];
-	Scalar *xyzCoefs = new Scalar[totalLengthGrc];
-
-	for (i = 0; i < totalLengthGrc; ++i) {
-		HelmList[i] = 0;
-		HelmCoefs[i] = 0.0;
-		TempList[i] = 0;
-		TempCoefs[i] = 0.0;
-		xyzList[i] = 0;
-		xyzCoefs[i] = 0.0;
-	}
+	std::vector<int> HelmList(totalLengthGrc, 0);
+	std::vector<Scalar> HelmCoefs(totalLengthGrc, 0.0);
+	std::vector<int> TempList(totalLengthGrc, 0);
+	std::vector<Scalar> TempCoefs(totalLengthGrc, 0.0);
+	std::vector<int> xyzList(totalLengthGrc, 0);
+	std::vector<Scalar> xyzCoefs(totalLengthGrc, 0.0);
 
 	int hOffset = 0, tOffset = 0, waveOffset = 0;
 	int xOffset = 0, yOffset = 0, zOffset = 0, xrOffset = 0, yrOffset = 0, zrOffset = 0;
@@ -4057,17 +4043,14 @@ FetiSub<Scalar>::makeEdgeVectorsPlus(bool isFluidSub, bool isThermalSub,
 
 	if (numdofperNode == 1) {
 		if (isFluidSub)
-			this->Grc = std::make_unique<GenCuCSparse<Scalar>>(total, cc_dsa->size(), HelmCount.data(), HelmList, HelmCoefs);
+			this->Grc = std::make_unique<GenCuCSparse<Scalar>>(total, cc_dsa->size(), HelmCount,
+				HelmList, std::move(HelmCoefs));
 		else
-			this->Grc = std::make_unique<GenCuCSparse<Scalar>>(total, cc_dsa->size(), TempCount.data(), TempList, TempCoefs);
-		delete[] xyzList;
-		delete[] xyzCoefs;
+			this->Grc = std::make_unique<GenCuCSparse<Scalar>>(total, cc_dsa->size(), TempCount,
+				TempList, std::move(TempCoefs));
 	} else {
-		this->Grc = std::make_shared<GenCuCSparse<Scalar>>(total, cc_dsa->size(), xyzCount.data(), xyzList, xyzCoefs);
-		delete[] HelmList;
-		delete[] HelmCoefs;
-		delete[] TempList;
-		delete[] TempCoefs;
+		this->Grc = std::make_shared<GenCuCSparse<Scalar>>(total, cc_dsa->size(), xyzCount,
+			xyzList, std::move(xyzCoefs));
 	}
 
 	int ii = (isFluidSub || isThermalSub) ? 1 : 0;
@@ -4108,10 +4091,6 @@ FetiSub<Scalar>::makeEdgeVectorsPlus(bool isFluidSub, bool isThermalSub,
 		}
 	}
 
-	if (wDir_x) delete[] wDir_x;
-	if (wDir_y) delete[] wDir_y;
-	if (wDir_z) delete[] wDir_z;
-	if (Q) delete[] Q;
 }
 
 template<class Scalar>

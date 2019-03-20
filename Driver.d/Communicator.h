@@ -62,11 +62,11 @@ public:
 	}
 
 	// PJSA: templated functions
-	template <class Type>
+	template <class Type, typename X = typename std::enable_if<CommTypeTrait<Type>::isFixedSize()>::type>
 	Type globalSum(Type);
-	template <class Type>
+	template <class Type, typename X = typename std::enable_if<CommTypeTrait<Type>::isFixedSize()>::type>
 	Type globalMax(Type);
-	template <class Type>
+	template <class Type, typename X = typename std::enable_if<CommTypeTrait<Type>::isFixedSize()>::type>
 	Type globalMin(Type);
 	template <class Type>
 	void globalMax(int, Type*);
@@ -74,6 +74,19 @@ public:
 	void globalMin(int, Type*);
 	template <class Type>
 	void globalSum(int, Type*);
+
+	template <typename Scalar>
+	void globalSum(std::vector<Scalar> &v) {
+		globalSum(v.size(), v.data());
+	}
+	template <typename Scalar>
+	void globalMin(std::vector<Scalar> &v) {
+		globalMin(v.size(), v.data());
+	}
+	template <typename Scalar>
+	void globalMax(std::vector<Scalar> &v) {
+		globalMax(v.size(), v.data());
+	}
 	template <class Type>
 	void sendTo(int cpu, int tag, Type *data, int len);
 	template <class Type>

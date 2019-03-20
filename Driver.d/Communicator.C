@@ -2,21 +2,21 @@
 #include <Utils.d/dbg_alloca.h>
 #include <Comm.d/Communicator.h>
 
-template <class Type>
+template <class Type, typename X>
 Type
 FSCommunicator::globalSum(Type data)
 {
 	return communicator.globalSum(data);
 }
 
-template <class Type>
+template <class Type, typename X>
 Type
 FSCommunicator::globalMax(Type data)
 {
 	return communicator.globalMax(data);
 }
 
-template <class Type>
+template <class Type, typename X>
 Type FSCommunicator::globalMin(Type data)
 {
 	return communicator.globalMin(data);

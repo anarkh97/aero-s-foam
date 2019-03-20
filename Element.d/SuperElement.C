@@ -40,6 +40,18 @@ SuperElement::~SuperElement()
   }
 }
 
+Element::Category SuperElement::getCategory() const {
+  if (nSubElems>0) {
+    Category c = subElems[0]->getCategory();
+    for(int i = 1; i < nSubElems; ++i) 
+      if (c != subElems[i]->getCategory()) return Category::Undefined;
+    return c;
+  }
+  else
+    return Category::Undefined;
+}
+
+
 void
 SuperElement::setPreLoad(std::vector<double> &load)
 {

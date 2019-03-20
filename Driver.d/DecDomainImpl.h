@@ -3503,7 +3503,7 @@ void GenDecDomain<Scalar>::getSharedFSIs()
     Connectivity fsiToSub = domain->getFsiToNode()->transcon(*nodeToSub);
     Connectivity *subToFsi = fsiToSub.altReverse(); // reverse without reordering
     Connectivity subToSub_fsi = subToFsi->transcon(fsiToSub);
-    paralApply(subDomain, &BaseSub::makeFsiInterface, subToFsi, &fsiToSub, &subToSub_fsi);
+    paralApply(subDomain, &BaseSub::makeFsiInterface, subToFsi, fsiToSub, &subToSub_fsi);
     delete subToFsi;
   }
 }

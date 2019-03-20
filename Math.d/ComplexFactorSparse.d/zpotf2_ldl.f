@@ -1,3 +1,135 @@
+*> \brief \b ZDOTU
+*
+*  =========== DOCUMENTATION ===========
+*
+* Online html documentation available at
+*            http://www.netlib.org/lapack/explore-html/
+*
+*  Definition:
+*  ===========
+*
+*       COMPLEX*16 FUNCTION ZDOTU(N,ZX,INCX,ZY,INCY)
+*
+*       .. Scalar Arguments ..
+*       INTEGER INCX,INCY,N
+*       ..
+*       .. Array Arguments ..
+*       COMPLEX*16 ZX(*),ZY(*)
+*       ..
+*
+*
+*> \par Purpose:
+*  =============
+*>
+*> \verbatim
+*>
+*> ZDOTU forms the dot product of two complex vectors
+*>      ZDOTU = X^T * Y
+*>
+*> \endverbatim
+*
+*  Arguments:
+*  ==========
+*
+*> \param[in] N
+*> \verbatim
+*>          N is INTEGER
+*>         number of elements in input vector(s)
+*> \endverbatim
+*>
+*> \param[in] ZX
+*> \verbatim
+*>          ZX is REAL array, dimension ( 1 + ( N - 1 )*abs( INCX ) )
+*> \endverbatim
+*>
+*> \param[in] INCX
+*> \verbatim
+*>          INCX is INTEGER
+*>         storage spacing between elements of ZX
+*> \endverbatim
+*>
+*> \param[in] ZY
+*> \verbatim
+*>          ZY is REAL array, dimension ( 1 + ( N - 1 )*abs( INCY ) )
+*> \endverbatim
+*>
+*> \param[in] INCY
+*> \verbatim
+*>          INCY is INTEGER
+*>         storage spacing between elements of ZY
+*> \endverbatim
+*
+*  Authors:
+*  ========
+*
+*> \author Univ. of Tennessee
+*> \author Univ. of California Berkeley
+*> \author Univ. of Colorado Denver
+*> \author NAG Ltd.
+*
+*> \date November 2017
+*
+*> \ingroup complex16_blas_level1
+*
+*> \par Further Details:
+*  =====================
+*>
+*> \verbatim
+*>
+*>     jack dongarra, 3/11/78.
+*>     modified 12/3/93, array(1) declarations changed to array(*)
+*> \endverbatim
+*>
+*  =====================================================================
+      COMPLEX*16 FUNCTION mzdotu(N,ZX,INCX,ZY,INCY)
+*
+*  -- Reference BLAS level1 routine (version 3.8.0) --
+*  -- Reference BLAS is a software package provided by Univ. of Tennessee,    --
+*  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
+*     November 2017
+*
+*     .. Scalar Arguments ..
+      INTEGER INCX,INCY,N
+*     ..
+*     .. Array Arguments ..
+      COMPLEX*16 ZX(*),ZY(*)
+*     ..
+*
+*  =====================================================================
+*
+*     .. Local Scalars ..
+      COMPLEX*16 ZTEMP
+      INTEGER I,IX,IY
+*     ..
+      ztemp = (0.0d0,0.0d0)
+      mzdotu = (0.0d0,0.0d0)
+      IF (n.LE.0) RETURN
+      IF (incx.EQ.1 .AND. incy.EQ.1) THEN
+*
+*        code for both increments equal to 1
+*
+         DO i = 1,n
+            ztemp = ztemp + zx(i)*zy(i)
+         END DO
+      ELSE
+*
+*        code for unequal increments or equal increments
+*          not equal to 1
+*
+         ix = 1
+         iy = 1
+         IF (incx.LT.0) ix = (-n+1)*incx + 1
+         IF (incy.LT.0) iy = (-n+1)*incy + 1
+         DO i = 1,n
+            ztemp = ztemp + zx(ix)*zy(iy)
+            ix = ix + incx
+            iy = iy + incy
+         END DO
+      END IF
+      mzdotu = ztemp
+      RETURN
+      END
+
       SUBROUTINE  ZPOTF2_LDL (
      &              UPLO, N, A, LDA, NDEF, IDEF, TOL, WORK, INFO
      &          )
@@ -90,7 +222,7 @@
 *       ..
 *       .. External Functions ..
         LOGICAL            LSAME
-        COMPLEX*16         ZDOTU
+        COMPLEX*16         MZDOTU
         EXTERNAL           LSAME, ZDOTU
 *       ..
 *       .. External Subroutines ..
@@ -134,7 +266,7 @@
                 DO  I = 1, J-1
                     WORK(I) = WORK(I)*A(I,I)
                 END DO
-                AJJ = A(J,J) - ZDOTU( J-1, A(1,J), 1, WORK, 1 )
+                AJJ = A(J,J) - MZDOTU( J-1, A(1,J), 1, WORK, 1 )
                 IF  ( ABS(AJJ) .GT. TOL )  THEN
                     A(J,J) = AJJ
 *
@@ -172,7 +304,7 @@
                 DO  I = 1, J-1
                     WORK(I) = WORK(I) * A(I,I)
                 END DO
-                AJJ = A(J,J) - ZDOTU( J-1, A(J,1), LDA, WORK, 1 )
+                AJJ = A(J,J) - MZDOTU( J-1, A(J,1), LDA, WORK, 1 )
                 IF  ( ABS(AJJ) .GT. TOL )  THEN
                     A(J,J) = AJJ
 *

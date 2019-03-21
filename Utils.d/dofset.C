@@ -16,13 +16,8 @@ int
       DofSet::Yrot = 1 << 4,
       DofSet::Zrot = 1 << 5,
       DofSet::XYZrot = (1 << 3) + (1 << 4) + (1 << 5),
-#ifdef SALINAS
-      DofSet::Helm = 1 << 6,
-      DofSet::Temp = 1 << 7,
-#else
       DofSet::Temp = 1 << 6,
       DofSet::Helm = 1 << 7,
-#endif
       DofSet::IntPress = 1 << 8,
       DofSet::Contact = 1 << 9,
       DofSet::Potential = 1 << 10,

@@ -3398,15 +3398,13 @@ FetiSub<Scalar>::makeEdgeVectorsPlus(bool isFluidSub, bool isThermalSub,
 	int numInterfNodes = sharedNodes.numConnect();
 	int nQPerNeighb = numR + numDirec * numWaves * numCS;
 	int lQ = nQPerNeighb * numdofperNode * numInterfNodes;
-	std::vector<double> Q(lQ);
+	std::vector<double> Q(lQ, 0.0);
 	bool *isUsed = (bool *) dbg_alloca(sizeof(bool) * (nQPerNeighb * scomm->numNeighb));
 	for (i = 0; i < nQPerNeighb * scomm->numNeighb; ++i)
 		isUsed[i] = false;
-	for (i = 0; i < lQ; ++i)
-		Q[i] = 0;
 
 	// 1. first count number of edge dofs
-	edgeDofs = new DofSet[scomm->numNeighb]; // edgeDofs was called found  JAT 112113
+	edgeDofs.resize(scomm->numNeighb); // edgeDofs was called found  JAT 112113
 	for (iSub = 0; iSub < scomm->numNeighb; ++iSub) {
 		edgeDofSizeTmp[iSub] = 0;
 		if (scomm->subNums[iSub] == subNum()) continue;
@@ -3414,40 +3412,40 @@ FetiSub<Scalar>::makeEdgeVectorsPlus(bool isFluidSub, bool isThermalSub,
 		int nx = 0, ny = 0, nz = 0;
 		int nxr = 0, nyr = 0, nzr = 0;
 		int label = 0;
-		for (iNode = 0; iNode < sharedNodes.num(iSub); ++iNode) {
-			if ((isFluidSub && !boundaryDOFs[iSub][iNode].contains(DofSet::Helm)) ||
-			    (!isFluidSub && boundaryDOFs[iSub][iNode].contains(DofSet::Helm)))
+		for ( auto nodeDOFs : boundaryDOFs[iSub]) {
+			if ((isFluidSub && !nodeDOFs.contains(DofSet::Helm)) ||
+			    (!isFluidSub && nodeDOFs.contains(DofSet::Helm)))
 				continue;
-			if ((isThermalSub && !boundaryDOFs[iSub][iNode].contains(DofSet::Temp)) ||
-			    (!isThermalSub && boundaryDOFs[iSub][iNode].contains(DofSet::Temp)))
+			if ((isThermalSub && !nodeDOFs.contains(DofSet::Temp)) ||
+			    (!isThermalSub && nodeDOFs.contains(DofSet::Temp)))
 				continue;
 
-			if (boundaryDOFs[iSub][iNode].contains(DofSet::Helm))
+			if (nodeDOFs.contains(DofSet::Helm))
 				nhelm++;
-			if (boundaryDOFs[iSub][iNode].contains(DofSet::Temp))
+			if (nodeDOFs.contains(DofSet::Temp))
 				ntemp++;
-			if (boundaryDOFs[iSub][iNode].contains(DofSet::Xdisp))
+			if (nodeDOFs.contains(DofSet::Xdisp))
 				nx++;
-			if (boundaryDOFs[iSub][iNode].contains(DofSet::Ydisp))
+			if (nodeDOFs.contains(DofSet::Ydisp))
 				ny++;
-			if (boundaryDOFs[iSub][iNode].contains(DofSet::Zdisp))
+			if (nodeDOFs.contains(DofSet::Zdisp))
 				nz++;
-			if (boundaryDOFs[iSub][iNode].contains(DofSet::Xrot))
+			if (nodeDOFs.contains(DofSet::Xrot))
 				nxr++;
-			if (boundaryDOFs[iSub][iNode].contains(DofSet::Yrot))
+			if (nodeDOFs.contains(DofSet::Yrot))
 				nyr++;
-			if (boundaryDOFs[iSub][iNode].contains(DofSet::Zrot))
+			if (nodeDOFs.contains(DofSet::Zrot))
 				nzr++;
 
-			if (boundaryDOFs[iSub][iNode].containsAllDisp(spaceDim)) label++;
+			if (nodeDOFs.containsAllDisp(spaceDim)) label++;
 
-			edgeDofs[iSub] |= boundaryDOFs[iSub][iNode] & desired;
+			edgeDofs[iSub] |= nodeDOFs & desired;
 		}
 
 		// Check if we should add rotation for problems that do not
 		// define rotational degrees of freedom
 		if (desired.contains(DofSet::XYZrot)) {
-			// if ny +nz is bigger than 2 (at least 3) there is no danger in puttin g a Xrot
+			// if ny +nz is bigger than 2 (at least 3) there is no danger in putting a Xrot
 			if (ny + nz > 2) edgeDofs[iSub] |= DofSet::Xrot;
 			// if nx+nz > 2 and there are some y AND some z, we add the Yrot
 			if (nx + nz > 2 && (ny * nx) != 0) edgeDofs[iSub] |= DofSet::Yrot;
@@ -3492,7 +3490,7 @@ FetiSub<Scalar>::makeEdgeVectorsPlus(bool isFluidSub, bool isThermalSub,
 	// Form Q matrix
 	for (iSub = 0; iSub < scomm->numNeighb; ++iSub) {
 		if (scomm->subNums[iSub] == subNum()) continue;
-		int sOffset = sharedNodes.offset(iSub);
+		int sOffset = sharedNodes.offset(iSub); // Offset of the neighbor in the boundary nodes.
 
 		// compute the wave numbers for EdgeWs augmentation
 		double k_pSolid = 0.0, k_sSolid = 0.0, k_pShell = 0.0, k_sShell = 0.0, k_pFluid = 0.0;
@@ -3530,10 +3528,10 @@ FetiSub<Scalar>::makeEdgeVectorsPlus(bool isFluidSub, bool isThermalSub,
 		// Find the center of the edge/face for EdgeGs augmentation
 		double xc = 0, yc = 0, zc = 0;
 		if (numR > 0) {
-			for (iNode = 0; iNode < sharedNodes.num(iSub); ++iNode) {
-				xc += nodes[sharedNodes[iSub][iNode]]->x;
-				yc += nodes[sharedNodes[iSub][iNode]]->y;
-				zc += nodes[sharedNodes[iSub][iNode]]->z;
+			for ( auto nd : sharedNodes[iSub]) {
+				xc += nodes[ nd ]->x;
+				yc += nodes[ nd ]->y;
+				zc += nodes[ nd ]->z;
 			}
 			xc /= sharedNodes.num(iSub);
 			yc /= sharedNodes.num(iSub);

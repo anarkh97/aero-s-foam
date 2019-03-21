@@ -192,7 +192,7 @@ public:
 
 public:
 	std::vector<DofSet> cornerDofs;
-	DofSet *edgeDofs;      // JAT 112113
+	std::vector<DofSet> edgeDofs;
 
 protected:
 	gl_sub_idx subNumber;

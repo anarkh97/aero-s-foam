@@ -247,7 +247,6 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
 			}
 		}
 		else {
-			// do something for coupled eigen/dynamics, set fluidCelerity = 1500
 			if(makeMass && sinfo.isCoupled && isFluidElement(iele)) mel /= (1500.0 * 1500);
 			if(sinfo.acoustic == 1 && prop) {
 				double c = prop->ss; //speed of sound
@@ -405,7 +404,6 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
 					melC *= packedEset[iele]->helmCoef()/geoSource->shiftVal();
 			}
 			else {
-				// do something for coupled eigen/dynamics, set fluidCelerity = 1500
 				if(makeMass && sinfo.isCoupled && isFluidElement(iele)) melC /= (1500.0 * 1500);
 				if(sinfo.acoustic == 1 && prop) {
 					double c = prop->ss;//speed of sound
@@ -2189,112 +2187,6 @@ Domain::buildFreqSweepRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar>
 			}
 		}
 	}
-
-/*
-  if (implicitFlag) {
-
-    double *direction = getWaveDirection();
-// RT - check that this is the heterogenous scattering
-    int imat;
-    double rho1, rho2;
-    complex<double> kappa1(0.0,0.0), kappa2(0.0,0.0);
-    for(imat=0;imat<geoSource->getNumProps();imat++) {
-      StructProp *sp = &((geoSource->getStructProps())[imat]);
-      if (sp!=0)
-      if (sp->kappaHelm!=0.0) {
-        if (kappa1==complex<double>(0.0,0.0)) {
-          kappa1 = complex<double>(sp->kappaHelm,0.0);
-          rho1 = sp->rho;
-        } else {
-          if (kappa1!=complex<double>(sp->kappaHelm,sp->kappaHelmImag)) {
-            if (kappa2==complex<double>(0.0,0.0)) {
-              kappa2 = complex<double>(sp->kappaHelm,sp->kappaHelmImag);
-              rho2 = sp->rho;
-            }
-          }
-        }
-      }
-    }
-
-    complex<double> diri[3][3] ={ {0.0,0.0,0.0}, {0.0,0.0,0.0}, {0.0,0.0,0.0} };
-    complex<double> coefi[3] = {0.0,0.0,0.0};
-    complex<double> kappai[3] = {0.0,0.0,0.0};
-
-    if (real(kappa2)!=0) {
-fprintf(stderr,"Complex kappa2 not supported yet!\n");
-// Assumptions - fluid 1 is in z<0, fluid 2 is in z>0
-//             - incident wave is of form (dx,dy,dz), dz>0
-//             - incident wave vector is normalized
-//             - kappa1 is real
-//             - |kappa2| < kappa1
-
-       double alpha = acos(direction[2]);
-
-       double ll = sqrt(direction[0]*direction[0]+direction[1]*direction[1]);
-       double dx = 0.0;
-       double dy = 0.0;
-       if (ll!=0.0) {
-         dx = direction[0]/ll;
-         dy = direction[1]/ll;
-       }
-
-       diri[0][0] = kappa1*complex<double>(0.0,direction[0]);
-       diri[0][1] = kappa1*complex<double>(0.0,direction[1]);
-       diri[0][2] = kappa1*complex<double>(0.0,direction[2]);
-       diri[1][0] = kappa1*complex<double>(0.0,direction[0]);
-       diri[1][1] = kappa1*complex<double>(0.0,direction[1]);
-       diri[1][2] = kappa1*complex<double>(0.0,-direction[2]);
-       diri[2][0] = kappa1*complex<double>(0.0,sin(alpha)*dx);
-       diri[2][1] = kappa1*complex<double>(0.0,sin(alpha)*dy);
-       diri[2][2] = sqrt(sin(alpha)*sin(alpha)*kappa1*kappa1-kappa2*kappa2);
-       if (real(diri[2][2])>1e-15) diri[2][2] = -diri[2][2];
-
-       coefi[0] = complex<double>(1.0,0.0);
-       coefi[1] = (rho2*kappa1/(rho1*kappa2)-
-                  diri[2][2]/(kappa2*complex<double>(0.0,direction[2]))) /
-                  (rho2*kappa1/(rho1*kappa2)+
-                  diri[2][2]/(kappa2*complex<double>(0.0,direction[2])));
-       coefi[2] = 2.0 /
-                  (rho2*kappa1/(rho1*kappa2)+
-                  diri[2][2]/(kappa2*complex<double>(0.0,direction[2])));
-       coefi[2] *= rho2/rho1*kappa1/kappa2;
-    } else {
-       diri[2][0] = kappa1*complex<double>(0.0,direction[0]);
-       diri[2][1] = kappa1*complex<double>(0.0,direction[1]);
-       diri[2][2] = kappa1*complex<double>(0.0,direction[2]);
-       coefi[2] = cscale_factor*complex<double>(1.0,0.0);
-       kappai[2] = kappa1;
-    }
-
-    int iele;
-    ComplexVector elementWetInterfaceScatterForce(this->maxNumDOFs,0.0);
-    int* edofs = (int*) alloca(this->maxNumDOFs*4*sizeof(int));
-    int numWetDof;
-    for(iele=0; iele<numWet; ++iele) {
-      HelmElement *he = dynamic_cast<HelmElement *>(wet[iele]->el);
-      if (he==0 && wet[iele]->el2==0) {
-        numWetDof = wet[iele]->numSolidDofs();
-        wet[iele]->solidDofs(*this->dsa,edofs);
-      } else if (he!=0 && wet[iele]->el2==0) {
-        numWetDof = wet[iele]->numDofs();
-        wet[iele]->dofs(*this->dsa,edofs);
-      } else {
-        numWetDof = wet[iele]->numWetDofs();
-        wet[iele]->wetDofs(*this->dsa,edofs);
-      }
-
-      wet[iele]->wetInterfaceVectorDeriv(this->nodes,
-         elementWetInterfaceScatterForce, diri,coefi,kappai,iRHS);
-
-      int i;
-      for(i=0;i<numWetDof;i++) {
-        ScalarTypes::addScalar(force[edofs[i]],
-          elementWetInterfaceScatterForce[i].real()/pow(domain->fluidCelerity,iRHS),
-          elementWetInterfaceScatterForce[i].imag()/pow(domain->fluidCelerity,iRHS));
-      }
-    }
-  }
-*/
 
 	if (implicitFlag) {
 

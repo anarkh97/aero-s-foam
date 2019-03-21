@@ -518,16 +518,10 @@ StaticSolver< Scalar, OpSolver, VecType,
 							startTimerMemory(times->timeFreqSweep, times->memoryFreqSweep);
 							domain->isCoarseGridSolve = false;
 							double w = domain->frequencies->front();
-// RT: 11/05/13
 							double deltaw;
 							if (padeN>1) deltaw = w - w0;
 							else deltaw = w - wc;
-//         if(domain->solInfo().isAcousticHelm()) {
-//           filePrint(stderr, " ... Reconstructing solution for k = %f...\n", w/domain->fluidCelerity);
-//         }
-//         else {
 							filePrint(stderr, " ... Reconstructing solution for f = %f ...\n", w/(2.0*PI));
-//         }
 							//--------
 							switch(domain->solInfo().getSweepParams()->freqSweepMethod) {
 								case SweepParams::Taylor :
@@ -550,9 +544,6 @@ StaticSolver< Scalar, OpSolver, VecType,
 									}
 								} break;
 								case SweepParams::Pade :
-//             if(threadManager->numThr() > 1 && domain->solInfo().solvercntl->type == 2)
-//               probDesc->pade(sol, sol_prev, h, deltaw);
-//             else 
 									pade(sol, sol_prev, h, deltaw);
 									break;
 								case SweepParams::Pade1 :
@@ -937,7 +928,6 @@ StaticSolver< Scalar, OpSolver, VecType,
   geoSource->setOmega(w1);
   filePrint(stderr,"\n ... Rebuilding LHS with frequency = %f ... \n", w1/(2.0*PI));
   if(domain->solInfo().isAcousticHelm()) {  // set new wave number for acoustic helmholtz
-//    filePrint(stderr,"\n ... Rebuilding LHS with wave number = %f ... \n", w1/domain->fluidCelerity);
     SPropContainer& sProps = geoSource->getStructProps();
     for(int iProp=0;iProp<geoSource->getNumProps();iProp++) {
        if(sProps[iProp].kappaHelm!=0.0 || sProps[iProp].kappaHelmImag!=0.0) {

@@ -79,9 +79,6 @@ HData::HData() : sommer(0), scatter(0), neum(0), wet(0), sBoundNodes(0)
   somNodeToElem = 0;
   somNodeToNode = 0;
 
-//  fluidDensity = 1.0;
-  fluidCelerity = 1.0;
-
   sommerChecked = false;
   subScaToSca = 0;
 }

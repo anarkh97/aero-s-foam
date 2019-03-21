@@ -3499,9 +3499,6 @@ Domain::getFrequencyOrWavenumber()
     else {
       ret = geoSource->omega();
     }
-// RTRT 02/01/13
-//    if(domain->solInfo().isAcousticHelm()) ret /= domain->fluidCelerity;
-//    else
     ret /= (2.0*PI);
   }
   return ret;

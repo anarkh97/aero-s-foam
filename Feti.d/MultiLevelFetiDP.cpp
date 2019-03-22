@@ -175,8 +175,11 @@ formMatrix(const std::vector<SuperElement<S>> &allElements, const std::map<gl_no
 			ptr += dsa.number(glToLocNodes.at(subDomElem.nodes[i]), subDomElem.dofs[i], ptr);
 		K.add(*subDomElem.Kel, {elemDOFs.data(), static_cast<gsl::span<const int>::index_type> (elemDOFs.size())});
 	}
-
+#if defined(__GNUC__) && (__GNUC__ <= 5)
+        return std::tuple<Connectivity, DofSetArray, GenDBSparseMatrix<S>>(std::move(nToN), std::move(dsa), std::move(K));
+#else
 	return { std::move(nToN), std::move(dsa), std::move(K) } ;
+#endif
 }
 
 /// \brief Make a vector out of a node.
@@ -236,7 +239,12 @@ subSharedNodes(gl_sub_idx subIdx, gsl::span<const gl_node_idx> nodes, const Conn
 	// Sanity check. A subdomain should not have itself amongst its neighbors. TODO REMOVE
 	if(std::find(globalNeighbors.begin(), globalNeighbors.end(), subIdx) != globalNeighbors.end())
 		throw "Bad apple";
+#if defined(__GNUC__) && (__GNUC__ <= 5)
+	return std::tuple<std::vector<gl_sub_idx>, std::map<gl_node_idx, lc_node_idx>, Connectivity>(std::move(globalNeighbors),
+		 std::move(glToLocNode), Connectivity::fromLinkRange(locShared));
+#else
 	return { std::move(globalNeighbors), std::move(glToLocNode), Connectivity::fromLinkRange(locShared) };
+#endif
 };
 
 /** \brief Build the meta subdomains.

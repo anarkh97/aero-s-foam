@@ -1704,8 +1704,8 @@ HData::setKirchhoffLocations(double x, double y, double z)
      int i;
      double *p = new double[(numKirchhoffLocations+100)*3];
      for(i=0;i<numKirchhoffLocations*3;i++) p[i] = kirchhoffLocations[i];
-       if (numKirchhoffLocations!=0) delete kirchhoffLocations;
-       kirchhoffLocations = p;
+     if (numKirchhoffLocations!=0) delete [] kirchhoffLocations;
+     kirchhoffLocations = p;
   }
   kirchhoffLocations[numKirchhoffLocations*3  ] = x;
   kirchhoffLocations[numKirchhoffLocations*3+1] = y;
@@ -1720,7 +1720,7 @@ HData::setFFPDirections(double d1, double d2, double d3)
      int i;
      double *p = new double[(numFFPDirections+100)*3];
      for(i=0;i<numFFPDirections*3;i++) p[i] = ffpDirections[i];
-       if (numFFPDirections!=0) delete ffpDirections;
+     if (numFFPDirections!=0) delete [] ffpDirections;
      ffpDirections = p;
   }
   double d = sqrt(d1*d1 + d2*d2 + d3*d3);
@@ -1759,7 +1759,7 @@ HData::setWaveDirections(int iDir, double d1, double d2, double d3)
        int i;
        double *p = new double[(numWaveDirections+100)*3];
        for(i=0;i<numWaveDirections*3;i++) p[i] = waveDirections[i];
-       if (numWaveDirections!=0) delete waveDirections;
+       if (numWaveDirections!=0) delete [] waveDirections;
        waveDirections = p;
     }
     if (d==0.0) {

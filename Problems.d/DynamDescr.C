@@ -657,7 +657,9 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
   // add aeroelastic forces from fluid dynamics code
   if(sinfo.aeroFlag >= 0 && tIndex >= 0 &&
      !(geoSource->getCheckFileInfo()->lastRestartFile && sinfo.aeroFlag == 20 && !sinfo.dyna3d_compat && tIndex == sinfo.initialTimeIndex)) {
-    domain->buildAeroelasticForce(*aero_f, *prevFrc, tIndex, t, gamma, alphaf);
+    if(tIndex % sinfo.subcycle == 0) {
+      domain->buildAeroelasticForce(*aero_f, *prevFrc, tIndex, t, gamma, alphaf);
+    }
     ext_f += *aero_f;
   }
 

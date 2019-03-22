@@ -755,8 +755,9 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
 
 	// add aeroelastic forces from fluid dynamics code
 	if (sinfo.aeroFlag >= 0 && tIndex >= 0 &&
-     !(geoSource->getCheckFileInfo()->hotRestart() && sinfo.aeroFlag == 20 && !sinfo.dyna3d_compat &&
+	      !(geoSource->getCheckFileInfo()->hotRestart() && sinfo.aeroFlag == 20 && !sinfo.dyna3d_compat &&
 	      tIndex == sinfo.initialTimeIndex)) {
+		if(tIndex % sinfo.subcycle == 0) {
 
 		domain->getTimers().receiveFluidTime -= getTime();
 		aeroForce->zero();
@@ -783,7 +784,6 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
 
 			aero_f->linC(alpha, *aeroForce, (1.0 - alpha), *prevFrc);
 		}
-		f += *aero_f;
 
 		*prevFrc = *aeroForce;
 		prevTime = tFluid;
@@ -791,7 +791,7 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
 
 		if (sinfo.aeroFlag == 20 && sinfo.dyna3d_compat) {
 			if (sinfo.stop_AeroF) sinfo.stop_AeroS = true;
-			double dt = sinfo.getTimeStep();
+			double dt = sinfo.getTimeStep()*sinfo.subcycle;
 			if (tIndex == sinfo.initialTimeIndex) sinfo.t_AeroF = sinfo.initialTime + 1.5 * dt;
 			else sinfo.t_AeroF += dt;
 			double maxTime_AeroF = sinfo.tmax - 0.5 * dt;
@@ -803,13 +803,15 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
 				sinfo.stop_AeroF = true;
 			}
 			int restartinc = std::max(sinfo.nRestart, 0);
-			distFlExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), sendtim, restartinc,
+			distFlExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep()*sinfo.subcycle, sendtim, restartinc,
 			                           sinfo.isCollocated, sinfo.alphas);
 			if (tIndex == 0) // Send the parameter a second time for fluid iteration 1 to 2
-				distFlExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), sendtim, restartinc,
+				distFlExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep()*sinfo.subcycle, sendtim, restartinc,
 				                           sinfo.isCollocated, sinfo.alphas);
 		}
 		domain->getTimers().receiveFluidTime += getTime();
+		}
+		f += *aero_f;
 	}
 
 	// add aerothermal fluxes from fluid dynamics code

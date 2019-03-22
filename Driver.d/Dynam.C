@@ -351,7 +351,7 @@ Domain::buildAeroelasticForce(Vector& aero_f, PrevFrc& prevFrc, int tIndex, doub
 
   if(sinfo.aeroFlag == 20 && sinfo.dyna3d_compat) {
     if(sinfo.stop_AeroF) sinfo.stop_AeroS = true;
-    double dt = sinfo.getTimeStep();
+    double dt = sinfo.getTimeStep()*sinfo.subcycle;
     if(tIndex == sinfo.initialTimeIndex) sinfo.t_AeroF = sinfo.initialTime + 1.5*dt;
     else sinfo.t_AeroF += dt;
     double maxTime_AeroF = sinfo.tmax-0.5*dt;
@@ -363,10 +363,10 @@ Domain::buildAeroelasticForce(Vector& aero_f, PrevFrc& prevFrc, int tIndex, doub
       sinfo.stop_AeroF = true;
     }
     int restartinc = std::max(sinfo.nRestart, 0);
-    flExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), sendtim, restartinc,
+    flExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep()*sinfo.subcycle, sendtim, restartinc,
                            sinfo.isCollocated, sinfo.alphas,  sinfo.alphasv);
     if(tIndex == 0) // Send the parameter a second time for fluid iteration 1 to 2
-      flExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), sendtim, restartinc,
+      flExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep()*sinfo.subcycle, sendtim, restartinc,
                              sinfo.isCollocated, sinfo.alphas, sinfo.alphasv);
   }
 

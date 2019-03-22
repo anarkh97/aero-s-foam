@@ -113,6 +113,7 @@ public:
    int aeroFlag;
    int printNumber;
    bool dyna3d_compat;
+   int subcycle;
    int aeroheatFlag;
    int thermoeFlag;
    int thermohFlag;
@@ -579,6 +580,7 @@ public:
                   aeroFlag = -1;
                   printNumber = 50;
                   dyna3d_compat = false;
+                  subcycle = 1;
                   aeroheatFlag = -1;
                   thermoeFlag = -1;
                   thermohFlag = -1;

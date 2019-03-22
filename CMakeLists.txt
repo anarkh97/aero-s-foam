@@ -9,7 +9,7 @@ endif()
 option(USE_MPI "Use MPI" ON)
 option(USE_CHOLMOD "Attempt to use Choldmod" ON)
 option(USE_PARDISO "Attempt to use MKL Pardiso" ON)
-option(TRY_ACME "Try to use ACME" OFF)
+option(TRY_ACME "Try to use ACME" ON)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake" "/usr/local/include/eigen3/cmake/")
 

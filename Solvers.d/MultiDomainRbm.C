@@ -153,7 +153,8 @@ MultiDomainRbm<Scalar>::computeRbms()
   }
 
   // assemble global Zstar matrix for each body
-  FullM **globalZstar = new FullM * [nGroups];
+  std::vector<FullM> globalZstar;
+  globalZstar.reserve(nGroups);
   int *zRow = new int[nGroups];
   int *zRowDim = new int[nGroups];
   int *zColDim = new int[nGroups];
@@ -202,8 +203,8 @@ MultiDomainRbm<Scalar>::computeRbms()
   for(int i = 0; i < nGroups; ++i) zRow[i] = 0;
 #endif
   for(int i = 0; i < nGroups; ++i) {
-    globalZstar[i] = new FullM(zRowDim[i], zColDim[i]);
-    globalZstar[i]->zero();
+    globalZstar.emplace_back(zRowDim[i], zColDim[i]);
+    globalZstar[i].zero();
   }
   // could do this in parallel (by groups)
   for(int iSub = 0; iSub < nsub; ++iSub) {
@@ -223,7 +224,7 @@ MultiDomainRbm<Scalar>::computeRbms()
   int *groupProc = new int[nGroups];
 #ifdef DISTRIBUTED
   for(int i = 0; i < nGroups; ++i) {
-    com->globalSum(zRowDim[i]*zColDim[i], globalZstar[i]->data());
+    com->globalSum(zRowDim[i]*zColDim[i], globalZstar[i].data());
     groupProc[i] = -1;
   }
   for(int i = 0; i < nGroups1; ++i) groupProc[groups[i]] = myCPU;
@@ -242,9 +243,9 @@ MultiDomainRbm<Scalar>::computeRbms()
     int nrow = zRowDim[iGroup];
     FullM U(ncol,ncol); U.zero(); 
     int rank = 0;
-    singularValueDecomposition(*globalZstar[iGroup], U, ncol, nrow, rank, tolgrb);
+    singularValueDecomposition(globalZstar[iGroup], U, ncol, nrow, rank, tolgrb);
     int ngrbmGrTmp = ncol - rank;
-    globalZstar[iGroup]->clean_up();
+    globalZstar[iGroup].clean_up();
     if(groupProc[iGroup] == myCPU) {
       ngrbmGr[iGroup] = ngrbmGrTmp;
       ngrbm += ngrbmGr[iGroup];
@@ -263,8 +264,6 @@ MultiDomainRbm<Scalar>::computeRbms()
   delete [] zRow;
   delete [] zRowDim;
   delete [] zColDim;
-  for(int i = 0; i < nGroups; ++i) delete globalZstar[i];
-  delete [] globalZstar;
  
   // make local Rstar
   paralApply(nsub, sd, &GenSubDomain<Scalar>::makeLocalRstar, Qtranspose);

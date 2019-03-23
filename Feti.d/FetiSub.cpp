@@ -303,19 +303,19 @@ FetiBaseSub::GramSchmidt(double *Q, bool *isUsed, DofSet desired, int nQPerNeigh
 }
 
 void
-FetiBaseSub::addMPCsToGlobalZstar(FullM *globalZstar, int startRow, int startCol, int numCol)
+FetiBaseSub::addMPCsToGlobalZstar(FullM &globalZstar, int startRow, int startCol, int numCol) const
 {
 	FullM *Zmpc = rigidBodyModesG->Zmpc;
 	for(int i=0; i<numMPC_primal; ++i)
 		for(int j=0; j<numCol; ++j)
-			(*globalZstar)[startRow+localToGroupMPC[i]][startCol+j] += (*Zmpc)[i][j];
+			globalZstar[startRow+localToGroupMPC[i]][startCol+j] += (*Zmpc)[i][j];
 }
 
 void
-FetiBaseSub::addSPCsToGlobalZstar(FullM *globalZstar, int &zRow, int zColOffset)
+FetiBaseSub::addSPCsToGlobalZstar(FullM &globalZstar, int &zRow, int zColOffset) const
 {
 	FullM *Zstar = rigidBodyModesG->Zstar;
-	globalZstar->add(*Zstar, zRow, zColOffset);
+	globalZstar.add(*Zstar, zRow, zColOffset);
 	zRow += Zstar->numRow();
 }
 
@@ -456,15 +456,15 @@ FetiBaseSub::setNodeCommSize(FSCommStructure *pt, int d) const
 		pt->setLen(subNumber, scomm->subNums[iSub], scomm->sharedNodes->num(iSub)*d);
 }
 
-void FetiBaseSub::makeLocalToGroupMPC(Connectivity *groupToMPC)
+void FetiBaseSub::makeLocalToGroupMPC(const Connectivity &groupToMPC)
 {
 	// PJSA: new version for multi-body mpc compatability
 	int i;
 	if(numMPC_primal > 0) {
 		localToGroupMPC = new int[numMPC_primal];
-		int groupOffset = groupToMPC->offset(group);
-		for(i=0; i<groupToMPC->num(group); ++i) {
-			int glMpcID = groupToMPC->getTargetValue(groupOffset+i);
+		int groupOffset = groupToMPC.offset(group);
+		for(i=0; i<groupToMPC.num(group); ++i) {
+			int glMpcID = groupToMPC.getTargetValue(groupOffset+i);
 			int localMpcID = globalToLocalMPC_primal[glMpcID];
 			if(localMpcID > -1) localToGroupMPC[localMpcID] = i;
 		}
@@ -3404,7 +3404,7 @@ FetiSub<Scalar>::makeEdgeVectorsPlus(bool isFluidSub, bool isThermalSub,
 		isUsed[i] = false;
 
 	// 1. first count number of edge dofs
-	edgeDofs.resize(scomm->numNeighb); // edgeDofs was called found  JAT 112113
+	edgeDofs.resize(scomm->numNeighb);
 	for (iSub = 0; iSub < scomm->numNeighb; ++iSub) {
 		edgeDofSizeTmp[iSub] = 0;
 		if (scomm->subNums[iSub] == subNum()) continue;

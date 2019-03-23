@@ -345,7 +345,6 @@ GenFetiDPSolver<Scalar>::makeKcc()
 {
 	startTimerMemory(this->times.coarse1, this->times.memoryGtG);
 
-// int glNumSub = this->subToSub->csize();
 	if(verboseFlag) filePrint(stderr," ... Number of Subdomains    %5d  ...\n", this->glNumSub);
 
 	// STEP 1. count number of corner nodes and make subToCorner connectivity
@@ -357,8 +356,6 @@ GenFetiDPSolver<Scalar>::makeKcc()
 	else {
 		subToCorner = std::make_unique<Connectivity>( cornerToSub->reverse() );
 	}
-	// filePrint(stderr,"subToCorner %d kb\n",(int)(subToCorner->memsize()/1024));
-	// filePrint(stderr,"cornerToSub %d kb\n",(int)(cornerToSub->memsize()/1024));
 
 	// STEP 2. make subToCoarse connectivity (includes primal mpcs and augmentation) and coarseConnectivity
 	Connectivity *coarseToSub = 0;
@@ -611,16 +608,16 @@ GenFetiDPSolver<Scalar>::makeKcc()
 		// make Zstar and R matrices for each subdomain
 		paralApply(this->subdomains, &FetiSub<Scalar>::makeZstarAndR, centroid.data());
 
-		Connectivity *groupToMpc = 0;
+		Connectivity groupToMpc;
 		if(this->glNumMpc_primal > 0) {
-			Connectivity *subToMpc = this->mpcToSub_primal->alloc_reverse();
+			Connectivity subToMpc = this->mpcToSub_primal->reverse();
 			groupToMpc = groupToSub->transcon(subToMpc);
-			paralApply(this->nsub, this->subdomains.data(), &FetiBaseSub::makeLocalToGroupMPC, groupToMpc);
-			delete subToMpc;
+			paralApply(this->subdomains, &FetiBaseSub::makeLocalToGroupMPC, groupToMpc);
 		}
 
 		// assemble global Zstar matrix for each body
-		FullM **globalZstar = new FullM * [nGroups];
+		std::vector<FullM> globalZstar;
+		globalZstar.reserve(nGroups);
 		std::vector<int> zRow(nGroups);
 		std::vector<int> zRowDim(nGroups);
 		std::vector<int> zColDim(nGroups);
@@ -650,27 +647,26 @@ GenFetiDPSolver<Scalar>::makeKcc()
 			zRowDim[subGroup] += this->subdomains[iSub]->zRowDim();
 		}
 		if(this->glNumMpc_primal > 0) {
-			for(int i = 0; i < nGroups; ++i) zRowDim[i] += groupToMpc->num(i);
+			for(int i = 0; i < nGroups; ++i) zRowDim[i] += groupToMpc.num(i);
 		}
 		if(groupToBody) delete groupToBody;
 
 #ifdef DISTRIBUTED
-		int *zRowOffset = new int[this->numCPUs*nGroups];
+		std::vector<int> zRowOffset(this->numCPUs*nGroups);
 		for(int i = 0; i < this->numCPUs*nGroups; ++i) zRowOffset[i] = 0;
 		for(int i = 0; i < nGroups1; ++i) {
 			int iGroup = groups[i];
 			for(int j = this->myCPU+1; j < this->numCPUs; ++j) zRowOffset[iGroup*this->numCPUs +j] = zRowDim[iGroup];
 		}
 		this->fetiCom->globalSum(nGroups, zRowDim.data());
-		this->fetiCom->globalSum(this->numCPUs*nGroups, zRowOffset);
+		this->fetiCom->globalSum(zRowOffset);
 		for(int i = 0; i < nGroups; ++i) zRow[i] = zRowOffset[i*this->numCPUs + this->myCPU];
-		delete [] zRowOffset;
 #else
 		for(int i = 0; i < nGroups; ++i) zRow[i] = 0;
 #endif
 		for(int i = 0; i < nGroups; ++i) {
-			globalZstar[i] = new FullM(zRowDim[i], zColDim[i]);
-			globalZstar[i]->zero();
+			globalZstar.emplace_back(zRowDim[i], zColDim[i]);
+			globalZstar[i].zero();
 		}
 		// could do this in parallel (by groups)
 		for(int iSub = 0; iSub < this->nsub; ++iSub) {
@@ -679,7 +675,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 			if(this->subdomains[iSub]->zRowDim() > 0)
 				this->subdomains[iSub]->addSPCsToGlobalZstar(globalZstar[subGroup], zRow[subGroup], zColOffset[subBody]);
 			if(this->subdomains[iSub]->numMPCs_primal() > 0) {
-				int startRow = zRowDim[subGroup] - groupToMpc->num(subGroup);
+				int startRow = zRowDim[subGroup] - groupToMpc.num(subGroup);
 				this->subdomains[iSub]->addMPCsToGlobalZstar(globalZstar[subGroup], startRow, zColOffset[subBody], zColDim1);
 			}
 			if(this->glNumMpc_primal > 0) {
@@ -687,12 +683,11 @@ GenFetiDPSolver<Scalar>::makeKcc()
 				this->subdomains[iSub]->setBodyRBMoffset(zColOffset[subBody]);
 			}
 		}
-		if(groupToMpc) delete groupToMpc;
 
 		std::vector<int> groupProc(nGroups);
 #ifdef DISTRIBUTED
 		for(int i = 0; i < nGroups; ++i) {
-			this->fetiCom->globalSum(zRowDim[i]*zColDim[i], globalZstar[i]->data());
+			this->fetiCom->globalSum(zRowDim[i]*zColDim[i], globalZstar[i].data());
 			groupProc[i] = -1;
 		}
 		for(int i = 0; i < nGroups1; ++i) groupProc[groups[i]] = this->myCPU;
@@ -711,9 +706,9 @@ GenFetiDPSolver<Scalar>::makeKcc()
 			int nrow = zRowDim[iGroup];
 			FullM U(ncol,ncol); U.zero();
 			int rank = 0;
-			singularValueDecomposition(*globalZstar[iGroup], U, ncol, nrow, rank, domain->solInfo().tolsvd);
+			singularValueDecomposition(globalZstar[iGroup], U, ncol, nrow, rank, domain->solInfo().tolsvd);
 			int ngrbmGrTmp = ncol - rank;
-			globalZstar[iGroup]->clean_up();
+			globalZstar[iGroup].clean_up();
 			if(groupProc[iGroup] == this->myCPU) {
 				ngrbmGr[iGroup] = ngrbmGrTmp;
 				ngrbm += ngrbmGr[iGroup];
@@ -727,9 +722,6 @@ GenFetiDPSolver<Scalar>::makeKcc()
 		ngrbms = ngrbm;
 #endif
 		if(verboseFlag) filePrint(stderr, " ... total number of GRBMs = %5d  ...\n", ngrbms);
-
-		for(int i = 0; i < nGroups; ++i) delete globalZstar[i];
-		delete [] globalZstar;
 
 		// make local Rstar
 		paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::makeLocalRstar, Qtranspose);

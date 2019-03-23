@@ -170,8 +170,8 @@ public:
 	int getGlobalMPCIndex(int localMpcIndex) const;
 	void makeLocalMpcToGlobalMpc(const Connectivity *mpcToMpc);
 
-	void addMPCsToGlobalZstar(FullM *globalZstar, int startRow, int startCol, int numCol);
-	void addSPCsToGlobalZstar(FullM *globalZstar, int &zRow, int zColOffset);
+	void addMPCsToGlobalZstar(FullM &globalZstar, int startRow, int startCol, int numCol) const;
+	void addSPCsToGlobalZstar(FullM &globalZstar, int &zRow, int zColOffset) const;
 
 	void setWIoneCommSize(FSCommStructure *pat) const;
 	void setWICommSize(FSCommStructure *wiPat);
@@ -192,7 +192,7 @@ public:
 
 public:
 	std::vector<DofSet> cornerDofs;
-	std::vector<DofSet> edgeDofs;
+	std::vector<DofSet> edgeDofs; //<! \brief "Or" of all the DOFs for each edge with a neighbor.
 
 protected:
 	gl_sub_idx subNumber;
@@ -268,7 +268,7 @@ public:
 	void setGroup(const Connectivity *subToGroup) { this->group = (*subToGroup)[subNum()][0]; }
 	void setNumGroupRBM(int *ngrbmGr);
 	void getNumGroupRBM(int *ngrbmGr);
-	void makeLocalToGroupMPC(Connectivity *groupToMPC);
+	void makeLocalToGroupMPC(const Connectivity &groupToMPC);
 
 	void setNodeCommSize(FSCommStructure *, int d = 1) const;
 

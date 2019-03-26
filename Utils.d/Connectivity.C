@@ -114,14 +114,16 @@ Connectivity::Connectivity(BinFileHandler& f, bool oldSower)
 	}
 	else {
 		//cerr << " *** WARNING: using OLD_SOWER ::Connectivity(BinFileHandler& f) \n";
-		size_t numtarget;
-		size_t rsize;
+		int numtarget;
+		int rsize;
 		f.read(&rsize, 1);
 		size = rsize;
 		f.read(&numtarget, 1);
 		pointer.resize(size+1);
 		target.resize(numtarget);
-		f.read(pointer.data(), size+1);
+		std::vector<int> rpointer(size+1);
+		f.read(rpointer.data(), size+1);
+		std::copy(rpointer.begin(), rpointer.end(), pointer.begin());
 		f.read(target.data(), numtarget);
 	}
 }

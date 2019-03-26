@@ -501,10 +501,13 @@ void FetiSub<Scalar>::makeBs() {
 		}
 	}
 	B.resize(localLen(), totalInterfSize);
-	B.setFromTriplets(b.begin(), b.end());
+	B.setZero();
+	B.setFromTriplets(b.begin(), b.end()); 
 	Bw.resize(numWIdof, totalInterfSize);
+	Bw.setZero();
 	Bw.setFromTriplets(bw.begin(), bw.end());
 	Bm.resize(localLen(), totalInterfSize);
+	Bm.setZero();
 	Bm.setFromTriplets(bm.begin(), bm.end());
 
 	mpcFlag.assign(numMPC, true);

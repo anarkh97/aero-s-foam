@@ -7,7 +7,9 @@
 
 #include <complex>
 #include <memory>
+#if __cpp_lib_experimental_propagate_const >= 201505
 #include <experimental/propagate_const>
+#endif
 #ifdef USE_MPI
 #include <mpi.h>
 namespace FetiLib {
@@ -34,10 +36,15 @@ namespace tpl {
 
 class DPSImpl;
 
+#if __cpp_lib_experimental_propagate_const >= 201505
 template <typename O>
 using const_enforcing_unique_ptr = std::experimental::propagate_const<std::unique_ptr<O>>;
+#else
+template <typename O>
+using const_enforcing_unique_ptr = std::unique_ptr<O>;
+#endif
 
-/** \brief FETI-DP solver for doouble or complex. */
+/** \brief FETI-DP solver for double or complex. */
 template <typename T>
 class DPSolver {
 	/** \brief Constructor with an array of subdomains and a communicator.

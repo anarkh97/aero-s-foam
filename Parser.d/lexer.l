@@ -1060,6 +1060,8 @@ TRAIL [a-zA-Z]*
 
 "EMBE"[a-zA-Z]*|"embe"[a-zA-z]*    { return AEROEMBED; }
 
+"SUBC"[a-zA-Z]*|"subc"[a-zA-z]*    { return SUBCYCLE; }
+
 "method"|"METHOD"                  { return SENSITIVITYMETHOD; }
 
 "Direct"                           { yylval.ival = SolverInfo::Direct;  return SENSITIVITYID; }

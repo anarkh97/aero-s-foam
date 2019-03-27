@@ -2553,7 +2553,10 @@ GenFetiDPSolver<Scalar>::refactor()
   }
   internalC.len = tLocalCLen;
 
+  threadManager->callParal(this->nsub, [this](int iSub) { this->subdomains[iSub]->makeBs(); });
+
   paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::initMpcStatus);
+
 }
 
 template<class Scalar>

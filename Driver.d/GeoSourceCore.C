@@ -4231,9 +4231,12 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
    Connectivity *graph = elemToElem.modifyAlt(); // scotch doesn't allow loops
    Connectivity *subToElem = graph->SCOTCH_graphPart(numSubdomains);
    subToElem->renumberTargets(pckToGlElems);
-   optDec = new Decomposition(numSubdomains, subToElem->getPointer(), subToElem->getTarget());
-   //subToElem->setRemoveable(0);
-   //delete subToElem; 
+   int *ptr = new int[subToElem->csize()+1];
+   for(int i = 0; i < subToElem->csize()+1; ++i) ptr[i] = subToElem->getPointer()[i];
+   int *tgt = new int[subToElem->getNumTarget()];
+   for(int i = 0; i < subToElem->getNumTarget(); ++i) tgt[i] = subToElem->getTarget()[i];
+   optDec = new Decomposition(numSubdomains, ptr, tgt);
+   delete subToElem; 
    delete graph; 
 
    if(verboseFlag)

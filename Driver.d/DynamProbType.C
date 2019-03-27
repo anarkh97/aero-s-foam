@@ -1609,7 +1609,12 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       matrixTimers.updateState += getTime();
 
       // C0: Send predicted displacement at t^{n+1.5} to fluid
-      if(aeroAlg == 20 && !domain->solInfo().stop_AeroS) probDesc->aeroSend(t_n_h+dt_n_h, d_n, v_n_h, a_n, v_h_p);
+      if(aeroAlg == 20 && !domain->solInfo().stop_AeroS) {
+        int subcycle = domain->solInfo().subcycle;
+        if((n + 1)%subcycle == 0) {
+          probDesc->aeroSend(t_n_h+dt_n_h, d_n, v_n_h, a_n, v_h_p);
+        }
+      }
 
       // Compute the external force at t^{n+1}
       if(domain->solInfo().check_energy_balance) *fext_p = fext;
@@ -1726,7 +1731,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       t_n += dt_n_h; // t^n = t^{n-1} + deltat^{n-1/2}
 
       // Choose a new time step deltat^{n+1/2}
-      if(domain->solInfo().stable && (aeroAlg < 0 || domain->solInfo().dyna3d_compat) && domain->solInfo().isNonLin() && n%domain->solInfo().stable_freq == 0) {
+      if(domain->solInfo().stable && (aeroAlg < 0 || domain->solInfo().dyna3d_compat) && domain->solInfo().isNonLin()
+         && n%(domain->solInfo().subcycle*domain->solInfo().stable_freq) == 0) {
         filePrint(stderr,"\n");
         dt_old = dt_n_h;
         probDesc->computeStabilityTimeStep(dt_n_h, dynOps);

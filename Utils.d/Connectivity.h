@@ -117,9 +117,10 @@ private:
 class Connectivity : public BaseConnectivity<Connectivity,DirectAccess<Connectivity> >
 {
 protected:
+	using TargetT = int;
 	int size;           // size of pointer
 	std::vector<size_t> pointer;       // pointer to target
-	std::vector<int> target;        // value of the connectivity
+	std::vector<TargetT> target;        // value of the connectivity
 	std::vector<float> weight;      // weights of pointer (or 0)
 
 public:
@@ -127,8 +128,8 @@ public:
 	using IndexCount = unsigned int;
 
 	size_t getNumTarget() const {return target.size(); }
-	int * getTarget() {return target.data(); }
-	const int * getTarget() const {return target.data(); }
+	TargetT * getTarget() {return target.data(); }
+	const TargetT * getTarget() const {return target.data(); }
     auto getPointer() {return pointer.data(); }
 	auto getPointer() const {return pointer.data(); }
 
@@ -160,7 +161,7 @@ public:
 	template <class A>
 	Connectivity(const SetAccess<A> &sa);
 	Connectivity(int _size, int *_pointer, int *_target, int _removeable=1, float *_weight = 0);
-	Connectivity(int _size, std::vector<size_t> _pointer, std::vector<int> _target,
+	Connectivity(int _size, std::vector<size_t> _pointer, std::vector<TargetT> _target,
 	             std::vector<float> _weight = std::vector<float>{});
 	Connectivity(int _size, int *count);
 	Connectivity(int _size, int count);
@@ -231,7 +232,7 @@ public:
 	int getTargetValue(int i) const { return target[i]; }
 
 	void findPseudoDiam(int *n1, int *n2, int *mask=0) const;
-	int  rootLS(int root, int *xls, int *ls, int &w, int *mask=0) const;
+	int  rootLS(int root, size_t *xls, int *ls, int &w, int *mask = 0) const;
 
 	long long memsize() const {return ((long long)size + getNumTarget() + 1)*sizeof(int);}
 

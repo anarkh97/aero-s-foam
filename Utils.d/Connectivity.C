@@ -24,13 +24,14 @@ Connectivity::Connectivity(int _size, int *_pointer, int *_target, int _removeab
 	  target(_target, _target+_pointer[_size])
 {
 	size      = _size;
+	if(_weight != nullptr)
+		weight.assign(_weight, _weight+_pointer[_size]);
 	if(_removeable) {
 		delete[] _pointer;
 		delete[] _target;
 		delete[] _weight;
 	}
-	if(_weight != nullptr)
-		weight.assign(_weight, _weight+_pointer[_size]);
+
 }
 
 Connectivity::Connectivity(const Elemset &els, Connectivity *nodeToElem)
@@ -140,9 +141,10 @@ size_t Connectivity::write(BinFileHandler& f) const
 size_t Connectivity::write(FILE *f) const
 {
   fprintf(f, "%d\n", csize());
-  for(int i = 0; i < csize(); ++i) {
+  using Idt = decltype(csize());
+  for(Idt i = 0; i < csize(); ++i) {
     fprintf(f, " %d\n", num(i));
-    for(int j = 0; j < num(i); ++j) {
+    for(Idt j = 0; j < num(i); ++j) {
       fprintf(f, "%d\n", operator[](i)[j]+1);
     }
   }
@@ -180,7 +182,7 @@ Connectivity::Connectivity(int _size, int count)
 	pointer[0] = 0;
 	for(size_t i=0; i < _size; ++i)
 		pointer[i+1] = pointer[i] + count;
-	int numtarget = pointer[size];
+	auto numtarget = pointer[size];
 	target.reserve(numtarget);
 	for(size_t i=0; i < numtarget; ++i)
 		target.push_back(i);
@@ -269,16 +271,16 @@ Connectivity::transconOne( const Connectivity* tc) const
 			flags[ii] = 0;
 		//-- store number of occurence in flag
 		for(j = pointer[i]; j < pointer[i+1]; ++j){
-			int intermed = target[j];
+			auto intermed = target[j];
 			for (k = 0; k < tc->num(intermed); ++k)
 				flags[(*tc)[intermed][k]]++;
 		}
 		//-- fill target
 		for(j = pointer[i]; j < pointer[i+1]; ++j){
-			int intermed = target[j];
+			TargetT intermed = target[j];
 			//-- target with max occ.
-			int targMaxOcc;
-			int maxOcc = 0;
+			TargetT targMaxOcc;
+			TargetT maxOcc = 0;
 			for (k = 0; k < tc->num(intermed); ++k){
 				if(flags[(*tc)[intermed][k]]==-1){
 					maxOcc=0;
@@ -331,12 +333,12 @@ Connectivity::findPseudoDiam(int *s, int *e, int *mask) const
 		}
 	}
 
-	int *ls  =  new int[getNumTarget()];
-	int *xls =  new int[getNumTarget()+1];
+	std::vector<TargetT> ls(getNumTarget());
+	std::vector<size_t> xls(getNumTarget()+1);
 
 	// Created rooted level structure
 	int w;
-	int h = rootLS(*s, xls, ls, w, mask);
+	int h = rootLS(*s, xls.data(), ls.data(), w, mask);
 	int subconsize = xls[h];
 	int *sorted = (int *) dbg_alloca((cmax+1)*sizeof(int));
 	*e = ls[xls[h-1]]; // Give a default end point in case h == subconsize.
@@ -353,7 +355,7 @@ Connectivity::findPseudoDiam(int *s, int *e, int *mask) const
 		int w_e = subconsize;
 		for(k = 0; k <= cmax; ++k)
 			if(sorted[k] >= 0) {
-				int nh = rootLS(sorted[k], xls, ls, w, mask);
+				int nh = rootLS(sorted[k], xls.data(), ls.data(), w, mask);
 				if(w < w_e) {
 					if(nh > h) {
 						*s = sorted[k];
@@ -366,8 +368,6 @@ Connectivity::findPseudoDiam(int *s, int *e, int *mask) const
 			}
 		if(k > cmax) break;
 	}
-	delete [] xls;
-	delete [] ls;
 	return;
 }
 
@@ -381,7 +381,7 @@ Connectivity::findPseudoDiam(int *s, int *e, int *mask) const
  * @return Number of layers.
  */
 int
-Connectivity::rootLS(int root, int *xls, int *ls, int &w, int *mask) const
+Connectivity::rootLS(int root, size_t *xls, int *ls, int &w, int *mask) const
 {
 	int i, j;
 	w = 0;
@@ -430,7 +430,7 @@ Connectivity::renumByComponent(int renumAlg) const
 	int *globalRenum = new int[size];
 	int *mark = new int[size];
 	int *ls   = new int[size];
-	int *xls  = new int[size+1];
+	size_t *xls  = new size_t[size+1];
 	ResizeArray<int> xcomp(0,2);
 	// Initialize mark to zero, accounting for missing node #s
 	// Initialize globalMask
@@ -605,7 +605,7 @@ Connectivity::renumSloan(int *mask, int &nextNum, int *renum) const
 	findPseudoDiam( &s_node, &e_node, mask);
 
 	int *ls  = new int[getNumTarget()];
-	int *xls = new int[getNumTarget()+1];
+	size_t *xls = new size_t[getNumTarget()+1];
 
 	int w;
 	int h = rootLS(e_node, xls,ls,w,mask);
@@ -1287,7 +1287,7 @@ Connectivity::Connectivity(FILE *f, int numtarget)
 	pointer.push_back(target.size());
 }
 
-Connectivity::Connectivity(int _size, std::vector<size_t> _pointer, std::vector<int> _target,
+Connectivity::Connectivity(int _size, std::vector<size_t> _pointer, std::vector<TargetT> _target,
                            std::vector<float> _weight) : size(_size),
                                                          pointer(std::move(_pointer)),
                                                          target(std::move(_target)), weight(std::move(_weight)){

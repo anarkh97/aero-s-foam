@@ -2,18 +2,12 @@
 #define _PARAL_H_
 
 #include <functional>
-#if defined(sgi) &&  !defined(_OPENMP)
-#include <ulocks.h>
-#endif
 
 #if defined(_OPENMP)
 #include <omp.h>
 #endif
 
 class ThreadLock {
-#if defined(sgi) &&  !defined(_OPENMP)
-	ulock_t lockV;
-#endif
 #if defined(_OPENMP)
 	omp_lock_t lockV;
 #endif
@@ -71,18 +65,13 @@ class ThreadManager {
 	int single;
 	OneSproc *firstProc; 	// List of threads
 	OneSproc *allProc;
-#if defined(sgi) &&  !defined(_OPENMP)
-	ulock_t sprocListLock;
-        usema_t *readyProc;
-        usema_t *allDone;
-#endif
 	DistTimer *timer;
 protected:
 	static void threadStart(void *);
 	void dispatch(TaskDescr *task);
 public:
 	ThreadManager(int);	// Create a Manager with n threads
-	~ThreadManager();
+	~ThreadManager() = default;
 	void execTasks(int, TaskDescr **td); //!< run the n given Tasks td[i]->run()
 	void execTasks(int, TaskDescr *td); //!< run for i in [0, n) td->runFor(i);
 	void execParal(int, TaskDescr **td);
@@ -108,9 +97,7 @@ public:
 	long getLocalMem();
 	long memoryUsed();
 	int numThr() { return numThreads; }
-#if defined(sgi) &&  !defined(_OPENMP)
-	barrier_t *getBarrier();
-#endif
+
 	friend class OneSproc;
 };
 

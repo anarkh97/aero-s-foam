@@ -48,11 +48,6 @@ class GeomState;
 extern long totMemSky;
 extern long totMemSparse;
 
-#if defined(sgi) && ! defined(_OPENMP)
-#include <ulocks.h>
-extern ulock_t allocLock;
-#endif
-
 #ifndef _TGEMV__
 #define _TGEMV__
 inline void Tgemv(const char &a, const int &b, const int &c,

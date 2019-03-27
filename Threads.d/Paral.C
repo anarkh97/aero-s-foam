@@ -206,9 +206,6 @@ ThreadLock::unlock()
 
 ThreadLock::ThreadLock()
 {
-#if defined(sgi) &&  !defined(_OPENMP)
- lockV = usnewlock(usPtr);
-#endif
 #if defined(_OPENMP)
   omp_init_lock(&lockV);
 #endif
@@ -216,8 +213,6 @@ ThreadLock::ThreadLock()
 
 ThreadLock::~ThreadLock()
 {
-#if defined(sgi) &&  !defined(_OPENMP)
-#endif
 #if defined(_OPENMP)
   omp_destroy_lock(&lockV);
 #endif
@@ -226,54 +221,7 @@ ThreadLock::~ThreadLock()
 typedef void (*P)(void *, size_t);
 ThreadManager::ThreadManager(int nThr)
 {
-#if defined(sgi) &&  !defined(_OPENMP)
- numThreads = nThr;
- // fprintf(stderr, "Creating %d threads\n", numThreads);
- 
- usconfig(CONF_INITUSERS, numThreads);
- usPtr = usinit("/dev/zero");
-
- firstProc = 0;
- allDone = usnewsema(usPtr , 0);
- readyProc =  usnewsema(usPtr , 0);
- sprocListLock = usnewlock(usPtr);
- allocLock = usnewlock(usPtr);
-
- allProc = new OneSproc[numThreads-1];
-
- // Setup arenas
- numProc = numThreads-1;
- arenas = new void *[numThreads-1];
- curSizes = new long[numThreads-1];
- maxSizes = new int[numThreads-1];
- childProc = new pid_t[numThreads-1];
- int i;
- for(i = 0; i < numThreads-1; ++i) {
-    OneSproc *thisProc = allProc + i;
-    thisProc->done = allDone;
-    thisProc->wait = usnewsema(usPtr , 0);
-    if(thisProc->wait == 0) perror("Could not get a semaphore:");
-    thisProc->tman = this;
-    thisProc->myNum = i;
-    thisProc->step = numThreads;
-//    pid_t pid = sproc(OneSproc::run, PR_SALL, thisProc);
-    // fprintf(stderr, "Calling sprocsp\n");
-    pid_t pid = sprocsp((P)OneSproc::run, PR_SALL, thisProc,0,10000000);
-    if(pid < 0) perror("Thread did not start:");
-
-    childProc[i] = pid;
-    curSizes[i] = maxSizes[i] = 0;
- }
- for(i = 0; i < numThreads-1; ++i) {
-//  set up a memory arena;
-    arenas[i] = malloc(initSize);
-    acreate(arenas[i], initSize, 0, 0, &arenaGrow);
-    amallopt(M_BLKSZ, growth, arenas[i]);
-    curSizes[i] = maxSizes[i] = 0;
- }
- pproc = getpid();
- //filePrint(stderr," ... Setting Memory Arenas          ...\n");
-#elif defined(_OPENMP)
+#if defined(_OPENMP)
  numThreads = nThr;
 // fprintf(stderr, "Forcing %d threads\n",numThreads);
  omp_set_dynamic(0);
@@ -284,22 +232,6 @@ ThreadManager::ThreadManager(int nThr)
  firstProc=0;
 #endif
  //fprintf(stderr, " In ThreadManager::ThreadManager(...), Creating %d threads\n", numThreads);
-}
-
-ThreadManager::~ThreadManager()
-{
-#if defined(sgi) &&  !defined(_OPENMP)
- int i;
- for(i = 0; i < numThreads-1; ++i)
-   allProc[i].allTasks = 0;
- for(i = 0; i < numThreads-1; ++i)
-   usvsema(allProc[i].wait);
- //long totSizes = 0;
- //for(i = 0; i < numThreads-1; ++i)
- // totSizes += curSizes[i];
- // fprintf(stderr,
- //  "Total memory consumption in megabytes = %10.3f\n",totSizes/(1024.*1024.));
-#endif
 }
 
 long

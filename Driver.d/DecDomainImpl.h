@@ -601,7 +601,7 @@ GenDecDomain<Scalar>::getCPUMap()
 #ifdef DISTRIBUTED
   const char *mapName = geoSource->getCpuMapFile();
   FILE *f = fopen(mapName,"r");
-  numCPU = geoSource->getCPUMap(f, 0, globalNumSub, structCom->numCPUs());
+  numCPU = geoSource->getCPUMap(f, nullptr, globalNumSub, structCom->numCPUs());
   cpuToCPU = geoSource->getCpuTOCPU();
   if(f) fclose(f);
 #else

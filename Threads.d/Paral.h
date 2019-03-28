@@ -63,17 +63,11 @@ class OneSproc {
 class ThreadManager {
 	int numThreads;		// Number of threads
 	int single;
-	OneSproc *firstProc; 	// List of threads
-	OneSproc *allProc;
 	DistTimer *timer;
-protected:
-	static void threadStart(void *);
-	void dispatch(TaskDescr *task);
 public:
 	ThreadManager(int);	// Create a Manager with n threads
 	~ThreadManager() = default;
-	void execTasks(int, TaskDescr **td); //!< run the n given Tasks td[i]->run()
-	void execTasks(int, TaskDescr *td); //!< run for i in [0, n) td->runFor(i);
+
 	void execParal(int, TaskDescr **td);
 	void execParal(int, TaskDescr *td);
 	void execTimedParal(DistTimer &, int, TaskDescr **);
@@ -92,8 +86,6 @@ public:
 		execParal(nObjects, &td);
 	}
 
-	void memUsage();
-	void memRequests();
 	long getLocalMem();
 	long memoryUsed();
 	int numThr() { return numThreads; }
@@ -102,7 +94,5 @@ public:
 };
 
 extern ThreadManager *threadManager;
-
-void paralDist( int nthr, void * (*f)(void *), void **);
 
 #endif

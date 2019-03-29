@@ -25,7 +25,7 @@ class GmresOrthoSet
 
     int numTasks;
     TaskDescr **oos;
-    ThreadLock lock;
+    std::mutex lock;
 
     FSCommunicator *com;
  

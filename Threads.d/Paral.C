@@ -45,36 +45,6 @@ void operator delete(void *p) throw()
  free(p);
 }
 
-void
-ThreadLock::lock()
-{
-#if defined(_OPENMP)
-  omp_set_lock(&lockV);
-#endif
-}
-
-void
-ThreadLock::unlock()
-{
-#if defined(_OPENMP)
-  omp_unset_lock(&lockV);
-#endif
-}
-
-ThreadLock::ThreadLock()
-{
-#if defined(_OPENMP)
-  omp_init_lock(&lockV);
-#endif
-}
-
-ThreadLock::~ThreadLock()
-{
-#if defined(_OPENMP)
-  omp_destroy_lock(&lockV);
-#endif
-}
-
 typedef void (*P)(void *, size_t);
 ThreadManager::ThreadManager(int nThr)
 {

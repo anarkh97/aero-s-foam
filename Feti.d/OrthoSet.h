@@ -23,7 +23,7 @@ class GenOrthoSet
 
     int numTasks;
     TaskDescr **oos;
-    ThreadLock lock;
+    std::mutex lock;
 
     FSCommunicator *fetiCom;
 

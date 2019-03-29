@@ -1,22 +1,12 @@
 #ifndef _PARAL_H_
 #define _PARAL_H_
 
+#include <mutex>
 #include <functional>
 
 #if defined(_OPENMP)
 #include <omp.h>
 #endif
-
-class ThreadLock {
-#if defined(_OPENMP)
-	omp_lock_t lockV;
-#endif
-public:
-	ThreadLock();
-	~ThreadLock();
-	void lock();
-	void unlock();
-};
 
 /***************************************************************************
  * TaskDescr is a purely abstract class. It should be subclassed

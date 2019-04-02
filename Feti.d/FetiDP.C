@@ -1795,8 +1795,8 @@ GenFetiDPSolver<Scalar>::multKrc(int iSub, GenDistrVector<Scalar> &fr, const Gen
 
 template<class Scalar> 
 void
-GenFetiDPSolver<Scalar>::makeFc(int iSub, GenDistrVector<Scalar> &fr, /*GenVector<Scalar> &fc,*/ 
-                                GenDistrVector<Scalar> &lambda) const
+GenFetiDPSolver<Scalar>::makeFc(int iSub, const GenDistrVector<Scalar> &fr, /*GenVector<Scalar> &fc,*/
+                                const GenDistrVector<Scalar> &lambda) const
 {
   this->subdomains[iSub]->multfc(fr.subVec(this->subdomains[iSub]->localSubNum()), /*fc.data(),*/
                          lambda.subVec(this->subdomains[iSub]->localSubNum()));

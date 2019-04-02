@@ -682,9 +682,8 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDP(unique_ptr<const Connectivity> su
 	KccParallelSolver = ops.dynMat;
 	std::vector<FetiBaseSub *> baseSubs(decCoarseDomain->getAllSubDomains(),
 	                                    decCoarseDomain->getAllSubDomains()+decCoarseDomain->getNumSub());
-	paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::makeKccDofsExp2,
-	           decCoarseDomain->getNumSub(),
-	           baseSubs.data(),
+	paralApply(this->subdomains, &FetiSub<Scalar>::makeKccDofsMultiLevel,
+	           baseSubs,
 	           augOffset, this->subToEdge); // JAT 101816
 }
 

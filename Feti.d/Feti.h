@@ -351,7 +351,7 @@ public:
 	                bool geometricRbms = true, int verboseFlag = 0);
 	virtual ~GenFetiDPSolver();
 
-	void makeFc(int iSub, GenDistrVector<Scalar> &fr, GenDistrVector<Scalar> &lambda) const;
+	void makeFc(int iSub, const GenDistrVector<Scalar> &fr, const GenDistrVector<Scalar> &lambda) const;
 	void makeFcB(int iSub, GenDistrVector<Scalar> &bf) const;
 	void KrrReSolve(int iSub, GenDistrVector<Scalar> &ur);
 	void makeKcc();

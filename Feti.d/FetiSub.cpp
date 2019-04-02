@@ -1699,7 +1699,7 @@ FetiSub<Scalar>::setLocalLambda(Scalar *_localLambda) {
 
 template<class Scalar>
 void
-FetiSub<Scalar>::multfc(const VectorView<Scalar> &fr, /*Scalar *fc,*/ const VectorView<Scalar> &lambda) const {
+FetiSub<Scalar>::multfc(const VectorView<const Scalar> &fr, /*Scalar *fc,*/ const VectorView<const Scalar> &lambda) const {
 	Scalar v[Ave.cols()];
 	VectorView<Scalar> t(v, Ave.cols(), 1);
 	Eigen::Matrix<Scalar, Eigen::Dynamic, 1> force(localLen());
@@ -2938,8 +2938,9 @@ FetiSub<Scalar>::sendMpcStatus(FSCommPattern<int> *mpcPat, int flag) {
 }
 
 
+/** \details The degrees of freedom are relative to*/
 void
-FetiBaseSub::makeKccDofsExp2(int nsub, FetiBaseSub **sd,
+FetiBaseSub::makeKccDofsMultiLevel(gsl::span<FetiBaseSub *> sd,
                                  int augOffset, Connectivity *subToEdge) {
 	int numC = numCoarseDofs();
 	cornerEqNums.resize(numC);
@@ -2948,7 +2949,7 @@ FetiBaseSub::makeKccDofsExp2(int nsub, FetiBaseSub **sd,
 	int offset = 0;
 	for (int i = 0; i < numCRN; ++i) {
 		int offset2 = 0;
-		for (int j = 0; j < nsub; ++j) {
+		for (int j = 0; j < sd.size(); ++j) {
 			auto &nodeMap = sd[j]->getGlobalToLocalNode();
 			auto cornerEqs = sd[j]->get_c_dsa();
 			if (nodeMap[glCornerNodes[i]] > -1) {
@@ -2967,13 +2968,13 @@ FetiBaseSub::makeKccDofsExp2(int nsub, FetiBaseSub **sd,
 		int iEdgeN = 0;
 		for (int iNeighb = 0; iNeighb < scomm->numNeighb; ++iNeighb) {
 			if (scomm->isEdgeNeighb[iNeighb]) {
-				int k = augOffset + (*subToEdge)[subNum()][iEdgeN];
+				int edgeIdx = augOffset + (*subToEdge)[subNum()][iEdgeN];
 				int offset2 = 0;
-				for (int iSub = 0; iSub < nsub; ++iSub) {
-					GlobalToLocalMap &nodeMap = sd[iSub]->getGlobalToLocalNode();
-					auto cornerEqs = sd[iSub]->get_c_dsa();
-					if (nodeMap[k] > -1) {
-						int fDof = cornerEqs->firstdof(nodeMap[k]);
+				for (auto & iSub : sd) {
+					GlobalToLocalMap &nodeMap = iSub->getGlobalToLocalNode();
+					auto cornerEqs = iSub->get_c_dsa();
+					if (nodeMap[edgeIdx] > -1) {
+						int fDof = cornerEqs->firstdof(nodeMap[edgeIdx]);
 						int count = edgeDofSize[iNeighb];
 						for (int k = 0; k < count; ++k)
 							cornerEqNums[offset + k] = fDof + k + offset2;

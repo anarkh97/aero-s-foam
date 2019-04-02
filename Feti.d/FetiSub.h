@@ -134,7 +134,13 @@ public:
 	std::vector<int> &getCornerNodes() { return glCornerNodes; }
 	void markCornerDofs(gsl::span<int> glCornerDofs) const;
 	void makeKccDofs(DofSetArray *cornerEqs, int augOffset, Connectivity *subToEdge, int mpcOffset = 0);
-	void makeKccDofsExp2(int nsub, FetiBaseSub **sd, int augOffset, Connectivity *subToEdge);
+	/** \brief Create the vector cornerEqNums with the corner degrees of freedom for 2 level FETI-DP.
+	 *
+	 * @param sd Vector of upper-level (coarse) subdomains.
+	 * @param augOffset Offset of the augmentation
+	 * @param subToEdge Connectivity between lower level subs and the edges between them.
+	 */
+	void makeKccDofsMultiLevel(gsl::span<FetiBaseSub *> sd, int augOffset, Connectivity *subToEdge);
 
 	int numEdgeDofs(int i) const { return edgeDofSize[i]; }
 
@@ -526,7 +532,7 @@ public:
 
 	void mergeUr(Scalar *ur, Scalar *uc, Scalar *u, Scalar *lambda);
 
-	void multfc(const VectorView<Scalar> &fr, /*Scalar *fc,*/ const VectorView<Scalar> &lambda) const;
+	void multfc(const VectorView<const Scalar> &fr, /*Scalar *fc,*/ const VectorView<const Scalar> &lambda) const;
 	void multFcB(Scalar *bf);
 
 	void sendMpcStatus(FSCommPattern<int> *mpcPat, int flag);

@@ -665,34 +665,36 @@ GenDistrVector<Scalar>::initialize()
  if(!v) v = new Scalar[len];
 
  // Array of Scalar pointers to hold sub vector values
- subV = new Scalar *[inf->numDom];
+ subV.resize(inf->numDom);
 
  // Array to hold sub vector lengths
- subVLen = new int[inf->numDom];
- subVOffset = new int[inf->numDom];
+ subVLen.resize(inf->numDom);
+ subVOffset.resize(inf->numDom);
 
- if(subV && inf->numDom>0) subV[0] = v;
+ if(inf->numDom>0)
+ 	subV[0] = v;
  Scalar *v2 = v;
  nT = std::min(threadManager->numThr(),inf->numDom); // PJSA: currently the number of threads being larger than
                                                      // the number of subdomains doesn't work
- int iThread, md;
+ thV.resize(nT);
+ thLen.resize(nT);
+ thOffset.resize(nT);
 
- thV   = new Scalar *[nT];
- thLen = new int[nT];
- thOffset = new int[nT];
-
- // Distrinfo::computeOffsets should be explicitly called before this
- // constructor for interface vectors
- if(inf->subOffset) infoFlag = true; else infoFlag = false;
- if(infoFlag) masterFlag = new bool[len];
- else masterFlag = inf->masterFlag;
+	// Distrinfo::computeOffsets should be explicitly called before this
+	// constructor for interface vectors
+	infoFlag = inf->subOffset != nullptr;
+	if(infoFlag)
+		masterFlag = new bool[len];
+	else
+		masterFlag = inf->masterFlag;
 
  int tLen;
- for(iThread = 0; iThread < nT; ++iThread) {
+ int md = 0;
+ for(int iThread = 0; iThread < nT; ++iThread) {
    tLen = 0;
    thV[iThread] = v2;
    thOffset[iThread] = v2-v;
-   for(md = iThread; md < inf->numDom; md += nT) {
+   for(int pseudomd = iThread; pseudomd < inf->numDom; pseudomd += nT) {
      subV[md] = v2;
      subVOffset[md] = v2-v;
      if(infoFlag) { // re-arrange masterFlag
@@ -702,6 +704,7 @@ GenDistrVector<Scalar>::initialize()
      subVLen[md] = inf->domLen[md];
      v2 += inf->domLen[md];
      tLen += inf->domLen[md];
+     ++md;
    }
    thLen[iThread] = tLen;
  }
@@ -769,36 +772,6 @@ GenDistrVector<Scalar>::clean_up()
  if(v) {
    if(myMemory) delete [] v;
    v=0;
- }
-
- if(subV) {
-   delete [] subV;
-   subV=0;
- }
-
- if(thV) {
-   delete [] thV;
-   thV=0;
- }
-
- if(thLen) {
-   delete [] thLen;
-   thLen=0;
- }
-
- if(subVLen) {
-   delete [] subVLen;
-   subVLen = 0;
- }
-
- if(subVOffset) {
-   delete [] subVOffset;
-   subVOffset = 0;
- }
-
- if(thOffset) {
-   delete [] thOffset;
-   thOffset = 0;
  }
 
  if(infoFlag && masterFlag) {

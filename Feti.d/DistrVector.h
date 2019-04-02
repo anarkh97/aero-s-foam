@@ -60,22 +60,24 @@ using ConstVecRef = Eigen::Map<const Eigen::Matrix<Scalar, Eigen::Dynamic, 1>>;
 template<class Scalar>
 class GenDistrVector {
 protected:
-    bool myMemory;
-    int len;		// entire length of the vector
-    int numDom;		// number of domains
-    Scalar *v;		// entire vector
-    Scalar **subV;	// pointers to each domains sub-vector
-    int *subVLen;	// length of each domains sub-vector
-    int nT, *thLen;     // number of threads and lengths per thread
-    Scalar **thV;       // each thread's subvector
-    int *subVOffset, *thOffset;
-    bool *masterFlag;
-    bool infoFlag;
-    DistrInfo const * inf;
-    Scalar *partial;
+	bool myMemory;
+	int len;		//!< \brief entire length of the vector
+	int numDom;		//!< \brief number of domains
+	Scalar *v;		//!< \brief entire vector data
+	std::vector<Scalar *> subV;	//!< \brief pointers to each domains sub-vector
+	std::vector<int> subVLen;	//!< \brief length of each domains sub-vector
+	int nT; //!< \brief Number of threads
+	std::vector<int> thLen;     //!< \brief lengths per thread
+	std::vector<Scalar*> thV;       // each thread's subvector
+	std::vector<int> subVOffset;
+	std::vector<int> thOffset;
+	bool *masterFlag;
+	bool infoFlag;
+	DistrInfo const * inf;
+	Scalar *partial;
 public:
-    GenDistrVector() : myMemory(false), len(0), numDom(0), v(NULL), subV(NULL), subVLen(NULL), nT(0),
-                       thLen(NULL), thV(NULL), subVOffset(NULL), thOffset(NULL), masterFlag(NULL),
+    GenDistrVector() : myMemory(false), len(0), numDom(0), v(NULL), nT(0),
+                       masterFlag(NULL),
                        infoFlag(false), inf(new DistrInfo), partial(NULL) {}
     GenDistrVector(const DistrInfo &dinfo);
     GenDistrVector(const GenDistrVector<Scalar> &v);

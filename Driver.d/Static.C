@@ -791,21 +791,60 @@ const char* solverTypeMessage[] = {
 " ... Skyline Solver is Selected     ... \n",
 " ... Sparse Solver is Selected      ... \n",
 " ... BlockSky Solver is Selected    ... \n",
+#ifdef USE_EIGEN3
 " ... SimplicalLLT Solver is Selected... \n",
 " ... SimplicalLDLT Solver is Selec'd... \n",
+#else
+" ... Skyline Solver is Selected     ... \n",
+" ... Skyline Solver is Selected     ... \n",
+#endif
+#ifdef EIGEN_CHOLMOD_SUPPORT
 " ... Cholmod Solver is Selected     ... \n",
+#else
+" ... Skyline Solver is Selected     ... \n",
+#endif
+#ifdef EIGEN_UMFPACK_SUPPORT
 " ... UmfPack Solver is Selected     ... \n",
+#else
+" ... Skyline Solver is Selected     ... \n",
+#endif
+#ifdef EIGEN_SUPERLU_SUPPORT
 " ... SuperLU Solver is Selected     ... \n",
+#else
+" ... Skyline Solver is Selected     ... \n",
+#endif
+#ifdef USE_SPOOLES
 " ... Spooles Solver is Selected     ... \n",
+#else
+" ... Skyline Solver is Selected     ... \n",
+#endif
+#ifdef USE_MUMPS
 " ... Mumps Solver is Selected       ... \n",
+#else
+" ... Skyline Solver is Selected     ... \n",
+#endif
 "",
 " ... POD-GN Solver is Selected      ... \n",
 " ... POD-Galerkin Solver is Selected... \n",
 " ... POD-Galerkin Solver is Selected... \n",
 " ... Goldfarb Solver is Selected    ... \n",
+#ifdef EIGEN_SPARSELU_SUPPORT
 " ... SparseLU Solver is Selected    ... \n",
+#else
+" ... Skyline Solver is Selected     ... \n",
+#endif
+#ifdef EIGEN_SPQR_SUPPORT
 " ... SuiteSparseQR Solver is Selec'd... \n",
-" ... SparseQR Solver is Selected    ... \n"
+#else
+" ... Skyline Solver is Selected     ... \n",
+#endif
+#ifdef USE_EIGEN3
+" ... SparseQR Solver is Selected    ... \n",
+#else
+" ... Skyline Solver is Selected     ... \n",
+#endif
+" ... Cholmod Solver is Selected     ... \n",
+" ... Pardiso Solver is Selected     ... \n"
 };
 
 void

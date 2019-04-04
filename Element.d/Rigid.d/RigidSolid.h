@@ -14,6 +14,7 @@ public:
 	int numTopNodes() const override;
 	bool isRigidElement() const override { return true; }
 	bool isSafe() const override;
+	Category getCategory() const override { return Element::Structural; }
 	PrioInfo examine(int sub, MultiFront*) override;
 };
 

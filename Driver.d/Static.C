@@ -1013,7 +1013,8 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
  if (phantoms.size() > 0) {
      fprintf(cinfo->checkfileptr,"Elements %s_phantom using %s\n",
 	     cinfo->elemSetName, cinfo->nodeSetName);
-     for(int i=0; i<phantoms.size(); ++i){
+     int m_phantoms = phantoms.size();
+     for(int i=0; i<m_phantoms; ++i){
        iele = phantoms.front();
        phantoms.pop_front();
 

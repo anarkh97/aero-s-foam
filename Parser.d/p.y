@@ -1935,24 +1935,24 @@ IDisp6:
 	{ $$ = new BCList; amplitude = 1.0; }
 	| IDisp6 Integer Float Float Float Float Float Float NewLine
         { BCond bc; /* add 6 boundary conditions */
+          bc.type = BCond::Idisp6;
           bc.nnum = $2-1; bc.dofnum = 0; bc.val = amplitude*$3; $$->add(bc);
                           bc.dofnum = 1; bc.val = amplitude*$4; $$->add(bc);
                           bc.dofnum = 2; bc.val = amplitude*$5; $$->add(bc);
                           bc.dofnum = 3; bc.val = amplitude*$6; $$->add(bc);
                           bc.dofnum = 4; bc.val = amplitude*$7; $$->add(bc);
                           bc.dofnum = 5; bc.val = amplitude*$8; $$->add(bc);
-          for(int i=0; i<$$->n; ++i) $$->d[i].type = BCond::Idisp6;
           geoSource->setIDis6($$->n, $$->d);
         }
         | IDisp6 Integer Float Float Float NewLine
         { BCond bc; /* add 6 boundary conditions */
+          bc.type = BCond::Idisp6;
           bc.nnum = $2-1; bc.dofnum = 0; bc.val = amplitude*$3; $$->add(bc);
                           bc.dofnum = 1; bc.val = amplitude*$4; $$->add(bc);
                           bc.dofnum = 2; bc.val = amplitude*$5; $$->add(bc);
                           bc.dofnum = 3; bc.val = 0.0         ; $$->add(bc);
                           bc.dofnum = 4; bc.val = 0.0         ; $$->add(bc);
                           bc.dofnum = 5; bc.val = 0.0         ; $$->add(bc);
-          for(int i=0; i<$$->n; ++i) $$->d[i].type = BCond::Idisp6;
           geoSource->setIDis6($$->n, $$->d);
         }
 	| GEPS NewLine

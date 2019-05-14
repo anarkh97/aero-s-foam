@@ -3641,6 +3641,13 @@ Pressure:
           pbc[0].setData($3-1, $4, $$, true);
           geoSource->addSurfacePressure(1, pbc);
           if(geoSource->getNumSurfacePressure() > 1) delete [] pbc; }
+        | Pressure SURF Integer THRU Integer Float NewLine
+        { for(int i = $3; i <= $5; ++i) {
+            PressureBCond *pbc = new PressureBCond[1];
+            pbc[0].setData(i-1, $6, $$, true);
+            geoSource->addSurfacePressure(1, pbc);
+            if(geoSource->getNumSurfacePressure() > 1) delete [] pbc;
+          } }
         | Pressure Integer Float SWITCH NewLine
         { PressureBCond pbc;
           pbc.setData($2-1, $3, $$, $4);

@@ -1613,6 +1613,7 @@ TRAIL [a-zA-Z]*
 "POINTPLANE"|"pointplane"|"PointPlane" { yylval.ival = BCond::PointPlaneDistance; return CSTYPE; }
 
 "NO_SECONDARY"|"no_secondary"      { return NOSECONDARY; }
+"NO_GHOSTING"|"no_ghosting"      { return NOGHOSTING; }
 "SHELL_SIMPLE_LOFTING"|"shell_simple_lofting" { return SHELLSIMPLELOFTING; }
 "NO_MULTIPLE_INTERACTIONS"|"no_multiple_interactions" { return NOMULTIPLEINTERACTIONS; }
 "NO_NORMAL_SMOOTHING"|"no_normal_smoothing" { return NONORMALSMOOTHING; }

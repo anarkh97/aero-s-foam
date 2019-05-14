@@ -142,7 +142,8 @@ class ContactSearch {
                       SHELL_SIMPLE_LOFTING,          // 14
                       NEW_TIED_ENFORCEMENT,          // 15
                       NUM_OPTS,                      // 16
-                      COMPUTE_PARTIALS };
+                      COMPUTE_PARTIALS,              // 17
+                      NO_GHOSTING };
 
   enum Search_Option_Status{ INACTIVE=0, ACTIVE };
   enum Smoothing_Resolution{ USE_NODE_NORMAL=0, USE_EDGE_BASED_NORMAL=1 };
@@ -832,6 +833,7 @@ class ContactSearch {
   Search_Option_Status old_dynamic_search;
   Search_Option_Status enable_tracking;
   Search_Option_Status no_secondary;
+  Search_Option_Status no_ghosting;
   Search_Option_Status keep_ghosting;
   Search_Option_Status search_cull;
   Search_Option_Status no_warped_volume;

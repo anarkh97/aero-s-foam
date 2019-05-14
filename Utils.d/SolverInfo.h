@@ -215,6 +215,7 @@ public:
    double qsBeta;       // relaxation parameter for computing alphaR in case of
                         // thermal quasistatic
    bool no_secondary;
+   bool no_ghosting;
    bool shell_simple_lofting;
    bool no_multiple_interactions;
    double sharp_non_sharp_angle;
@@ -554,6 +555,7 @@ public:
                   qsBeta = 1.0;
                   delta = 0.0;
                   no_secondary = false;
+                  no_ghosting = false;
                   shell_simple_lofting = false;
                   no_multiple_interactions = false;
                   sharp_non_sharp_angle = 30;

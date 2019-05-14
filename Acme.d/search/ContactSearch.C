@@ -332,6 +332,7 @@ ContactSearch::ContactSearch( int  Dimensionality,
   enable_tracking             = INACTIVE;
   enable_off_face_tracking    = INACTIVE;
   no_secondary                = INACTIVE;
+  no_ghosting                 = INACTIVE;
   keep_ghosting               = INACTIVE;
   search_cull                 = INACTIVE;
   no_warped_volume            = INACTIVE;
@@ -1004,6 +1005,9 @@ ContactSearch::Set_Search_Option( Search_Option option,
   case NO_SECONDARY:
     no_secondary = status;
     break;
+  case NO_GHOSTING:
+    no_ghosting = status;
+    break;
   case GLOBAL_SEARCH_CULL:
     search_cull = status;
     if( status == ACTIVE ){
@@ -1123,6 +1127,9 @@ ContactSearch::Get_Search_Option( Search_Option option,
     break;
   case NO_SECONDARY:
     status = no_secondary;
+    break;
+  case NO_GHOSTING:
+    status = no_ghosting;
     break;
   case GLOBAL_SEARCH_CULL:
     status = search_cull;

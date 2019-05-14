@@ -2425,6 +2425,19 @@ MortarHandler::set_search_options()
     }
   }
 
+  // Deactivate ghosting
+  if(domain->solInfo().no_ghosting) {
+    error = search_obj->Set_Search_Option(ContactSearch::NO_GHOSTING,
+                                          ContactSearch::ACTIVE,
+                                          (double*)0);
+    if(error) {
+      std::cerr << "Error in ACME ContactSearch::Set_Search_Option: error code = " << error << std::endl;
+      for(int i=1; i<=search_obj->Number_of_Errors(); ++i)
+        std::cerr << search_obj->Error_Message(i) << std::endl;
+      exit(error);
+    }
+  }
+
   // Activate ffi partials 
   if(InteractionType == MortarHandler::CTC) {
 #ifdef USE_FFI_DERIVATIVES

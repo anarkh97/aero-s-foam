@@ -1025,6 +1025,7 @@ ContactSearch::Create_Search_Topology( VariableHandle POSITION )
     search_topology = secondary_topology;
   
   } else {
+    if(no_ghosting == 0) {
     if(do_node_face_search &&
        !do_face_face_search &&
        !do_node_node_search &&
@@ -1033,7 +1034,7 @@ ContactSearch::Create_Search_Topology( VariableHandle POSITION )
       primary_topology->DoGhosting_New_NodeFace(POSITION, reasonable_gap);
     } else {  
       primary_topology->DoGhosting(POSITION, reasonable_gap);
-    }
+    }}
     search_topology = primary_topology;  
   }
   

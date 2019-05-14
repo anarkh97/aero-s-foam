@@ -335,6 +335,7 @@ ContactSearch::NewGlobalSearch(SearchType search_type,
     #endif
   #endif
 
+  if (no_ghosting==0) {
   if (tracking_step==0) {
     VariableHandle POSITION = -1;
     switch (num_configs) {
@@ -374,7 +375,7 @@ ContactSearch::NewGlobalSearch(SearchType search_type,
       primary_topology->UpdateGhosting();
     }
     #endif
-  }
+  }}
   search_topology = primary_topology; 
 
   // Retrieve any tied interactions
@@ -549,6 +550,7 @@ ContactSearch::NewGlobalSearch(SearchType search_type,
     //Define_Primary_Interactions();
 
     #if !defined(CONTACT_NO_MPI)
+    if (no_ghosting ==0) {
     if (contact_number_of_processors(SearchComm)>1 && tracking_step==0) {
       #ifdef CONTACT_TIMINGS
         timer.Start_Timer( cleanup_secondary_time );
@@ -557,7 +559,7 @@ ContactSearch::NewGlobalSearch(SearchType search_type,
       #ifdef CONTACT_TIMINGS
         timer.Stop_Timer( cleanup_secondary_time );
       #endif
-    }
+    }}
     #endif
 
   } // end of if (have_only_tied_interactions)

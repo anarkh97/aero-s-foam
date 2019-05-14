@@ -584,10 +584,11 @@ MultiDomainDynam::getSensitivityStateParam(double &sensitivityTol, double &ratio
 void
 MultiDomainDynam::getContactForce(DistrVector &d_n, DistrVector &dinc, DistrVector &ctc_f, double t_n_p, double dt,
                                   double dt_old) {
-	times->tdenforceTime -= getTime();
 	ctc_f.zero();
-  if(t_n_p < domain->solInfo().tdenforceInitia || t_n_p >= domain->solInfo().tdenforceFinal) return;
+	if(t_n_p < domain->solInfo().tdenforceInitia || t_n_p >= domain->solInfo().tdenforceFinal) return;
 	if (domain->tdenforceFlag()) {
+		times->tdenforceTime -= getTime();
+
 		times->updateSurfsTime -= getTime();
 		domain->UpdateSurfaceTopology(decDomain->getNumSub(), decDomain->getAllSubDomains()); // remove deleted elements
 		domain->UpdateSurfaces(geomState, 1, decDomain->getAllSubDomains()); // update to current configuration
@@ -634,8 +635,8 @@ MultiDomainDynam::getContactForce(DistrVector &d_n, DistrVector &dinc, DistrVect
 		times->contactForcesTime += getTime();
 
 		delete predictedState;
+		times->tdenforceTime += getTime();
 	}
-	times->tdenforceTime += getTime();
 }
 
 void

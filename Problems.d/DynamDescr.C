@@ -509,10 +509,10 @@ SingleDomainDynamic::addConstForceSensitivity(Vector &cnst_fSen)
 void
 SingleDomainDynamic::getContactForce(Vector &d_n, Vector &dinc, Vector &ctc_f, double t_n_p, double dt, double dt_old)
 {
-  times->tdenforceTime -= getTime();
   ctc_f.zero();
   if(t_n_p < domain->solInfo().tdenforceInitia || t_n_p >= domain->solInfo().tdenforceFinal) return;
   if(domain->tdenforceFlag()) {
+    times->tdenforceTime -= getTime();
 
     times->updateSurfsTime -= getTime();
     domain->UpdateSurfaceTopology(); // remove deleted elements
@@ -557,8 +557,8 @@ SingleDomainDynamic::getContactForce(Vector &d_n, Vector &dinc, Vector &ctc_f, d
     times->contactForcesTime += getTime();
 
     delete predictedState;
+    times->tdenforceTime += getTime();
   }
-  times->tdenforceTime += getTime();
 }
 
 void

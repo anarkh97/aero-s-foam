@@ -28,8 +28,8 @@ class FaceElement;
 class FaceElemSet {
   protected:
     FaceElement **elem;
+    int _last;
     int emax;
-    int nPhantoms;
     BlockAlloc ba;
   public:
     FaceElemSet(int = 256);
@@ -37,20 +37,16 @@ class FaceElemSet {
     ~FaceElemSet() { deleteElems(); }
     int size() const { return emax; }
     int last() const;
-    int numPhantoms()  { return nPhantoms; }
     FaceElement *operator[] (int i) const { return elem[i]; }
     void elemadd(int num, FaceElement *);
     void elemadd(int num, int type, int nnodes, int *nodes);
-    void setEmax(int max)  { emax = max; }
-    void setNumPhantoms(int n)  { nPhantoms = n; }
-    void list();
 
     int nElems();
     void print();
 
     void Renumber(std::map<int,int>& OldToNewNodeIds);
 
-    void deleteElems() { if(elem) { delete [] elem; elem = 0; } emax = 0; nPhantoms = 0; }
+    void deleteElems() { if(elem) { delete [] elem; elem = 0; } emax = 0; _last = 0; }
     void remove(int num);
     void repack();
 

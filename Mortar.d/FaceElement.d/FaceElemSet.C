@@ -24,30 +24,17 @@
 int 
 FaceElemSet::last() const
 {
+/*
  int last = size();
  while(--last >= 0)
     if(elem[last] != 0) break;
 
  return last+1;
-}
-
-void 
-FaceElemSet::list()
-{
+*/
+ return _last;
 }
 
 typedef FaceElement* ElemP;
-
-/*
-FaceElemSet::FaceElemSet(int initsize)
-{
-  elem = new ElemP[initsize];
-  emax = initsize;
-  int i;
-  for(i = 0; i < emax; ++i)
-    elem[i] = 0;
-}
-*/
 
 FaceElemSet::FaceElemSet(int initsize) : ba(4096, initsize)
 {
@@ -59,6 +46,7 @@ FaceElemSet::FaceElemSet(int initsize) : ba(4096, initsize)
       elem[i] = 0;
   }
   else elem = 0;
+  _last = 0;
 }
 
 void
@@ -77,6 +65,7 @@ FaceElemSet::elemadd(int num, FaceElement *el)
     elem = np;
    }
   elem[num] = el;
+  _last++;
 }
 
 int 
@@ -153,4 +142,5 @@ void FaceElemSet::repack()
     if(elem[i] == 0) count++;
     else if(count > 0) { elem[i-count] = elem[i]; elem[i] = 0; }
   }
+  _last = nEls - count;
 }

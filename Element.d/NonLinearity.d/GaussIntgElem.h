@@ -829,11 +829,6 @@ GenGaussIntgElement<TensorType>::getStressTens(Node *nodes, double *dispn, doubl
 	typename TensorType::BTensor Bn;
 	typename TensorType::BTensor Bnp;
 
-	// NdofsxNdofsx3x3x -> 6xNdofsxNdofs but sparse
-	typename TensorType::DBTensor DBn;
-	typename TensorType::DBTensor DBnp;
-
-	typename TensorType::DTensor Dnp;
 	typename TensorType::StressTensor en;
 	typename TensorType::StressTensor enp;
 	typename TensorType::StressTensor s;
@@ -857,8 +852,8 @@ GenGaussIntgElement<TensorType>::getStressTens(Node *nodes, double *dispn, doubl
 		//shapeF->getGlobalGrads(gradUn, dgradUdqkn,  &jacn, nodes, point, dispVecn);
 		shapeF->getGlobalGrads(gradUnp, dgradUdqknp,  &jacnp, nodes, point, dispVecnp);
 
-		//strainEvaluator->getEBandDB(en, Bn, DBn, gradUn, dgradUdqkn);
-		strainEvaluator->getEBandDB(enp, Bnp, DBnp, gradUnp, dgradUdqknp);
+		//strainEvaluator->getEandB(en, Bn, gradUn, dgradUdqkn);
+		strainEvaluator->getEandB(enp, Bnp, gradUnp, dgradUdqknp);
 
 		// compute temperature at integration point
 		tempnp = (temps) ? shapeF->interpolateScalar(temps, point) : 0;
@@ -866,7 +861,7 @@ GenGaussIntgElement<TensorType>::getStressTens(Node *nodes, double *dispn, doubl
     //if(tframe) transformEtoC(en, tframe);
     if(tframe) transformEtoC(enp, tframe);
 
-		material->integrate(&s, &Dnp, en, enp,
+		material->integrate(&s, en, enp,
                         staten + nstatepgp*i, statenp + nstatepgp*i, tempnp, 0);
 
 		for(int j=0; j<preload.size(); ++j) s[j] += preload[j]; // note: for membrane element preload should have units of
@@ -926,11 +921,6 @@ GenGaussIntgElement<TensorType>::getVonMisesStress(Node *nodes, double *dispn, d
 	typename TensorType::BTensor Bn;
 	typename TensorType::BTensor Bnp;
 
-	// NdofsxNdofsx3x3x -> 6xNdofsxNdofs but sparse
-	typename TensorType::DBTensor DBn;
-	typename TensorType::DBTensor DBnp;
-
-	typename TensorType::DTensor Dnp;
 	typename TensorType::StressTensor en;
 	typename TensorType::StressTensor enp;
 	typename TensorType::StressTensor s;
@@ -954,8 +944,8 @@ GenGaussIntgElement<TensorType>::getVonMisesStress(Node *nodes, double *dispn, d
 		//shapeF->getGlobalGrads(gradUn, dgradUdqkn,  &jacn, nodes, point, dispVecn);
 		shapeF->getGlobalGrads(gradUnp, dgradUdqknp,  &jacnp, nodes, point, dispVecnp);
 
-		//strainEvaluator->getEBandDB(en, Bn, DBn, gradUn, dgradUdqkn);
-		strainEvaluator->getEBandDB(enp, Bnp, DBnp, gradUnp, dgradUdqknp);
+		//strainEvaluator->getEandB(en, Bn, gradUn, dgradUdqkn);
+		strainEvaluator->getEandB(enp, Bnp, gradUnp, dgradUdqknp);
 
 		// compute temperature at integration point
 		tempnp = (temps) ? shapeF->interpolateScalar(temps, point) : 0;
@@ -963,7 +953,7 @@ GenGaussIntgElement<TensorType>::getVonMisesStress(Node *nodes, double *dispn, d
     //if(tframe) transformEtoC(en, tframe);
     if(tframe) transformEtoC(enp, tframe);
 
-		material->integrate(&s, &Dnp, en, enp,
+		material->integrate(&s, en, enp,
 							staten + nstatepgp*i, statenp + nstatepgp*i, tempnp, 0); // XXX note should call getStress followed by transform
 
 		for(int j=0; j<preload.size(); ++j) s[j] += preload[j]; // note: for membrane element preload should have units of

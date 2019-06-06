@@ -244,6 +244,10 @@ DistFlExchanger::getFluidLoad(DistrVector &force, int tIndex, double time,
     }
   }
 
+#ifdef DETERMINISTIC_DISTFLEXCHANGER
+  delete [] buffers;
+#endif
+
   // ML & KP For 'corrected' aeroelastic force
   iscollocated = (isCollocated) ? 1 : 0;
   return (time + alphaf * dt);
@@ -452,6 +456,8 @@ DistFlExchanger::sendModeFreq(double *modfrq, int nummod)
     fluidCom->sendTo(TNd, Type, sBuffer, Pos);
     fluidCom->waitForAllReq();
   }
+
+  delete [] sBuffer;
 }
 
 //KW: send the embedded wet surface to fluid

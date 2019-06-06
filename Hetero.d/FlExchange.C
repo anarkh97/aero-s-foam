@@ -468,6 +468,8 @@ FlExchanger::sendModeFreq(double *modfrq, int nummod)
     fluidCom->sendTo(TNd, Type, sBuffer, Pos);
     fluidCom->waitForAllReq();
   }
+
+  delete [] sBuffer;
 }
 
 //KW: send the embedded wet surface to fluid

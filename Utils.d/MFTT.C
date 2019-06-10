@@ -60,14 +60,14 @@ MFTTData::getVal(double t)
  // np = total number of points
  if (np) {
 
- // interpolate and make sure we deal with the case 
- // curp = current point
- // curp==np-1 and curp=-1 correctly
+   // interpolate and make sure we deal with the case 
+   // curp = current point
+   // curp==np-1 and curp=-1 correctly
 
- if(time[curp] > t) // Reverse the search
-   while(curp >= 0 && time[curp] > t) curp--;
- else
-   while(curp < np-1 && time[curp+1] < t) curp++;
+   if(time[curp] > t) // Reverse the search
+     while(curp >= 0 && time[curp] > t) curp--;
+   else
+     while(curp < np-1 && time[curp+1] < t) curp++;
 
    if (curp < 0 )
       return 0;

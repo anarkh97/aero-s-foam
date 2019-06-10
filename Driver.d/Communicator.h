@@ -208,6 +208,9 @@ protected:
 
 	virtual void setLength(int glFrom, int glTo, int len, int leadDim, int nvec) = 0;
 
+public:
+	virtual ~FSCommStructure() {}
+
 };
 /** FSCommPattern represent a communication pattern.
  *
@@ -238,7 +241,6 @@ public:
 	FSCommPattern(FSCommunicator *communicator, const Connectivity *cpuToSub,
 	              int myCPU = 0,
 	              Mode = Share, Symmetry = Sym);
-	// FSCommPattern() {};
 	~FSCommPattern();
 	void finalize(); // complete the internal setup
 	FSSubRecInfo<T> recData(int glFrom, int glTo);

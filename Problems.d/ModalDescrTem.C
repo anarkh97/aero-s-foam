@@ -5,7 +5,7 @@
 #include <Math.d/EiSparseMatrix.h>
 
 template <class Scalar>
-ModalDescr<Scalar>::ModalDescr(Domain *d) : modalOps(*(new ModalOps)), ModalBase(d){
+ModalDescr<Scalar>::ModalDescr(Domain *d) : ModalBase(d), modalOps(*(new ModalOps)){
 
   flExchanger = domain->getFileExchanger();
   previousCq = 0;

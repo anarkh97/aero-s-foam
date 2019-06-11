@@ -19,12 +19,12 @@ public:
   // Local matrix buffer: [localRows by colCount]
   double *matrixColBuffer(int col);
   const double *clusterColBuffer(int i, int col) const;
-  const double getClusterColTimeStamp(int i, int col) const; 
+  double getClusterColTimeStamp(int i, int col) const; 
   // Local cluster centroid buffer: [localRows by numClusters]
   const double *clusterCentroidBuffer(int i) const;
 
-  const int clusterCol(int i, int col) const;
-  const int clusterColCount(int i) const;
+  int clusterCol(int i, int col) const;
+  int clusterColCount(int i) const;
 
   int getNumClusters() {return numClusters_;}
   int solverType() const { return solverType_; }
@@ -78,19 +78,19 @@ DistrSnapshotClusteringSolver::clusterColBuffer(int i, int col) const {
 }
 
 inline
-const double
+double
 DistrSnapshotClusteringSolver::getClusterColTimeStamp(int i, int col) const {
   return timeStamps_[clusterCols_[i][col]];
 }
 
 inline
-const int
+int
 DistrSnapshotClusteringSolver::clusterCol(int i, int col) const {
   return clusterCols_[i][col];
 }
 
 inline
-const int
+int
 DistrSnapshotClusteringSolver::clusterColCount(int i) const {
   return clusterCols_[i].size();
 }

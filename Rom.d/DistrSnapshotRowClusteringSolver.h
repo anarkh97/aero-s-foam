@@ -19,8 +19,8 @@ public:
   // Local buffers: Internal column-major ordering, zero-based indexing
   // Local matrix buffer: [localRows by colCount]
   double *matrixColBuffer(int col);
-  const int clusterLocalRow(int i, int row) const;
-  const int clusterLocalRowCount(int i) const;
+  int clusterLocalRow(int i, int row) const;
+  int clusterLocalRowCount(int i) const;
 
   int getNumClusters() {return numClusters_;}
   int solverType() const { return solverType_; }
@@ -66,13 +66,13 @@ DistrSnapshotRowClusteringSolver::matrixColBuffer(int col) {
 }
 
 inline
-const int
+int
 DistrSnapshotRowClusteringSolver::clusterLocalRow(int i, int row) const {
   return clusterLocalRows_[i][row];
 }
 
 inline
-const int
+int
 DistrSnapshotRowClusteringSolver::clusterLocalRowCount(int i) const {
   return clusterLocalRows_[i].size();
 }

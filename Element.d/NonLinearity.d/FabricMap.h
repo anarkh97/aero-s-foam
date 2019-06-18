@@ -48,7 +48,7 @@ public:
 
 	double getDensity() override { return rho; }
 
-	double getThickness() { return t; }
+	double getThickness() const override { return t; }
 
 	double getReferenceTemperature() override { return Tref; }
 

@@ -454,13 +454,21 @@ PentaCorotator::getNLVonMises(Vector& stress, Vector& weight, GeomState &geomSta
     stress[3] = elStress[3][strInd];
     stress[4] = elStress[4][strInd];
     stress[5] = elStress[5][strInd];
-  } else {
+  } else if(strInd < 14) {
     stress[0] = elStrain[0][strInd-7];
     stress[1] = elStrain[1][strInd-7];
     stress[2] = elStrain[2][strInd-7];
     stress[3] = elStrain[3][strInd-7];
     stress[4] = elStrain[4][strInd-7];
     stress[5] = elStrain[5][strInd-7];
+  }
+  else {
+    stress[0] = 0;
+    stress[1] = 0;
+    stress[2] = 0;
+    stress[3] = 0;
+    stress[4] = 0;
+    stress[5] = 0;
   }
 }
 

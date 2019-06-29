@@ -462,9 +462,13 @@ Tet10Corotator::getNLVonMises(Vector& stress, Vector& weight, GeomState &geomSta
     for(int i = 0; i < 10; ++i)
       stress[i] = elStress[i][strInd];
   }
-  else {
+  else if(strInd < 14) {
     for(int i = 0; i < 10; ++i)
       stress[i] = elStrain[i][strInd-7];
+  }
+  else {
+    for(int i = 0; i < 10; ++i)
+      stress[i] = 0;
   }
 }
 

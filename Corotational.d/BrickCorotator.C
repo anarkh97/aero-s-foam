@@ -519,7 +519,7 @@ BrickCorotator::getNLVonMises(Vector& stress, Vector& weight, GeomState &geomSta
     stress[5] = elStress[5][strInd];
     stress[6] = elStress[6][strInd];
     stress[7] = elStress[7][strInd];
-  } else {
+  } else if(strInd < 14) {
     stress[0] = elStrain[0][strInd-7];
     stress[1] = elStrain[1][strInd-7];
     stress[2] = elStrain[2][strInd-7];
@@ -528,6 +528,16 @@ BrickCorotator::getNLVonMises(Vector& stress, Vector& weight, GeomState &geomSta
     stress[5] = elStrain[5][strInd-7];
     stress[6] = elStrain[6][strInd-7];
     stress[7] = elStrain[7][strInd-7];
+  }
+  else {
+    stress[0] = 0;
+    stress[1] = 0;
+    stress[2] = 0;
+    stress[3] = 0;
+    stress[4] = 0;
+    stress[5] = 0;
+    stress[6] = 0;
+    stress[7] = 0;
   }
 }
 

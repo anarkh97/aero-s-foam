@@ -702,9 +702,13 @@ Brick32Corotator::getNLVonMises(Vector& stress, Vector& weight, GeomState &geomS
     for(int i = 0; i < 32; ++i)
       stress[i] = elStress[i][strInd];
   }
-  else {
+  else if(strInd < 14) {
     for(int i = 0; i < 32; ++i)
       stress[i] = elStrain[i][strInd-7];
+  }
+  else {
+    for(int i = 0; i < 32; ++i)
+      stress[i] = 0;
   }
 }
 

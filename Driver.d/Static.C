@@ -2072,6 +2072,9 @@ Domain::getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
 
   for(iele=0; iele<numele; ++iele) {
 
+    // Don't do anything if element is a phantom or constraint
+    if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
+
     int NodesPerElement = elemToNode->num(iele);
     packedEset[iele]->nodes(nodeNumbers);
 
@@ -2295,7 +2298,7 @@ Domain::getElementForces(Vector &sol, double *bcx, int fileNumber,
     }
 
     // ... COPY ELEMENT'S NODAL FORCES INTO A TOTAL FORCE MATRIX
-    for(i=0; i<NodesPerElement; ++i)
+    for(i=0; i<2; ++i) // note: element force output is currently only supported for 2-node elements
       forces[iele][i] = (*elstress)[i];
 
   }

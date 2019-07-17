@@ -3355,10 +3355,11 @@ int GeoSource::getCPUMap(FILE *f, Connectivity *subToSub, int glNumSub, int numC
 		if(matchName != NULL) {
 			BinFileHandler connectivityFile(conName, "rb");
 			Connectivity clusToSub(connectivityFile, true);
+			Connectivity subToClus = clusToSub.reverse();
 
 			// build global to cluster subdomain map
 			int *gl2ClSubMap = new int[totSub];
-			for (int iClus = 0; iClus < 1; iClus++)  { // only one cluster currently supported
+			for (int iClus = 0; iClus < clusToSub.csize(); iClus++)  {
 				int clusNum = 0;
 				for (int iSub = 0; iSub < clusToSub.num(iClus); iSub++)
 					gl2ClSubMap[ clusToSub[iClus][iSub] ] = clusNum++;
@@ -3366,15 +3367,16 @@ int GeoSource::getCPUMap(FILE *f, Connectivity *subToSub, int glNumSub, int numC
 
 			for(int locSub = 0; locSub < numLocSub; ++locSub) {
 
+				int glSub = (*cpuToSub)[myID][locSub];
+				int clusNum = subToClus[glSub][0];
 				char fullDecName[128];
-				sprintf(fullDecName, "%s1", decName); // only one cluster currently supported
+				sprintf(fullDecName, "%s%d", decName, clusNum+1);
 				BinFileHandler decFile(fullDecName, "rb");
 
 				// read some stuff from decFile which can now be discarded
 				int numClusSub;
 				decFile.read(&numClusSub, 1);
 				BinFileHandler::OffType curLoc = decFile.tell();
-				int glSub = (*cpuToSub)[myID][locSub];
 				int clusSub = gl2ClSubMap[glSub];
 				decFile.seek(curLoc + sizeof(BinFileHandler::OffType) * clusSub);
 				BinFileHandler::OffType infoLoc;
@@ -3435,7 +3437,7 @@ int GeoSource::getCPUMap(FILE *f, Connectivity *subToSub, int glNumSub, int numC
 				gapVec[locSub] = new double[numMatchData[locSub]][3];
 				if(numMatchRanges) {
 					char fullMatchName[128];
-					sprintf(fullMatchName, "%s1", matchName); // only one cluster currently supported
+					sprintf(fullMatchName, "%s%d", matchName, clusNum+1);
 					BinFileHandler matchFile(fullMatchName, "rb");
 					readMatchInfo(matchFile, matchRanges, numMatchRanges, locSub, cl2LocElem, myID);
 				}

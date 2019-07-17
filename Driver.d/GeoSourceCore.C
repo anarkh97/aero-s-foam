@@ -3370,7 +3370,8 @@ int GeoSource::getCPUMap(FILE *f, Connectivity *subToSub, int glNumSub, int numC
 				int glSub = (*cpuToSub)[myID][locSub];
 				int clusNum = subToClus[glSub][0];
 				char fullDecName[128];
-				sprintf(fullDecName, "%s%d", decName, clusNum+1);
+				const char *suffix = computeClusterSuffix(clusNum + 1, clusToSub.csize());
+				sprintf(fullDecName, "%s%s", decName, suffix);
 				BinFileHandler decFile(fullDecName, "rb");
 
 				// read some stuff from decFile which can now be discarded
@@ -3437,12 +3438,13 @@ int GeoSource::getCPUMap(FILE *f, Connectivity *subToSub, int glNumSub, int numC
 				gapVec[locSub] = new double[numMatchData[locSub]][3];
 				if(numMatchRanges) {
 					char fullMatchName[128];
-					sprintf(fullMatchName, "%s%d", matchName, clusNum+1);
+					sprintf(fullMatchName, "%s%s", matchName, suffix);
 					BinFileHandler matchFile(fullMatchName, "rb");
 					readMatchInfo(matchFile, matchRanges, numMatchRanges, locSub, cl2LocElem, myID);
 				}
 				if(matchRanges) delete [] matchRanges;
 				delete [] cl2LocElem;
+				delete [] suffix;
 			}
 			delete [] gl2ClSubMap;
 			delete unsortedSubToElem;

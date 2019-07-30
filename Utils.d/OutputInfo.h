@@ -50,7 +50,7 @@ struct OutputInfo {
           AGstShap, AGstThic, 
           DissipatedEnergy, DeletedElements, DualStateVar, MuStateVar,
           Constraintvector, Constraintviolation, RomResidual, RomResidual6,
-          RomExtForce, RomExtForce6, ModalMass, ModalStiffness, ModalDamping, ModalDynamicMatrix, ModalMatrices,
+          RomExtForce, RomExtForce6, ModalMass, ModalStiffness, ModalDamping, ModalDynamicMatrix, ModalMatrices, ErrorIndicator,
           RotationVector, AngularVelocity, AngularAcceleration };
 
    enum Group  { Nodal, Attribute, NodeGroup };

@@ -6,6 +6,7 @@
 #include <Driver.d/SysState.h>
 #include <Utils.d/DistHelper.h>
 #include <Math.d/DBSparseMatrix.h>
+#include <Math.d/EiSparseMatrix.h>
 
 extern ModeData modeData;
 
@@ -497,6 +498,63 @@ void ModalBase::outputModal(SysState<Vector>& state, Vector& extF, int tIndex, M
             }
           }
           break;          
+
+          case OutputInfo::ErrorIndicator:
+          if(time == 0) {
+#ifdef USE_EIGEN3
+            std::ifstream fin("EIGENMODES");
+            if(fin.is_open()) {
+              // 1. read ROM eigenvalues and eigenvectors from file
+              int Nev;
+              fin >> Nev;
+              if(Nev != numFlex) { fprintf(stderr, " *** Error: Bad data in EIGENMODES file %d %d ***\n", Nev, numFlex); exit(-1); }
+              fprintf(stderr," ... Reading %d modes from EIGENMODES file ...\n", Nev);
+              Eigen::VectorXd lambda(Nev);
+              Eigen::MatrixXd y(Nev, Nev);
+              for(int j = 0; j < Nev; ++j) {
+                fin >> lambda[j];
+                for(int k = 0; k < Nev; ++k) {
+                  fin >> y.col(j)[k];
+                }
+              }
+
+              // 2. construct and assemble full mass and stiffness matrices
+              AllOps<double> allOps;
+              allOps.M = domain->constructEiSparseMatrix<double, Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper>>();
+              allOps.K = domain->constructEiSparseMatrix<double, Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper>>();
+              domain->makeSparseOps(allOps, 0, 0, 0, (SparseMatrix *) NULL, (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL);
+              Eigen::MappedSparseMatrix<double, Eigen::ColMajor, int>& M =
+                static_cast<GenEiSparseMatrix<double, Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper>>&>(*allOps.M).getEigenSparse();
+              Eigen::MappedSparseMatrix<double, Eigen::ColMajor, int>& K =
+                static_cast<GenEiSparseMatrix<double, Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper>>&>(*allOps.K).getEigenSparse();
+
+              // 3. copy flexural modes into basis V
+              Eigen::MatrixXd V(M.rows(), Nev);
+              for(int j = 0; j < Nev; ++j)
+                V.col(j) = Eigen::Map<Eigen::VectorXd>(modesFl[j].data(), V.rows());
+
+              // 4. precompute the matrix 1-norms and matrix products
+              double Mnorm = (M.cwiseAbs() * Eigen::VectorXd::Ones(M.cols())).maxCoeff();
+              double Knorm = (K.cwiseAbs() * Eigen::VectorXd::Ones(K.cols())).maxCoeff();
+              Eigen::MatrixXd Vy = V*y;
+              Eigen::MatrixXd KVy = K*Vy;
+              Eigen::MatrixXd MVy = M*Vy;
+
+              // 5. compute the error indicator and write to file
+              double num = 0, den = 0;
+              for(int j = 0; j < Nev; ++j) {
+                num += (KVy.col(j) - lambda[j]*MVy.col(j)).norm();
+                den += (Knorm + lambda[j]*Mnorm)*(Vy.col(j)).norm();
+              }
+              fprintf(oinfo[i].filptr, "% *.*E", w, p, num/den);
+            }
+            else {
+              fprintf(stderr, " *** Error: Failed to open EIGENMODES file ***\n");
+              exit(-1);
+            }
+#endif
+          }
+          break;
 
         default:
           break;

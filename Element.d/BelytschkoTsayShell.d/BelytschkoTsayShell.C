@@ -273,8 +273,8 @@ BelytschkoTsayShell::renum(EleRenumMap& table)
 }
 
 void
-BelytschkoTsayShell::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
-                                 Vector& elDisp, int strInd, int surface,
+BelytschkoTsayShell::getVonMises(::Vector& stress, ::Vector& weight, CoordSet &cs,
+                                 ::Vector& elDisp, int strInd, int surface,
                                  double *ndTemps, double ylayer, double zlayer, int avgnum)
 { 
 #ifdef USE_EIGEN3
@@ -367,14 +367,14 @@ BelytschkoTsayShell::getMass(const CoordSet& cs) const
   auto &nd3 = cs.getNode(nn[2]);
   auto &nd4 = cs.getNode(nn[3]);
 
-  Vector r1(3), r2(3), r3(3), r4(3);
+  ::Vector r1(3), r2(3), r3(3), r4(3);
 
   r1[0] = nd1.x; r1[1] = nd1.y; r1[2] = 0.0;
   r2[0] = nd2.x; r2[1] = nd2.y; r2[2] = 0.0;
   r3[0] = nd3.x; r3[1] = nd3.y; r3[2] = 0.0;
   r4[0] = nd4.x; r4[1] = nd4.y; r4[2] = 0.0;
 
-  Vector v1(3), v2(3), v3(3), v4(3), v5(3);
+  ::Vector v1(3), v2(3), v3(3), v4(3), v5(3);
 
   v1 = r2 - r1;
   v2 = r3 - r1;
@@ -401,14 +401,14 @@ BelytschkoTsayShell::getMassThicknessSensitivity(CoordSet& cs)
   auto &nd3 = cs.getNode(nn[2]);
   auto &nd4 = cs.getNode(nn[3]);
 
-  Vector r1(3), r2(3), r3(3), r4(3);
+  ::Vector r1(3), r2(3), r3(3), r4(3);
 
   r1[0] = nd1.x; r1[1] = nd1.y; r1[2] = 0.0;
   r2[0] = nd2.x; r2[1] = nd2.y; r2[2] = 0.0;
   r3[0] = nd3.x; r3[1] = nd3.y; r3[2] = 0.0;
   r4[0] = nd4.x; r4[1] = nd4.y; r4[2] = 0.0;
 
-  Vector v1(3), v2(3), v3(3), v4(3), v5(3);
+  ::Vector v1(3), v2(3), v3(3), v4(3), v5(3);
 
   v1 = r2 - r1;
   v2 = r3 - r1;
@@ -426,7 +426,7 @@ BelytschkoTsayShell::getMassThicknessSensitivity(CoordSet& cs)
 
 void
 BelytschkoTsayShell::getGravityForce(CoordSet& cs, double *gravityAcceleration, 
-                                     Vector& gravityForce, int gravflg, GeomState *geomState)
+                                     ::Vector& gravityForce, int gravflg, GeomState *geomState)
 {
   gravityForce.zero();
 
@@ -444,7 +444,7 @@ BelytschkoTsayShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
 
 void
 BelytschkoTsayShell::getGravityForceThicknessSensitivity(CoordSet& cs, double *gravityAcceleration,
-                                                         Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
+                                                         ::Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
 {
   gravityForceSensitivity.zero();
 
@@ -711,7 +711,7 @@ BelytschkoTsayShell::getTopNumber() const
 }
 
 void
-BelytschkoTsayShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
+BelytschkoTsayShell::computePressureForce(CoordSet& cs, ::Vector& elPressureForce,
                                           GeomState *geomState, int cflg, double time)
 {
   // if the element is not a phantom, the pressure force is added in the same routine as the internal force
@@ -749,8 +749,8 @@ BelytschkoTsayShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
 }
 
 void
-BelytschkoTsayShell::getThermalForce(CoordSet& cs, Vector& ndTemps,
-                                     Vector &elThermalForce, int glflag, 
+BelytschkoTsayShell::getThermalForce(CoordSet& cs, ::Vector& ndTemps,
+                                     ::Vector &elThermalForce, int glflag, 
                                      GeomState *geomState)
 {
   std::cerr << "BelytschkoTsayShell::getThermalForce not implemented\n";

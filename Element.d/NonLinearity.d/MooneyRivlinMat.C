@@ -4,6 +4,7 @@
 #include <Element.d/NonLinearity.d/StrainEvaluator.h>
 #include <Utils.d/NodeSpaceArray.h>
 
+//Find the inverse of a 3*3 symmetric matrix and return its determinant
 static double sym_matlib_inverse(double *A, double *Ainv)
 {
   double det = A[0]*(A[3]*A[5]-A[4]*A[4])
@@ -23,20 +24,22 @@ static double sym_matlib_inverse(double *A, double *Ainv)
   return det;
 }
 
-
-MooneyRivlinMat::MooneyRivlinMat(double _rho, double _mu1, double _mu2, double _kappa)
+//Constructor
+MooneyRivlinMat::MooneyRivlinMat(double _rho, double _c00, double _c01, double _c10)
 {
   rho = _rho;
-  mu1 = _mu1;
-  mu2 = _mu2;
-  kappa = _kappa;
+  c00 = _c00;
+  c01 = _c01;
+  c10 = _c10;
 }
 
+//Copy?
 NLMaterial *
 MooneyRivlinMat::clone() const
 {
   return new MooneyRivlinMat(*this);
 }
+
 
 void
 MooneyRivlinMat::getStress(Tensor *_stress, Tensor &_strain, double*, double)
@@ -58,19 +61,32 @@ MooneyRivlinMat::getStress(Tensor *_stress, Tensor &_strain, double*, double)
     return;
   }
 
-  double trace = C[0]+C[3]+C[5];
-  double coef = 2*(kappa*detC-kappa*sqrt(detC)-mu1-2*mu2);
-  double mu = 2*(mu1+mu2*trace);
+//------------------------------------------------
+  double M = 4.4;
+//------------------------------------------------
+
+  double I1 = C[0]+C[3]+C[5];
+  double I2 = 0.5*(I1*I1-(C[0]*C[0]+C[3]*C[3]+C[5]*C[5]+2*(C[1]*C[1]+C[2]*C[2]+C[4]*C[4])));
+  double J = sqrt(detC);
+  double I1Bar = pow(J, -2/3)*I1;  
+  double I2Bar = pow(J, -4/3)*I2;
+  double wI1Bar = c10*(pow(J,-M) - 2*pow(J,-M/2) +2);
+  double wI2Bar = c01*(pow(J,-M) - 2*pow(J,-M/2) +2);
+  double wJ = (-M*pow(J,-M-1) + M*pow(J,-M/2-1))*(c00 + c01*(I2Bar-3) + c10*(I1Bar-3));
+  double coefCinv = wJ*J - wI1Bar*(2/3)*I1Bar - wI2Bar*4/3*I2Bar;
+  double coefI = wI1Bar*2*pow(J,-2/3) + wI2Bar*2*I1Bar/pow(J,2/3);
+  double coefC = wI2Bar*2/pow(J,4/3);
 
   if(_stress) {
     Tensor_d0s2_Ss12 &stress = static_cast<Tensor_d0s2_Ss12 &>(*_stress);
 
-    stress[0] = -2*mu2*C[0] + coef*Cinv[0] + mu;
-    stress[1] = -2*mu2*C[1] + coef*Cinv[1];
-    stress[2] = -2*mu2*C[2] + coef*Cinv[2];
-    stress[3] = -2*mu2*C[3] + coef*Cinv[3] + mu;
-    stress[4] = -2*mu2*C[4] + coef*Cinv[4];
-    stress[5] = -2*mu2*C[5] + coef*Cinv[5] + mu;
+    stress[0] = coefCinv*Cinv[0] + coefC*C[0] + coefI;
+    stress[1] = coefCinv*Cinv[1] + coefC*C[1];
+    stress[2] = coefCinv*Cinv[2] + coefC*C[2];
+    stress[3] = coefCinv*Cinv[3] + coefC*C[3] + coefI;
+    stress[4] = coefCinv*Cinv[4] + coefC*C[4];
+    stress[5] = coefCinv*Cinv[5] + coefC*C[5] + coefI;
+
   }
 }
 
@@ -86,10 +102,14 @@ MooneyRivlinMat::getStressAndTangentMaterial(Tensor *_stress, Tensor *_tm, Tenso
   std::cerr << "MooneyRivlinMat::getStressAndTangentMaterial is not implemented\n"; exit(-1);
 }
 
+
 void 
 MooneyRivlinMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_strain,
                            double *, double *, double, Tensor *, double) const
 {
+  std::cerr << "MooneyRivlinMat::integrate(9-paramater version) is not implemented\n"; exit(-1);
+
+/*
   Tensor_d0s2_Ss12 &strain = static_cast<Tensor_d0s2_Ss12 &>(_strain);
 
   using std::sqrt;
@@ -163,7 +183,9 @@ MooneyRivlinMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_stra
 
     tm[5][5] = lamin2*Cinv2[20];
   }
+*/
 }
+
 
 void
 MooneyRivlinMat::integrate(Tensor *_stress, Tensor &, Tensor &_strain,
@@ -186,19 +208,31 @@ MooneyRivlinMat::integrate(Tensor *_stress, Tensor &, Tensor &_strain,
     return;
   }
 
-  double trace = C[0]+C[3]+C[5];
-  double coef = 2*(kappa*detC-kappa*sqrt(detC)-mu1-2*mu2);
-  double mu = 2*(mu1+mu2*trace);
+//------------------------------------------------
+  double M = 4.4;
+//------------------------------------------------
+
+  double I1 = C[0]+C[3]+C[5];
+  double I2 = 0.5*(I1*I1-(C[0]*C[0]+C[3]*C[3]+C[5]*C[5]+2*(C[1]*C[1]+C[2]*C[2]+C[4]*C[4])));
+  double J = sqrt(detC);
+  double I1Bar = pow(J, -2/3)*I1;  
+  double I2Bar = pow(J, -4/3)*I2;
+  double wI1Bar = c10*(pow(J,-M) - 2*pow(J,-M/2) +2);
+  double wI2Bar = c01*(pow(J,-M) - 2*pow(J,-M/2) +2);
+  double wJ = (-M*pow(J,-M-1) + M*pow(J,-M/2-1))*(c00 + c01*(I2Bar-3) + c10*(I1Bar-3));
+  double coefCinv = wJ*J - wI1Bar*(2/3)*I1Bar - wI2Bar*4/3*I2Bar;
+  double coefI = wI1Bar*2*pow(J,-2/3) + wI2Bar*2*I1Bar/pow(J,2/3);
+  double coefC = wI2Bar*2/pow(J,4/3);
 
   if(_stress) {
     Tensor_d0s2_Ss12 &stress = static_cast<Tensor_d0s2_Ss12 &>(*_stress);
 
-    stress[0] = -2*mu2*C[0] + coef*Cinv[0] + mu;
-    stress[1] = -2*mu2*C[1] + coef*Cinv[1];
-    stress[2] = -2*mu2*C[2] + coef*Cinv[2];
-    stress[3] = -2*mu2*C[3] + coef*Cinv[3] + mu;
-    stress[4] = -2*mu2*C[4] + coef*Cinv[4];
-    stress[5] = -2*mu2*C[5] + coef*Cinv[5] + mu;
+    stress[0] = coefCinv*Cinv[0] + coefC*C[0] + coefI;
+    stress[1] = coefCinv*Cinv[1] + coefC*C[1];
+    stress[2] = coefCinv*Cinv[2] + coefC*C[2];
+    stress[3] = coefCinv*Cinv[3] + coefC*C[3] + coefI;
+    stress[4] = coefCinv*Cinv[4] + coefC*C[4];
+    stress[5] = coefCinv*Cinv[5] + coefC*C[5] + coefI;
   }
 }
 
@@ -218,20 +252,25 @@ MooneyRivlinMat::getStrainEnergyDensity(Tensor &_strain, double *, double)
     return 0;
   }
 
+//------------------------------------------------
+  double M = 4.4;
+//------------------------------------------------
+
   double I1 = C[0]+C[3]+C[5];
   double I2 = 0.5*(I1*I1-(C[0]*C[0]+C[3]*C[3]+C[5]*C[5]+2*(C[1]*C[1]+C[2]*C[2]+C[4]*C[4])));
   double J = sqrt(detC);
-  double d = 2*(mu1+2*mu2);
-  return mu1*(I1-3) + mu2*(I2-3) + kappa*(J-1)*(J-1) - d*log(J);
+  double I1Bar = pow(J, -2/3)*I1;  
+  double I2Bar = pow(J, -4/3)*I2;
+  return (pow(J,-M) - 2*pow(J,-M/2) +2)*(c00 + c01*(I2Bar-3) + c10*(I1Bar-3));
 }
 
 void
 MooneyRivlinMat::getMaterialConstants(std::vector<double> &c)
 {
   c.resize(3);
-  c[0] = mu1;
-  c[1] = mu2;
-  c[2] = kappa;
+  c[0] = c00;
+  c[1] = c01;
+  c[2] = c10;
 }
 
 extern GreenLagrangeStrain greenLagrangeStrain;
@@ -245,5 +284,5 @@ MooneyRivlinMat::getStrainEvaluator() const
 void
 MooneyRivlinMat::print(std::ostream &out) const
 {
-  out << "MooneyRivlin " << rho << " " << mu1 << " " << mu2 << " " << kappa;
+  out << "MooneyRivlinClifton " << rho << " " << c00 << " " << c01 << " " << c10;
 }

@@ -63,7 +63,7 @@ int
 PronyViscoElastic<Material, tensor_policy>::getNumStates() const
 {
   std::size_t s = tensor_policy::stride;
-
+ // std::cout << "stride = " << s << std::endl;
   // storage order: h1 (s), h2 (s), h3 (s), sigma(tn-1) (s)
   return s * 4; // store 4 Prony stress tensors from previous time step
 }
@@ -84,13 +84,29 @@ PronyViscoElastic<Material, tensor_policy>::getStress(Tensor *_stress, Tensor &_
 
   // add visco-hyperelastic contribution to long-term hyperelastic response
   typename tensor_policy::d0s2_S *stress = static_cast<typename tensor_policy::d0s2_S *>(_stress); // stress tensor
+  double hydStress = 1/3 * ((*stress)[0]+(*stress)[3]+(*stress)[5]);
+  double deviaStress[6] = { };
+  deviaStress[0] = (*stress)[0] - hydStress;
+  deviaStress[1] = (*stress)[1];
+  deviaStress[2] = (*stress)[2];
+  deviaStress[3] = (*stress)[3] - hydStress;
+  deviaStress[4] = (*stress)[4];
+  deviaStress[5] = (*stress)[5] - hydStress;
 
   std::size_t s = tensor_policy::stride;
+ //std::cout << "stride = " << s << std::endl;
 
   for(int i = 0; i < s; i++) {
     // use stress history stored in state container
-    (*stress)[i] = ginf*(*stress)[i] + state[i] + state[i+s] + state[i+2*s];
+    deviaStress[i] = ginf*deviaStress[i] + state[i] + state[i+s] + state[i+2*s];
+    if (i==0 || i==3 || i==5) {
+        (*stress)[i] = deviaStress[i] + hydStress;
+      }
+    else {
+        (*stress)[i] = deviaStress[i];
+    }
   }
+//  std::cout << "PronyViscoElastic::getStress finished" << std::endl;
 }
 
 template<typename Material, class tensor_policy>
@@ -107,12 +123,16 @@ PronyViscoElastic<Material, tensor_policy>::integrate(Tensor *_stress, Tensor *_
   // dt      - current time step size
 
   // compute hyperelastic response
+  std::cerr << "PronyViscoElastic::integrate (with tm) is not implemented. Calling the version without tm.\n"; //exit(-1);
+  integrate(_stress, en, enp, staten, statenp, temp, cache, dt);
+/*
   Material::integrate(_stress, _tm, en, enp, staten, statenp, temp, cache, dt);
 
   typename tensor_policy::d0s4_S *tm  = static_cast<typename tensor_policy::d0s4_S *>(_tm);
   typename tensor_policy::d0s2_S *stress = static_cast<typename tensor_policy::d0s2_S *>(_stress);
 
   std::size_t s = tensor_policy::stride;
+ //std::cout << "stride = " << s << std::endl;
 
   if(statenp == 0) {
     for(int i = 0; i < s; i++) {
@@ -159,6 +179,8 @@ PronyViscoElastic<Material, tensor_policy>::integrate(Tensor *_stress, Tensor *_
       }
     }
   }
+//  std::cout << "PronyViscoElastic::integrate (with tm) finished" << std::endl;
+*/
 }
 
 template<typename Material, class tensor_policy>
@@ -170,12 +192,26 @@ PronyViscoElastic<Material, tensor_policy>::integrate(Tensor *_stress, Tensor &e
   Material::integrate(_stress, en, enp, staten, statenp, temp, cache, dt);
 
   typename tensor_policy::d0s2_S *stress = static_cast<typename tensor_policy::d0s2_S *>(_stress); // stress tensor
-
+  double hydStress = 1/3 * ((*stress)[0]+(*stress)[3]+(*stress)[5]);
+  double deviaStress[6] = { };
+  deviaStress[0] = (*stress)[0] - hydStress;
+  deviaStress[1] = (*stress)[1];
+  deviaStress[2] = (*stress)[2];
+  deviaStress[3] = (*stress)[3] - hydStress;
+  deviaStress[4] = (*stress)[4];
+  deviaStress[5] = (*stress)[5] - hydStress;
   std::size_t s = tensor_policy::stride;
+// std::cout << "stride = " << s << std::endl;
 
   if(statenp == 0) {
     for(int i = 0; i < s; i++) {
-      (*stress)[i] *= ginf;
+      deviaStress[i] *= ginf;
+      if (i==0 || i==3 || i==5) {
+        (*stress)[i] = deviaStress[i] + hydStress;   
+      }
+      else {
+        (*stress)[i] = deviaStress[i];
+      }
     }
   }
   else {
@@ -204,15 +240,22 @@ PronyViscoElastic<Material, tensor_policy>::integrate(Tensor *_stress, Tensor &e
 
     for(int i = 0; i < s; i++) {
       // update stress history variables
-      statenp[i]     = expTau[0]*staten[i]     + gxxTau[0]*((*stress)[i] - staten[i+3*s]);
-      statenp[i+s]   = expTau[1]*staten[i+2*s] + gxxTau[1]*((*stress)[i] - staten[i+3*s]);
-      statenp[i+2*s] = expTau[2]*staten[i+3*s] + gxxTau[2]*((*stress)[i] - staten[i+3*s]);
-      statenp[i+3*s] = (*stress)[i];
+      statenp[i]     = expTau[0]*staten[i]     + gxxTau[0]*(deviaStress[i] - staten[i+3*s]);
+      statenp[i+s]   = expTau[1]*staten[i+s] + gxxTau[1]*(deviaStress[i] - staten[i+3*s]);
+      statenp[i+2*s] = expTau[2]*staten[i+2*s] + gxxTau[2]*(deviaStress[i] - staten[i+3*s]);
+      statenp[i+3*s] = deviaStress[i];
       // add viscoelastic contribution to stress
-      (*stress)[i] *= ginf;
-      (*stress)[i] += statenp[i] + statenp[i+s] + statenp[i+2*s];
+      deviaStress[i] *= ginf;
+      deviaStress[i] += statenp[i] + statenp[i+s] + statenp[i+2*s];
+      if (i==0 || i==3 || i==5) {
+        (*stress)[i] = deviaStress[i] + hydStress;
+      }
+      else {
+        (*stress)[i] = deviaStress[i];
+      }
     }
   }
+//  std::cout << "PronyViscoElastic::integrate (without tm) finished" << std::endl;
 }
 
 template<typename Material, class tensor_policy>

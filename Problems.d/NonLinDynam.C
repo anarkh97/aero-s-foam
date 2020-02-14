@@ -127,7 +127,7 @@ NonLinDynamic::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_n,
                                Vector &v_p, GeomState &geomState)
 {
   if(geoSource->getCheckFileInfo()->lastRestartFile) {
-    filePrint(stderr, " ... Restarting From a Previous Run ...\n");
+    filePrint(stderr, " ... Restarting From a Previous Run (NonLinDynanmic) ...\n");
 
     domain->readRestartFile(d_n, v_n, a_n, v_p, bcx, vcx, geomState);
 

@@ -387,7 +387,7 @@ SingleDomainDynamic::getInitState(SysState<Vector> &inState)
   }
 
   if(geoSource->getCheckFileInfo()->lastRestartFile) { 
-    filePrint(stderr, " ... Restarting From a Previous Run ...\n");
+    filePrint(stderr, " ... Restarting From a Previous Run (SingleDomainDynamic) ...\n");
     if(domain->solInfo().isNonLin()) { // restart for nonlinear
       domain->readRestartFile(inState.getDisp(), inState.getVeloc(), inState.getAccel(),
                               inState.getPrevVeloc(), bcx, vcx, *geomState);

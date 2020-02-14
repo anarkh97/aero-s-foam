@@ -404,7 +404,6 @@ MatNLCorotator::updateStates(GeomState *refState, GeomState &curState, CoordSet 
   Vector elemNodeTemps(ele->numNodes());
   double Ta = (ele->getProperty()) ? ele->getProperty()->Ta : 0;
   curState.get_temperature(ele->numNodes(), nn, elemNodeTemps, Ta);
-  
   ele->updateStates(nodes, state, dispn, dispnp, elemNodeTemps.data(), dt);
 
   delete [] nn;

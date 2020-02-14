@@ -7,10 +7,10 @@ class MooneyRivlinMat : public NLMaterial
 {
   protected:
     double rho; // density
-    double c00, c01, c10; // material properties
+    double mu1, mu2, kappa, c00, c01, c10, M; // material properties
 
   public:
-    MooneyRivlinMat(double _rho, double _c00, double _c01, double _c10);
+    MooneyRivlinMat(double _rho, double _mu1, double _mu2, double _kappa);
 
     int getNumStates() const override { return 0; }
 

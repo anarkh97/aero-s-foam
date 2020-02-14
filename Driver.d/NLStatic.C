@@ -2088,7 +2088,8 @@ Domain::computeGeometricPreStress(Corotator **&allCorot, GeomState *&geomState,
 #endif
    }
 
-   if(!domain->solInfo().samplingPodRom && !domain->solInfo().DEIMBasisPod && !domain->solInfo().UDEIMBasisPod) {
+// if(!domain->solInfo().samplingPodRom && !domain->solInfo().DEIMBasisPod && !domain->solInfo().UDEIMBasisPod) {
+ if(domain->solInfo().stable && !domain->solInfo().samplingPodRom && !domain->solInfo().DEIMBasisPod && !domain->solInfo().UDEIMBasisPod) {
      times->buildStiffAndForce -= getTime();
      Vector elementInternalForce(maxNumDOF(), 0.0);
      Vector residual(numUncon(), 0.0);

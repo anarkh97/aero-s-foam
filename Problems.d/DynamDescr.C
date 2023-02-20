@@ -765,6 +765,9 @@ SingleDomainDynamic::preProcess()
     }
   }
 
+  // (AN) copy geomState to refState; required for crushable foam materials
+  if(!refState) refState = new GeomState(*geomState);
+
   if(domain->tdenforceFlag())
     domain->InitializeDynamicContactSearch();
   else if(domain->solInfo().isNonLin() && domain->GetnContactSurfacePairs())
@@ -888,18 +891,18 @@ SingleDomainDynamic::getInternalForce(Vector& d, Vector& f, double t, int tIndex
     Vector residual(domain->numUncon(),0.0);
     Vector fele(domain->maxNumDOF());
     if(reactions) reactions->zero();
-    // NOTE #1: for explicit nonlinear dynamics, geomState and refState are the same object
+    // NOTE #1: (AN) for explicit nonlinear dynamics, geomState and refState are different objects
     // NOTE #2: by convention, the internal variables associated with a nonlinear constitutive relation are not updated
     //          when getStiffAndForce is called, so we have to call updateStates.
     if(domain->solInfo().newmarkBeta == 0 && domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
-      domain->getStiffAndForce(*geomState, fele, allCorot, kelArray, residual, 1.0, t, geomState,
+      domain->getStiffAndForce(*geomState, fele, allCorot, kelArray, residual, 1.0, t, refState,
                                reactions, melArray);
 /* PJSA 10/12/2014 this is done in getStiffAndForce now because it needs to be done before handleElementDeletion.
       domain->updateStates(geomState, *geomState, allCorot);
 */
     }
     else {
-      domain->getInternalForce(*geomState, fele, allCorot, kelArray, residual, 1.0, t, geomState,
+      domain->getInternalForce(*geomState, fele, allCorot, kelArray, residual, 1.0, t, refState,
                                reactions, melArray);
     }
     f.linC(-1.0,residual); // f = -residual

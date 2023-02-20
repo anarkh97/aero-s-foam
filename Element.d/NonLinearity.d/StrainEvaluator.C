@@ -4,6 +4,7 @@
 #include <cstdio>
 
 LinearStrain linearStrain;
+RateOfDeformation rateOfDeforamtion;
 GreenLagrangeStrain greenLagrangeStrain;
 LogarithmicStrain logarithmicStrain;
 PrincipalStretches principalStretches;
@@ -115,6 +116,108 @@ LinearStrain::transformStress(Tensor &_stress, Tensor *, Tensor_d0s2_Ss12 &S)
 }
 
 Tensor *
+RateOfDeformation::getTMInstance()
+{
+  Tensor_d0s4_Ss12s34 *s = new Tensor_d0s4_Ss12s34;
+  return s;
+}
+
+Tensor *
+RateOfDeformation::getStressInstance()
+{
+  Tensor_d0s2_Ss12 *s = new Tensor_d0s2_Ss12;
+  return s;
+}
+
+Tensor *
+RateOfDeformation::getStrainInstance()
+{
+  Tensor_d0s2_Ss12 *s = new Tensor_d0s2_Ss12;
+  return s;
+}
+
+Tensor *
+RateOfDeformation::getBInstance(int numdofs)
+{
+  Tensor_d1s2_Ss23 *B = new Tensor_d1s2_Ss23(numdofs);
+  return B;
+}
+
+Tensor *
+RateOfDeformation::getDBInstance(int numdofs)
+{
+  Tensor_d2s2_Sd12s34_sparse *DB = new Tensor_d2s2_Sd12s34_sparse(numdofs);
+  return DB;
+}
+
+Tensor *
+RateOfDeformation::getCacheInstance()
+{
+  return NULL;
+}
+
+void 
+RateOfDeformation::getEBandDB(Tensor &_e, Tensor &__B, Tensor &_DB, const Tensor &_gradV, const Tensor &_dgradVdqk, Tensor *cache, double *)
+{
+
+  // Same as linear strain measure. This strain uses velocity gradients instead of displacement gradients.
+
+  const Tensor_d0s2 & gradV = static_cast<const Tensor_d0s2 &>(_gradV);
+  const Tensor_d1s2_sparse & dgradVdqk = static_cast<const Tensor_d1s2_sparse &>(_dgradVdqk);
+  Tensor_d2s2_Sd12s34_sparse & DB = static_cast<Tensor_d2s2_Sd12s34_sparse &>(_DB);
+  Tensor_d1s2_Ss23 & B = static_cast<Tensor_d1s2_Ss23 &>(__B);
+  Tensor_d0s2_Ss12 & e = static_cast<Tensor_d0s2_Ss12 &>(_e);
+
+  Tensor_d0s2 tgradV;
+  gradV.getTranspose(tgradV);
+
+  // D = 1/2(gradV^t + gradV)
+  // de/dq = 1/2(dgradUdq^t + dgradUdq + ...)
+  Tensor_d0s2 enonsym;
+  enonsym = (1/2.)*(tgradV + gradV);
+  enonsym.convertToSym(e);
+
+  // TODO: (AN) Double check the following equations
+
+  int size = B.getSize();
+  Tensor_d1s2_full temp2(size);
+  temp2 = tgradV | dgradVdqk;
+
+  B.assignSymPart(dgradVdqk, temp2);
+
+  dgradVdqk.getSymSquare(DB);
+}
+
+void
+RateOfDeformation::getEandB(Tensor &_e, Tensor &__B, const Tensor &_gradU, const Tensor &_dgradUdqk, Tensor *cache, double *)
+{
+  // Implementation pending.
+}
+
+void 
+RateOfDeformation::getE(Tensor &_e, Tensor &_gradV, Tensor *cache, double *)
+{
+  Tensor_d0s2_Ss12 & e = static_cast<Tensor_d0s2_Ss12 &>(_e);
+  Tensor_d0s2 & gradV = static_cast<Tensor_d0s2 &>(_gradV);
+
+  // D = 1/2(gradU^t + gradU)
+  Tensor_d0s2 tgradV;
+  gradV.getTranspose(tgradV);
+
+  Tensor_d0s2 enonsym;
+  enonsym = (1/2.)*(tgradV + gradV);
+  enonsym.convertToSym(e);
+}
+
+void
+RateOfDeformation::transformStress(Tensor &_stress, Tensor *, Tensor_d0s2_Ss12 &S)
+{
+  // do nothing: stress is already PK2 in this case
+  Tensor_d0s2_Ss12 &stress = static_cast<Tensor_d0s2_Ss12 &>(_stress);
+  S = stress;
+}
+
+Tensor *
 GreenLagrangeStrain::getTMInstance()
 {
   Tensor_d0s4_Ss12s34 *s = new Tensor_d0s4_Ss12s34;
@@ -152,11 +255,18 @@ GreenLagrangeStrain::getDBInstance(int numdofs)
 Tensor *
 GreenLagrangeStrain::getCacheInstance()
 {
-  return NULL;
+  // (AN) Cache required for crushable foam
+  Tensor_d1s2_full *cache = new Tensor_d1s2_full(2);
+  return cache;
 }
 
+#ifdef USE_EIGEN3
+#if EIGEN_GNUC_AT_LEAST(4,7)
+__attribute__((flatten))
+#endif
+#endif
 void 
-GreenLagrangeStrain::getEBandDB(Tensor &_e, Tensor &__B, Tensor &_DB, const Tensor &_gradU, const Tensor &_dgradUdqk, Tensor *, double *)
+GreenLagrangeStrain::getEBandDB(Tensor &_e, Tensor &__B, Tensor &_DB, const Tensor &_gradU, const Tensor &_dgradUdqk, Tensor *cache, double *)
 {
   const Tensor_d0s2 & gradU = static_cast<const Tensor_d0s2 &>(_gradU);
   const Tensor_d1s2_sparse & dgradUdqk = static_cast<const Tensor_d1s2_sparse &>(_dgradUdqk);
@@ -183,10 +293,20 @@ GreenLagrangeStrain::getEBandDB(Tensor &_e, Tensor &__B, Tensor &_DB, const Tens
   B.assignSymPart(dgradUdqk, temp2);
 
   dgradUdqk.getSymSquare(DB);
+
+  // save F to cache
+#ifdef USE_EIGEN3
+  Eigen::Matrix3d F = gradU.matrix() + Eigen::Matrix3d::Identity();
+  // second item updated later.
+  static_cast<Tensor_d1s2_full &>(*cache)[0] = static_cast<Tensor_d1s2_full &>(*cache)[1] = F;
+#else
+  std::cerr << "ERROR: GreenLagrangeStrain::getEBandDB can not calculate deformation gradient without EIGEN.\n";
+  exit(-1);
+#endif
 }
 
 void
-GreenLagrangeStrain::getEandB(Tensor &_e, Tensor &__B, const Tensor &_gradU, const Tensor &_dgradUdqk, Tensor *, double *)
+GreenLagrangeStrain::getEandB(Tensor &_e, Tensor &__B, const Tensor &_gradU, const Tensor &_dgradUdqk, Tensor *cache, double *)
 {
   const Tensor_d0s2 & gradU = static_cast<const Tensor_d0s2 &>(_gradU);
   const Tensor_d1s2_sparse & dgradUdqk = static_cast<const Tensor_d1s2_sparse &>(_dgradUdqk);
@@ -210,10 +330,19 @@ GreenLagrangeStrain::getEandB(Tensor &_e, Tensor &__B, const Tensor &_gradU, con
   temp2 = tgradU | dgradUdqk;
 
   B.assignSymPart(dgradUdqk, temp2);
+  // save F to cache
+#ifdef USE_EIGEN3
+  Eigen::Matrix3d F = gradU.matrix() + Eigen::Matrix3d::Identity();
+  // second item updated later.
+  static_cast<Tensor_d1s2_full &>(*cache)[0] = static_cast<Tensor_d1s2_full &>(*cache)[1] = F;
+#else
+  std::cerr << "ERROR: GreenLagrangeStrain::getEandB can not calculate deformation gradient without EIGEN.\n";
+  exit(-1);
+#endif
 }
 
 void 
-GreenLagrangeStrain::getE(Tensor &_e, Tensor &_gradU, Tensor *, double *)
+GreenLagrangeStrain::getE(Tensor &_e, Tensor &_gradU, Tensor *cache, double *)
 {
   Tensor_d0s2_Ss12 & e = static_cast<Tensor_d0s2_Ss12 &>(_e);
   Tensor_d0s2 & gradU = static_cast<Tensor_d0s2 &>(_gradU);
@@ -228,14 +357,66 @@ GreenLagrangeStrain::getE(Tensor &_e, Tensor &_gradU, Tensor *, double *)
   Tensor_d0s2 enonsym;
   enonsym = (1/2.)*(tgradU + (gradU + temp));
   enonsym.convertToSym(e);
+
+  // save F to cache
+#ifdef USE_EIGEN3
+  Eigen::Matrix3d F = gradU.matrix() + Eigen::Matrix3d::Identity();
+  // second item updated later.
+  static_cast<Tensor_d1s2_full &>(*cache)[0] = static_cast<Tensor_d1s2_full &>(*cache)[1] = F;
+#else
+  std::cerr << "ERROR: GreenLagrangeStrain::getE can not calculate deformation gradient without EIGEN.\n";
+  exit(-1);
+#endif
 }
 
 void
-GreenLagrangeStrain::transformStress(Tensor &_stress, Tensor *, Tensor_d0s2_Ss12 &S)
+GreenLagrangeStrain::transformStress(Tensor &_stress, Tensor *cache, Tensor_d0s2_Ss12 &S)
 {
   // do nothing: stress is already PK2 in this case
+
   Tensor_d0s2_Ss12 &stress = static_cast<Tensor_d0s2_Ss12 &>(_stress);
   S = stress;
+
+  // // AN: Temporarily output set to cauchy stress
+  // Tensor_d0s2_Ss12 &stress = static_cast<Tensor_d0s2_Ss12 &>(_stress);
+  // Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > F = static_cast<Tensor_d1s2_full &>(*cache)[0].matrix();
+  // double J = F.determinant();
+  // if(J==0) {
+  //   fprintf(stderr, "***ERROR: Deformation gradient has zero determinant.\n");
+  //   exit(-1);
+  // }
+
+  // Eigen::Matrix3d Spk;
+  // stress.assignTo(Spk);
+  // Eigen::Matrix3d sigma = (1/J)*F*Spk*F.transpose();
+  // S = sigma;
+}
+
+void
+GreenLagrangeStrain::getL(const Tensor &_gradUnp, const Tensor &_gradUn, Tensor *cache, double dt)
+{
+  const Tensor_d0s2 &gradUn = static_cast<const Tensor_d0s2 &>(_gradUn);
+  const Tensor_d0s2 &gradUnp = static_cast<const Tensor_d0s2 &>(_gradUnp);
+
+#ifdef USE_EIGEN3
+  Eigen::Matrix3d F = gradUnp.matrix() + Eigen::Matrix3d::Identity();
+  Eigen::Matrix3d dUn, dUnp;
+  gradUn.assignTo(dUn);
+  gradUnp.assignTo(dUnp);
+  
+  Eigen::Matrix3d Finv, Fdot, L;
+  if(dt!=0) Fdot = (dUnp - dUn)/dt;
+  else {
+    fprintf(stderr, "ERROR: Incorrect time step size provided (dt=%e).\n", dt);
+    exit(-1);
+  }
+  Finv = F.inverse();
+  L = Fdot*Finv;
+  static_cast<Tensor_d1s2_full &>(*cache)[1] = L;
+#else
+  std::cerr << "ERROR: GreenLagrangeStrain::getL can not calculate velocity gradient tensor without EIGEN.\n";
+  exit(-1);
+#endif
 }
 
 Tensor *

@@ -19,6 +19,10 @@ class StrainEvaluator
                           Tensor *cache, double *state=0) = 0;
     virtual void getE(Tensor &e, Tensor &gradU, Tensor *cache, double *state=0) = 0;
     virtual void transformStress(Tensor &stress, Tensor *cache, Tensor_d0s2_Ss12 &S) = 0; // returns PK2 stress for finite-strain materials
+    virtual void getL(const Tensor &gradUnp, const Tensor &gradUn, Tensor *cache, double dt=0) { // returns velocity gradient tensor
+      //fprintf(stderr, " ***WARNING: Trying to calculate velocity gradient tensor for unsupported strain measure!\n");
+    }
+    virtual bool isStrainCompatibleWithUpdLag() { return false; };
 };
 
 class LinearStrain : public StrainEvaluator
@@ -38,6 +42,29 @@ class LinearStrain : public StrainEvaluator
                   Tensor *cache, double *state=0);
     void getE(Tensor &e, Tensor &gradU, Tensor *cache, double *state=0);
     void transformStress(Tensor &stress, Tensor *cache, Tensor_d0s2_Ss12 &S);
+};
+
+class RateOfDeformation : public StrainEvaluator
+{
+  // To be used when the appropriate strain measure is the
+  // Rate-of-Deformation tensor D = 0.5*(gradV^t + gradV)
+  // Constitutive models based on this strain measure should return 
+  // the second Piola-Kirchoff stress tensor S (rank 2, symmetric) and
+  // the second (material) elasticity tensor M (rank 4, major and minor symmetries)
+  public:
+    Tensor *getTMInstance();
+    Tensor *getStressInstance();
+    Tensor *getStrainInstance();
+    Tensor *getBInstance(int numdofs);
+    Tensor *getDBInstance(int numdofs);
+    Tensor *getCacheInstance();
+    void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradV, const Tensor &dgradVdqk,
+                    Tensor *cache, double *state=0);
+    void getEandB(Tensor &e, Tensor &B, const Tensor &gradV, const Tensor &dgradVdqk,
+                  Tensor *cache, double *state=0);
+    void getE(Tensor &e, Tensor &gradV, Tensor *cache, double *state=0);
+    void transformStress(Tensor &stress, Tensor *cache, Tensor_d0s2_Ss12 &S);
+    bool isStrainCompatibleWithUpdLag() override { return true; };
 };
 
 class GreenLagrangeStrain : public StrainEvaluator
@@ -60,6 +87,7 @@ class GreenLagrangeStrain : public StrainEvaluator
                   Tensor *cache, double *state=0);
     void getE(Tensor &e, Tensor &gradU, Tensor *cache, double *state=0);
     void transformStress(Tensor &stress, Tensor *cache, Tensor_d0s2_Ss12 &S);
+    void getL(const Tensor &gradUnp, const Tensor &gradUn, Tensor *cache, double dt=0) override;
 };
 
 class LogarithmicStrain : public StrainEvaluator

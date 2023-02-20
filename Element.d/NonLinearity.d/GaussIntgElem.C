@@ -319,7 +319,7 @@ GaussIntgElement::integrate(Node *nodes, double *dispn, double *staten,
   NLMaterial *material = getMaterial();
 
   // Obtain the storage for gradU ( 3x3 )
-  //Tensor &gradUn = *shapeF->getGradUInstance();
+  Tensor &gradUn = *shapeF->getGradUInstance();
   Tensor &gradUnp = *shapeF->getGradUInstance();
   // Obtain the storage for dgradUdqk ( ndof x3x3 )
   Tensor &dgradUdqknp = *shapeF->getDgradUDqkInstance();
@@ -358,7 +358,7 @@ GaussIntgElement::integrate(Node *nodes, double *dispn, double *staten,
 
   Tensor &displacements = *shapeF->getDisplacementsInstance();
   StackVector dispVecnp(dispnp, ndofs);
-  //StackVector dispVecn(dispn, ndofs);
+  StackVector dispVecn(dispn, ndofs);
   shapeF->getDisplacements(dispVecnp, &displacements);
 
   Tensor &localderivatives = *shapeF->getLocalDerivativesInstance();
@@ -369,11 +369,12 @@ GaussIntgElement::integrate(Node *nodes, double *dispn, double *staten,
  
     getGaussPointAndWeight(i, point, weight);
 
-    //shapeF->getGradU(&gradUn, nodes, point, dispVecn);
+    shapeF->getGradU(&gradUn, nodes, point, dispVecn);
     shapeF->getGlobalGrads(&gradUnp, &dgradUdqknp, &jacnp, &nodescoordinates, point, &displacements, &localderivatives);
 
-    //strainEvaluator->getE(en, gradUn, cachen);
+    // strainEvaluator->getE(en, gradUn, cachen);
     strainEvaluator->getEBandDB(enp, Bnp, DBnp, gradUnp, dgradUdqknp, cachenp, staten + nstatepgp*i);
+    strainEvaluator->getL(gradUnp, gradUn, cachenp, dt);
 
     // compute temperature at integration point
     tempnp = (temps) ? shapeF->interpolateScalar(temps, point) : 0;
@@ -445,7 +446,7 @@ GaussIntgElement::integrate(Node *nodes, double *dispn, double *staten,
   NLMaterial *material = getMaterial();
 
   // Obtain the storage for gradU ( 3x3 )
-  //Tensor &gradUn = *shapeF->getGradUInstance();
+  Tensor &gradUn = *shapeF->getGradUInstance();
   Tensor &gradUnp = *shapeF->getGradUInstance();
   // Obtain the storage for dgradUdqk ( ndof x3x3 )
   Tensor &dgradUdqknp = *shapeF->getDgradUDqkInstance();
@@ -475,7 +476,7 @@ GaussIntgElement::integrate(Node *nodes, double *dispn, double *staten,
 
   Tensor &displacements = *shapeF->getDisplacementsInstance();
   StackVector dispVecnp(dispnp, ndofs);
-  //StackVector dispVecn(dispn, ndofs);
+  StackVector dispVecn(dispn, ndofs);
   shapeF->getDisplacements(dispVecnp, &displacements);
 
   Tensor &localderivatives = *shapeF->getLocalDerivativesInstance();
@@ -486,11 +487,12 @@ GaussIntgElement::integrate(Node *nodes, double *dispn, double *staten,
  
     getGaussPointAndWeight(i, point, weight);
 
-    //shapeF->getGradU(&gradUn, nodes, point, dispVecn);
+    shapeF->getGradU(&gradUn, nodes, point, dispVecn);
     shapeF->getGlobalGrads(&gradUnp, &dgradUdqknp, &jacnp, &nodescoordinates, point, &displacements, &localderivatives);
 
     //strainEvaluator->getE(en, gradUn, cachen);
     strainEvaluator->getEandB(enp, Bnp, gradUnp, dgradUdqknp, cachenp, staten + nstatepgp*i);
+    strainEvaluator->getL(gradUnp, gradUn, cachenp, dt);
 
     // compute temperature at integration point
     tempnp = (temps) ? shapeF->interpolateScalar(temps, point) : 0;

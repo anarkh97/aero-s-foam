@@ -378,6 +378,10 @@ protected:
 	StructProp *prop;	// structural properties for this element
 	bool myProp;
 	int glNum, subNum, stateOffset;
+
+	// AN: attribute id associated with the element.
+	int attributeId;
+
 	void lumpMatrix(FullSquareMatrix&, std::vector<double>&) const;
 public:
 	Element() { prop = 0; myProp = false; };
@@ -544,6 +548,10 @@ public:
 	virtual void addFaces(PolygonSet *pset);
 
 	virtual void setMaterial(NLMaterial *);
+
+	// AN: attach attribute id to the element.
+	void setElementAttribute(int a) { attributeId = a; };
+        int getElementAttribute() { return attributeId; };
 
 	virtual int numInternalNodes() const { return 0; }
 

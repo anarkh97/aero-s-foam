@@ -468,6 +468,8 @@ public:
 	std::map<int, int> &getMortarAttributes() { return mortar_attrib; }
 	int getNumAttributes() { return na; }
 
+	int getMaxAttributeNum() { return maxattrib+1; }
+
 	int getNumDirichlet() { return numDirichlet; }
 	int getNumDirichletFluid() { return numDirichletFluid; }
 	int getNumNeuman() { return numNeuman; }
@@ -570,6 +572,7 @@ public:
 	void outputEnergy(int, double, DComplex);
 	void outputEnergies(int, double, double, double, double, double, double, double);
 	void outputEnergies(int, double, DComplex, DComplex, DComplex, DComplex, DComplex, DComplex);
+	void outputEnergyPerAttribute(int, double, double *, int);
 	void outputElemVectors(int, double *, int, double time = -1.0);
 	void outputElemVectors(int, DComplex *, int, double time = -1.0);
 	void outputElemStress(int, double *, int, const std::vector<size_t> &offsets, double = -1.0);
@@ -676,6 +679,9 @@ public:
 	std::map<int, std::set<int> > & getNodeGroups() { return nodeGroup; }
 	void setSurfaceGroup(int sn, int id);
 
+	// AN: required to access group number
+	int getGroupNumber(int fileNum) { return oinfo[fileNum].groupNumber; }
+
 	// Sfem stuff
 	enum Rprop { A, E, NU, RHO, T, KX, KY, KZ }; // sfem
 	void setGroupRandomProperty(int g, Rprop prop_type, double mean, double std_dev);
@@ -757,6 +763,21 @@ struct Group
 {
 	std::vector<int> attributes;
 	std::vector<RandomProperty> randomProperties;
+
+	bool isAttributeInGroup(int a) {
+		// AN: number of attributes in each group
+		// are typically low; looping over the
+		// vector.
+		bool flag = false;
+                for(int i=0; i<attributes.size(); i++) {
+                        if(attributes[i] == a) {
+                                flag = true;
+                                break;
+                        }
+                }
+                return flag;
+        };
+
 };
 
 struct AttributeToElement

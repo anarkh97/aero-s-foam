@@ -4253,22 +4253,62 @@ template<class Scalar>
 void GenDecDomain<Scalar>::getDissipatedEnergy(DistrGeomState *geomState, Corotator ***allCorot, 
                                                int fileNumber, double time)
 {
-  double *subD = new double[numSub];
-  execParal(numSub, this, &GenDecDomain<Scalar>::subGetDissipatedEnergy, geomState, allCorot, subD);
-  double D = 0;
-  for(int i=0; i<numSub; ++i) D += subD[i];
+  int groupIndex = geoSource->getGroupNumber(fileNumber);
+  if(groupIndex<0) { // output for all elements
+
+    double *subD = new double[numSub];
+    execParal(numSub, this, &GenDecDomain<Scalar>::subGetDissipatedEnergy, geomState, allCorot, subD);
+    double D = 0;
+    for(int i=0; i<numSub; ++i) D += subD[i];
 #ifdef DISTRIBUTED
-  communicator->reduce(1, &D);
-  if(myCPU == 0)
+    communicator->reduce(1, &D);
+    if(myCPU == 0)
 #endif
-  geoSource->outputEnergy(fileNumber, time, D);
-  delete [] subD;
+    geoSource->outputEnergy(fileNumber, time, D);
+    delete [] subD;
+  }
+  else {
+
+    std::map<int, Group> &group = geoSource->group;
+    int numAttributesInGrp = group[groupIndex].attributes.size();
+
+    // initialize array to store data
+    double** subDPerAttrib = new double*[numSub];
+    for(int i=0; i<numSub; i++) subDPerAttrib[i] = new double[numAttributesInGrp];
+    
+    execParal(numSub, this, &GenDecDomain<Scalar>::subGetDissipEnergyPerAttributes, geomState, allCorot, groupIndex, subDPerAttrib);
+    
+    double D[numAttributesInGrp];
+    for(int i=0; i<numAttributesInGrp; i++) {
+      D[i] = 0;
+      for(int j=0; j<numSub; j++)
+        D[i] += subDPerAttrib[j][i];
+    }
+#ifdef DISTRIBUTED
+    communicator->reduce(numAttributesInGrp, D);
+    if(myCPU == 0)
+#endif
+    geoSource->outputEnergyPerAttribute(fileNumber, time, D, numAttributesInGrp);
+
+    // free memory
+    for(int i=0; i<numSub; i++) delete [] subDPerAttrib[i];
+    delete [] subDPerAttrib;
+    
+  }
+
 }
 
 template<class Scalar>
 void GenDecDomain<Scalar>::subGetDissipatedEnergy(int iSub, DistrGeomState *geomState, Corotator ***allCorot, double *D)
 {
   D[iSub] = subDomain[iSub]->getDissipatedEnergy((*geomState)[iSub], allCorot[iSub]);
+}
+
+template<class Scalar>
+void GenDecDomain<Scalar>::subGetDissipEnergyPerAttributes(int iSub, DistrGeomState *geomState, Corotator ***allCorot, int gIndex,
+                                                           double **subD)
+{
+  subD[iSub] = subDomain[iSub]->getDissipatedEnergy((*geomState)[iSub], allCorot[iSub], gIndex);
 }
 
 template<class Scalar>

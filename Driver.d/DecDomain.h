@@ -276,6 +276,10 @@ private:
 	                      GenMDDynamMat<Scalar> *dynOps, GenDistrVector<Scalar> *aeroF, double *subW);
 	void subGetDissipatedEnergy(int iSub, DistrGeomState *geomState, Corotator ***allCorot, double *subD);
 
+	// AN: prints out dissipated energy according to element attributes.
+	void subGetDissipEnergyPerAttributes(int iSub, DistrGeomState *geomState, Corotator ***allCorot, int gIndex,
+                                             double** D);
+
 	// Helmholtz Fluid functions
 	void distribBC(int iSub, gsl::span<GenSubDomain<Scalar> *> sd, Domain *domain,
 	               int *somToSub, int *scaToSub, int *neumToSub, int (*wetToSub)[2],

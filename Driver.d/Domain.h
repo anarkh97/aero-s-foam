@@ -654,6 +654,8 @@ public:
 	double getKineticEnergy(double *velocity, FullSquareMatrix *mel);
 	double getStrainEnergy(GeomState *geomState, Corotator **allCorot);
 	double getDissipatedEnergy(GeomState *geomState, Corotator **allCorot);
+	// compute dissipated energy for elements related to specific attribute
+	double* getDissipatedEnergy(GeomState *geomState, Corotator **allCorot, int groupId);
 	void setModalEnergies(double Wele, double Wkin, double Wdmp);
 	void computeEnergies(GeomState *geomState, Vector &force, double time, Vector *aeroForce, double *vel,
 	                     Corotator **allCorot, SparseMatrix *M, SparseMatrix *C, double &Wela, double &Wkin,

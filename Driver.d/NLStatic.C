@@ -1763,8 +1763,18 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       geoSource->outputEnergies(iInfo, time, Wext, Waero, Wela, Wkin, Wdmp+Wdis, error);
     } break;
     case OutputInfo::DissipatedEnergy: {
-      double D = getDissipatedEnergy(geomState, allCorot);
-      geoSource->outputEnergy(iInfo, time, D);
+      int groupIndex = geoSource->getGroupNumber(iInfo);
+      if(groupIndex<0) {
+        double D = getDissipatedEnergy(geomState, allCorot);
+        geoSource->outputEnergy(iInfo, time, D);
+      }
+      else {
+        std::map<int, Group> &group = geoSource->group;
+        int numAttribs = group[groupIndex].attributes.size();
+        double* D = getDissipatedEnergy(geomState, allCorot, groupIndex);
+        geoSource->outputEnergyPerAttribute(iInfo, time, D, numAttribs);
+        delete [] D;
+      }
     } break;
     case OutputInfo::AeroForce: break; // this is done in FlExchange.C
     case OutputInfo::AeroXForce:  {
@@ -3356,6 +3366,47 @@ Domain::getDissipatedEnergy(GeomState *geomState, Corotator **allCorot)
     }
   }
   return D;
+}
+
+double*
+Domain::getDissipatedEnergy(GeomState *geomState, Corotator **allCorot, int groupIndex)
+{
+  // (AN) Note: Here the function assumes that all the attributes assigned to dissipat
+  // output card have a corresponding non-linear material (matusage) card.
+std::map<int, Group> &group = geoSource->group;
+
+  int numAttributesInGrp = group[groupIndex].attributes.size();
+  int numAttributes = geoSource->getMaxAttributeNum();
+
+  if(numAttributesInGrp > numAttributes) {
+    fprintf(stderr, "***Error: Number of attributes provided in group %d is greater than max atributes available\n", groupIndex);
+    exit(-1);
+  }
+
+  double* D = new double[numAttributesInGrp];
+  double* temp = new double[numAttributes];
+  for(int a=0; a<numAttributes; a++) temp[a] = 0.0;
+
+  for(int iele=0; iele<numele; iele++) {
+    if(allCorot[iele]) {
+      int aele = packedEset[iele]->getElementAttribute();
+      if(aele > numAttributes) {
+        fprintf(stderr, "***Error: unknown attribute %d found for element %d.\n", aele, packedEset[iele]->getGlNum());
+        exit(-1);
+      }
+      if(!group[groupIndex].isAttributeInGroup(aele)) continue;
+      temp[aele] += allCorot[iele]->getDissipatedEnergy(*geomState, nodes);
+    }
+  }
+
+  // for(int a=0; a<numAttributes; a++) fprintf(stdout, "temp[%d] = %e\n", a, temp[a]);
+  
+  for(int i=0; i<numAttributesInGrp; i++) D[i] = temp[group[groupIndex].attributes[i]];
+  
+  delete [] temp;
+  
+  return D;
+
 }
 
 void 

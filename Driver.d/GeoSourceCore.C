@@ -1117,8 +1117,10 @@ void GeoSource::setUpData(int topFlag)
   for(int i = 0; i < nMaxEle; ++i) hasAttr[i] = false;
   for(std::map<int,Attrib>::iterator it = attrib.begin(); it != attrib.end(); ++it) {
 	Attrib &attrib_i = it->second;
-	if(attrib_i.nele < nMaxEle)
+	if(attrib_i.nele < nMaxEle) {
 	  hasAttr[attrib_i.nele] = true;
+	  elemSet[attrib_i.nele]->setElementAttribute(attrib_i.attr);
+	}
   }
   int dattr, dattr2;
   bool hasAddedDummy = false, hasAddedDummy2 = false, hasMultiplier = false;
@@ -3833,6 +3835,18 @@ void GeoSource::outputEnergy(int fileNum, double time, double W) {
   
   fprintf(oinfo[fileNum].filptr," %e % *.*E\n", time, w, p, W);
 
+  fflush(oinfo[fileNum].filptr);
+}
+
+void GeoSource::outputEnergyPerAttribute(int fileNum, double time, double* W, int attrib)
+{
+  int w = oinfo[fileNum].width;
+  int p = oinfo[fileNum].precision;
+  
+  fprintf(oinfo[fileNum].filptr," %e ", time);
+  for(int i=0; i<attrib; i++) fprintf(oinfo[fileNum].filptr, "% *.*E", w, p, W[i]);
+  fprintf(oinfo[fileNum].filptr, "\n");
+  
   fflush(oinfo[fileNum].filptr);
 }
 

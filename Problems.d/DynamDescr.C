@@ -423,6 +423,7 @@ SingleDomainDynamic::getInitState(SysState<Vector> &inState)
       delete [] ctrdisp; delete [] ctrvel; delete [] ctracc;
     }
   }
+
 }
 
 void
@@ -565,6 +566,7 @@ void
 SingleDomainDynamic::updateState(double dt_n_h, Vector &v_n_h, Vector &d_n)
 {
   if(domain->solInfo().isNonLin()) {
+    *refState = *geomState; // (AN) update refState values
     Vector dinc(solVecInfo()); dinc = dt_n_h*v_n_h;
     geomState->update(dinc, 1);
     geomState->setVelocity(v_n_h);
@@ -675,6 +677,7 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
     sinfo.initExtForceNorm = ext_f.norm();
 
   times->formRhs += getTime();
+
 }
 
 void
@@ -765,8 +768,9 @@ SingleDomainDynamic::preProcess()
     }
   }
 
-  // (AN) copy geomState to refState; required for crushable foam materials
-  if(!refState) refState = new GeomState(*geomState);
+  // call GeomStateCopy constructor to initialize refState
+  // assign refState for the first time step
+  refState = new GeomState(*geomState);
 
   if(domain->tdenforceFlag())
     domain->InitializeDynamicContactSearch();
@@ -891,7 +895,7 @@ SingleDomainDynamic::getInternalForce(Vector& d, Vector& f, double t, int tIndex
     Vector residual(domain->numUncon(),0.0);
     Vector fele(domain->maxNumDOF());
     if(reactions) reactions->zero();
-    // NOTE #1: (AN) for explicit nonlinear dynamics, geomState and refState are different objects
+    // NOTE #1: for explicit nonlinear dynamics, geomState and refState are the same object -- AN no longer true
     // NOTE #2: by convention, the internal variables associated with a nonlinear constitutive relation are not updated
     //          when getStiffAndForce is called, so we have to call updateStates.
     if(domain->solInfo().newmarkBeta == 0 && domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
@@ -902,6 +906,10 @@ SingleDomainDynamic::getInternalForce(Vector& d, Vector& f, double t, int tIndex
 */
     }
     else {
+      // refState store data at t_n; and is sent to calculate intenal forces for foam like materials
+
+      //domain->getInternalForce(*geomState, fele, allCorot, kelArray, residual, 1.0, t, geomState,
+      //                         reactions, melArray);
       domain->getInternalForce(*geomState, fele, allCorot, kelArray, residual, 1.0, t, refState,
                                reactions, melArray);
     }

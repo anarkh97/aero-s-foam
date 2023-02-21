@@ -4,7 +4,6 @@
 #include <cstdio>
 
 LinearStrain linearStrain;
-RateOfDeformation rateOfDeforamtion;
 GreenLagrangeStrain greenLagrangeStrain;
 LogarithmicStrain logarithmicStrain;
 PrincipalStretches principalStretches;
@@ -111,108 +110,6 @@ void
 LinearStrain::transformStress(Tensor &_stress, Tensor *, Tensor_d0s2_Ss12 &S)
 {
   // do nothing: transformation is only applied for finite-strain materials
-  Tensor_d0s2_Ss12 &stress = static_cast<Tensor_d0s2_Ss12 &>(_stress);
-  S = stress;
-}
-
-Tensor *
-RateOfDeformation::getTMInstance()
-{
-  Tensor_d0s4_Ss12s34 *s = new Tensor_d0s4_Ss12s34;
-  return s;
-}
-
-Tensor *
-RateOfDeformation::getStressInstance()
-{
-  Tensor_d0s2_Ss12 *s = new Tensor_d0s2_Ss12;
-  return s;
-}
-
-Tensor *
-RateOfDeformation::getStrainInstance()
-{
-  Tensor_d0s2_Ss12 *s = new Tensor_d0s2_Ss12;
-  return s;
-}
-
-Tensor *
-RateOfDeformation::getBInstance(int numdofs)
-{
-  Tensor_d1s2_Ss23 *B = new Tensor_d1s2_Ss23(numdofs);
-  return B;
-}
-
-Tensor *
-RateOfDeformation::getDBInstance(int numdofs)
-{
-  Tensor_d2s2_Sd12s34_sparse *DB = new Tensor_d2s2_Sd12s34_sparse(numdofs);
-  return DB;
-}
-
-Tensor *
-RateOfDeformation::getCacheInstance()
-{
-  return NULL;
-}
-
-void 
-RateOfDeformation::getEBandDB(Tensor &_e, Tensor &__B, Tensor &_DB, const Tensor &_gradV, const Tensor &_dgradVdqk, Tensor *cache, double *)
-{
-
-  // Same as linear strain measure. This strain uses velocity gradients instead of displacement gradients.
-
-  const Tensor_d0s2 & gradV = static_cast<const Tensor_d0s2 &>(_gradV);
-  const Tensor_d1s2_sparse & dgradVdqk = static_cast<const Tensor_d1s2_sparse &>(_dgradVdqk);
-  Tensor_d2s2_Sd12s34_sparse & DB = static_cast<Tensor_d2s2_Sd12s34_sparse &>(_DB);
-  Tensor_d1s2_Ss23 & B = static_cast<Tensor_d1s2_Ss23 &>(__B);
-  Tensor_d0s2_Ss12 & e = static_cast<Tensor_d0s2_Ss12 &>(_e);
-
-  Tensor_d0s2 tgradV;
-  gradV.getTranspose(tgradV);
-
-  // D = 1/2(gradV^t + gradV)
-  // de/dq = 1/2(dgradUdq^t + dgradUdq + ...)
-  Tensor_d0s2 enonsym;
-  enonsym = (1/2.)*(tgradV + gradV);
-  enonsym.convertToSym(e);
-
-  // TODO: (AN) Double check the following equations
-
-  int size = B.getSize();
-  Tensor_d1s2_full temp2(size);
-  temp2 = tgradV | dgradVdqk;
-
-  B.assignSymPart(dgradVdqk, temp2);
-
-  dgradVdqk.getSymSquare(DB);
-}
-
-void
-RateOfDeformation::getEandB(Tensor &_e, Tensor &__B, const Tensor &_gradU, const Tensor &_dgradUdqk, Tensor *cache, double *)
-{
-  // Implementation pending.
-}
-
-void 
-RateOfDeformation::getE(Tensor &_e, Tensor &_gradV, Tensor *cache, double *)
-{
-  Tensor_d0s2_Ss12 & e = static_cast<Tensor_d0s2_Ss12 &>(_e);
-  Tensor_d0s2 & gradV = static_cast<Tensor_d0s2 &>(_gradV);
-
-  // D = 1/2(gradU^t + gradU)
-  Tensor_d0s2 tgradV;
-  gradV.getTranspose(tgradV);
-
-  Tensor_d0s2 enonsym;
-  enonsym = (1/2.)*(tgradV + gradV);
-  enonsym.convertToSym(e);
-}
-
-void
-RateOfDeformation::transformStress(Tensor &_stress, Tensor *, Tensor_d0s2_Ss12 &S)
-{
-  // do nothing: stress is already PK2 in this case
   Tensor_d0s2_Ss12 &stress = static_cast<Tensor_d0s2_Ss12 &>(_stress);
   S = stress;
 }
@@ -374,22 +271,22 @@ GreenLagrangeStrain::transformStress(Tensor &_stress, Tensor *cache, Tensor_d0s2
 {
   // do nothing: stress is already PK2 in this case
 
+  //Tensor_d0s2_Ss12 &stress = static_cast<Tensor_d0s2_Ss12 &>(_stress);
+  //S = stress;
+
+  // AN: Temporarily output set to cauchy stress
   Tensor_d0s2_Ss12 &stress = static_cast<Tensor_d0s2_Ss12 &>(_stress);
-  S = stress;
+  Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > F = static_cast<Tensor_d1s2_full &>(*cache)[0].matrix();
+  double J = F.determinant();
+  if(J==0) {
+    fprintf(stderr, "***ERROR: Deformation gradient has zero determinant.\n");
+    exit(-1);
+  }
 
-  // // AN: Temporarily output set to cauchy stress
-  // Tensor_d0s2_Ss12 &stress = static_cast<Tensor_d0s2_Ss12 &>(_stress);
-  // Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > F = static_cast<Tensor_d1s2_full &>(*cache)[0].matrix();
-  // double J = F.determinant();
-  // if(J==0) {
-  //   fprintf(stderr, "***ERROR: Deformation gradient has zero determinant.\n");
-  //   exit(-1);
-  // }
-
-  // Eigen::Matrix3d Spk;
-  // stress.assignTo(Spk);
-  // Eigen::Matrix3d sigma = (1/J)*F*Spk*F.transpose();
-  // S = sigma;
+  Eigen::Matrix3d Spk;
+  stress.assignTo(Spk);
+  Eigen::Matrix3d sigma = (1/J)*F*Spk*F.transpose();
+  S = sigma;
 }
 
 void

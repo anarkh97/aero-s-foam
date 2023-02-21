@@ -426,12 +426,12 @@ MultiDomainDynam::preProcess() {
 	claw = geoSource->getControlLaw();
 	userSupFunc = geoSource->getUserSuppliedFunction();
 
-	// Make the geomState (used for prestress, explicit nonlinear and contact)
+	// Make the geomState and refState (used for prestress, explicit nonlinear and contact)
 	if ((domain->solInfo().gepsFlg == 1 && domain->numInitDisp6() > 0) || domain->solInfo().isNonLin() ||
 	    domain->tdenforceFlag()) {
 		times->timeGeom -= getTime();
 		geomState = new DistrGeomState(decDomain);
-		refState = new DistrGeomState(decDomain); // (AN) refState required for crushable foams
+		refState = new DistrGeomState(decDomain);
 		times->timeGeom += getTime();
 	}
 
@@ -643,7 +643,7 @@ MultiDomainDynam::getContactForce(DistrVector &d_n, DistrVector &dinc, DistrVect
 void
 MultiDomainDynam::updateState(double dt_n_h, DistrVector &v_n_h, DistrVector &d_n) {
 	if (domain->solInfo().isNonLin()) {
-		*refState  = *geomState; // (AN) update refState values
+		*refState = *geomState; // (AN) update refState values
 		DistrVector dinc(solVecInfo());
 		dinc = dt_n_h * v_n_h;
 		geomState->update(dinc, 1);
@@ -846,6 +846,7 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
 		sinfo.initExtForceNorm = f.norm();
 
 	times->formRhs += getTime();
+
 }
 
 void
@@ -1202,7 +1203,7 @@ MultiDomainDynam::subGetInternalForce(int isub, DistrVector &f, double &t, int &
 		subReactions->zero();
 	}
 
-	// NOTE #1: (AN) for explicit nonlinear dynamics, geomState and refState are different objects
+	// NOTE #1: for explicit nonlinear dynamics, geomState and refState are the same object -- AN: no longer true
 	// NOTE #2: by convention, the internal variables associated with a nonlinear constitutive relation are not updated
 	//          when getStiffAndForce is called, so we have to call updateStates.
 	if (domain->solInfo().newmarkBeta == 0 && domain->solInfo().stable && domain->solInfo().isNonLin() &&

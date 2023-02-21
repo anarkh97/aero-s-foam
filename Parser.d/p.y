@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <Parser.d/AuxDefs.h>
 #include <Element.d/NonLinearity.d/BilinPlasKinHardMat.h>
+#include <Element.d/NonLinearity.d/CrushableFoam.h>
 #include <Element.d/NonLinearity.d/ElaLinIsoMat.h>
 #include <Element.d/NonLinearity.d/2DMat.h>
 #include <Element.d/NonLinearity.d/ExpMat.h>
@@ -127,7 +128,7 @@
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
 %token NODALCONTACT MODE FRIC GAP
 %token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
-%token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF TULERBUTCHER LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC VISCOLINEARELASTIC VISCOSTVENANTKIRCHHOFF NEOHOOKEAN VISCONEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS HYPERELASTIC MOONEYRIVLIN VISCOMOONEYRIVLIN HENCKY OGDEN SIMOELASTIC SIMOPLASTIC LOGSTRAINPLASTIC SVKPLSTRESS VISCOLINPLSTRESS VISCOSVKPLSTRESS VISCOFABRICMAP SHELLVISCOFABRICMAP VISCOFABRICMAT SHELLVISCOFABRICMAT
+%token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC CRUSHABLEFOAM LINEARELASTIC STVENANTKIRCHHOFF TULERBUTCHER LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC VISCOLINEARELASTIC VISCOSTVENANTKIRCHHOFF NEOHOOKEAN VISCONEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS HYPERELASTIC MOONEYRIVLIN VISCOMOONEYRIVLIN HENCKY OGDEN SIMOELASTIC SIMOPLASTIC LOGSTRAINPLASTIC SVKPLSTRESS VISCOLINPLSTRESS VISCOSVKPLSTRESS VISCOFABRICMAP SHELLVISCOFABRICMAP VISCOFABRICMAT SHELLVISCOFABRICMAT
 %token PARTITIONGAP PLANESTRESSLINEAR PLANESTRESSSTVENANTKIRCHHOFF PLANESTRESSNEOHOOKEAN PLANESTRESSMOONEYRIVLIN PLANESTRESSBILINEARPLASTIC PLANESTRESSFINITESTRAINPLASTIC PLANESTRESSVISCOLINEARELASTIC PLANESTRESSVISCOSTVENANTKIRCHHOFF PLANESTRESSVISCONEOHOOKEAN PLANESTRESSVISCOMOONEYRIVLIN
 %token SURFACETOPOLOGY MORTARTIED MORTARSCALING MORTARINTEGRATIONRULE SEARCHTOL STDMORTAR DUALMORTAR WETINTERFACE
 %token NSUBS EXITAFTERDEC SKIP ROBCSOLVE RANDOMSAMPLE OUTPUTMEMORY OUTPUTWEIGHT SOLVER SPNNLSSOLVERTYPE MAXSIZE CLUSTERSOLVER CLUSTERSOLVERTYPE
@@ -1224,20 +1225,19 @@ Conwep:
           BlastLoading::InputFileData = $3; }
         ;
 ConwepData:
-        Float Float Float Float Float
+        Float Float Float Float Float Integer
         { // Note: chargeWeight must be entered in the units of mass of the problem, not units of force.
           $$.ExplosivePosition[0] = $1;
           $$.ExplosivePosition[1] = $2;
           $$.ExplosivePosition[2] = $3;
           $$.ExplosiveDetonationTime = $5;
-          $$.BlastType = BlastLoading::BlastData::AirBurst; // ($5 == 0 ? BlastLoading::BlastData::SurfaceBurst : BlastLoading::BlastData::AirBurst);
+          ($6 == 0.0? BlastLoading::BlastData::SurfaceBurst : BlastLoading::BlastData::AirBurst);
           $$.ScaleLength = 1.0;
           $$.ScaleTime = 1.0;
           $$.ScaleMass = 1.0;
           $$.ExplosiveWeight = $4*2.2; // The 2.2 factor is to convert from kilograms to pounds force.
           $$.ExplosiveWeightCubeRoot = pow($$.ExplosiveWeight,1.0/3.0);
-        }
-        ;
+        };
 TimeIntegration:
         NEWMARK NewLine
         { domain->solInfo().timeIntegration = SolverInfo::Newmark; }
@@ -4848,6 +4848,29 @@ MatSpec:
                                     std::numeric_limits<double>::infinity(), $13, $14) );
            }
          }
+        | MatSpec Integer CRUSHABLEFOAM Float Float Float Float Float Float Float Float NewLine
+          {
+            geoSource->addMaterial($2-1, new CrushableFoam($4, $5, $6, $7, $8, $9, $10, $11) );
+          }
+        | MatSpec Integer CRUSHABLEFOAM Float Float Float Float Float Float Float Float Float NewLine
+          {
+            geoSource->addMaterial($2-1, new CrushableFoam($4, $5, $6, $7, $8, $9, $10, $11, $12) );
+          }
+        | MatSpec Integer CRUSHABLEFOAM Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            geoSource->addMaterial($2-1, new CrushableFoam($4, $5, $6, $7, $8, $9, $10, $11, $12, $13) );
+          }
+        | MatSpec Integer CRUSHABLEFOAM Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            if($14 > 0 && $14 < std::numeric_limits<double>::infinity()) {
+              geoSource->addMaterial($2-1, new CrushableFoam($4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) );
+              domain->solInfo().elementDeletion = true;
+            }
+            else {
+              geoSource->addMaterial($2-1, new CrushableFoam($4, $5, $6, $7, $8, $9, $10, $11, $12, 
+                                     $13, std::numeric_limits<double>::infinity()) );
+            }
+          }
         | MatSpec Integer LOGSTRAINPLASTIC Float Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,

@@ -15,53 +15,54 @@ template <class TT> class GenStrainEvaluator;
 class GaussIntgElement : public MatNLElement
 {
 protected:
+
     double *tframe;
-	virtual int getNumGaussPoints() const = 0;
-	virtual void getGaussPointAndWeight(int, double *, double &) const = 0;
-	virtual void getLocalNodalCoords(int, double *) = 0;
-	virtual ShapeFunction *getShapeFunction() const = 0;
-	virtual StrainEvaluator *getStrainEvaluator() const = 0;
-	virtual NLMaterial *getMaterial() const = 0;
+    virtual int getNumGaussPoints() const = 0;
+    virtual void getGaussPointAndWeight(int, double *, double &) const = 0;
+    virtual void getLocalNodalCoords(int, double *) = 0;
+    virtual ShapeFunction *getShapeFunction() const = 0;
+    virtual StrainEvaluator *getStrainEvaluator() const = 0;
+    virtual NLMaterial *getMaterial() const = 0;
 
 public:
     GaussIntgElement() : tframe(NULL) {}
     virtual ~GaussIntgElement() { if(tframe) delete [] tframe; }
-	void getStiffAndForce(Node *nodes, double *disp,
-						  double *state, FullSquareMatrix &kTan,
-						  double *force) override;
-	FullSquareMatrix stiffness(const CoordSet& cs, double *k, int flg=1) const override;
-	FullSquareMatrix massMatrix(const CoordSet& cs, double *m, int flg=1) const override;
-	void updateStates(Node *node, double *state, double *un, double *unp, double *temps, double dt) override;
-	void integrate(Node *nodes, double *dispn, double *staten,
-				   double *dispnp, double *statenp,
-				   FullSquareMatrix &kTan, double *force, double dt,
-				   double *temps) override;
-	void integrate(Node *nodes, double *dispn, double *staten,
-				   double *dispnp, double *statenp, double *force, double dt,
-				   double *temps) override;
-	int numStates() override {
-		int nGP = getNumGaussPoints();
-		NLMaterial *mat = getMaterial();
-		int nsGP = (mat) ? mat->getNumStates() : 0;
-		return nGP*nsGP;
-	}
-	void initStates(double *) override;
-	// the following functions return result for postprocessing at every node
-	void getStrainTens(Node *nodes, double *dispnp, double (*result)[9], int avgnum) override;
-	void getVonMisesStrain(Node *nodes, double *dispnp, double *result, int avgnum) override;
-	void getStressTens(Node *nodes, double *dispn, double *staten,
-					   double *dispnp, double *statenp, double (*result)[9], int avgnum,
-					   double *temps) override;
-	void getVonMisesStress(Node *nodes, double *dispn, double *staten,
-						   double *dispnp, double *statenp, double *result, int avgnum,
-						   double *temps) override;
-	void getEquivPlasticStrain(double *statenp, double *result, int avgnum) override;
-	void getBackStressTens(double *statenp, double (*result)[9], int avgnum) override;
-	void getPlasticStrainTens(double *statenp, double (*result)[9], int avgnum) override;
-	void getDamage(double *statenp, double *result, int avgnum) override;
-	double getStrainEnergy(Node *nodes, double *dispnp, double *state, double *temps) override;
-	double getDissipatedEnergy(Node *nodes, double *state) override;
-	bool checkFailure(double *state) override;
+    void getStiffAndForce(Node *nodes, double *disp,
+			  double *state, FullSquareMatrix &kTan,
+			  double *force) override;
+    FullSquareMatrix stiffness(const CoordSet& cs, double *k, int flg=1) const override;
+    FullSquareMatrix massMatrix(const CoordSet& cs, double *m, int flg=1) const override;
+    void updateStates(Node *node, double *state, double *un, double *unp, double *temps, double dt) override;
+    void integrate(Node *nodes, double *dispn, double *staten,
+		   double *dispnp, double *statenp,
+		   FullSquareMatrix &kTan, double *force, double dt,
+		   double *temps) override;
+    void integrate(Node *nodes, double *dispn, double *staten,
+		   double *dispnp, double *statenp, double *force, double dt,
+		   double *temps) override;
+    int numStates() override {
+ 	int nGP = getNumGaussPoints();
+	NLMaterial *mat = getMaterial();
+	int nsGP = (mat) ? mat->getNumStates() : 0;
+	return nGP*nsGP;
+    }
+    void initStates(double *) override;
+    // the following functions return result for postprocessing at every node
+    void getStrainTens(Node *nodes, double *dispnp, double (*result)[9], int avgnum) override;
+    void getVonMisesStrain(Node *nodes, double *dispnp, double *result, int avgnum) override;
+    void getStressTens(Node *nodes, double *dispn, double *staten,
+		       double *dispnp, double *statenp, double (*result)[9], int avgnum,
+		       double *temps) override;
+    void getVonMisesStress(Node *nodes, double *dispn, double *staten,
+			   double *dispnp, double *statenp, double *result, int avgnum,
+			   double *temps) override;
+    void getEquivPlasticStrain(double *statenp, double *result, int avgnum) override;
+    void getBackStressTens(double *statenp, double (*result)[9], int avgnum) override;
+    void getPlasticStrainTens(double *statenp, double (*result)[9], int avgnum) override;
+    void getDamage(double *statenp, double *result, int avgnum) override;
+    double getStrainEnergy(Node *nodes, double *dispnp, double *state, double *temps) override;
+    double getDissipatedEnergy(Node *nodes, double *state) override;
+    bool checkFailure(double *state) override;
 };
 
 template <class TensorTypes>

@@ -1480,6 +1480,8 @@ TRAIL [a-zA-Z]*
 
 "fini"[a-zA-Z]*|"FINI"[a-zA-Z]*|"Fini"[a-zA-Z]*         { return FINITESTRAINPLASTIC; }
 
+"crush"[a-zA-Z]*|"CRUSH"[a-zA-Z]*|"Crush"[a-zA-Z]*         { return CRUSHABLEFOAM; }
+
 "logs"[a-zA-Z]*|"LOGS"[a-zA-Z]*|"LogS"[a-zA-Z]*         { return LOGSTRAINPLASTIC; }
 
 

@@ -44,29 +44,6 @@ class LinearStrain : public StrainEvaluator
     void transformStress(Tensor &stress, Tensor *cache, Tensor_d0s2_Ss12 &S);
 };
 
-class RateOfDeformation : public StrainEvaluator
-{
-  // To be used when the appropriate strain measure is the
-  // Rate-of-Deformation tensor D = 0.5*(gradV^t + gradV)
-  // Constitutive models based on this strain measure should return 
-  // the second Piola-Kirchoff stress tensor S (rank 2, symmetric) and
-  // the second (material) elasticity tensor M (rank 4, major and minor symmetries)
-  public:
-    Tensor *getTMInstance();
-    Tensor *getStressInstance();
-    Tensor *getStrainInstance();
-    Tensor *getBInstance(int numdofs);
-    Tensor *getDBInstance(int numdofs);
-    Tensor *getCacheInstance();
-    void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradV, const Tensor &dgradVdqk,
-                    Tensor *cache, double *state=0);
-    void getEandB(Tensor &e, Tensor &B, const Tensor &gradV, const Tensor &dgradVdqk,
-                  Tensor *cache, double *state=0);
-    void getE(Tensor &e, Tensor &gradV, Tensor *cache, double *state=0);
-    void transformStress(Tensor &stress, Tensor *cache, Tensor_d0s2_Ss12 &S);
-    bool isStrainCompatibleWithUpdLag() override { return true; };
-};
-
 class GreenLagrangeStrain : public StrainEvaluator
 {
   // To be used when the appropriate strain measure is the

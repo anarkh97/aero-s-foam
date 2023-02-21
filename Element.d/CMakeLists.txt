@@ -256,6 +256,7 @@ NonLinearity.d/SimoPlasticMat.C
 NonLinearity.d/NeoHookeanMat.C
 NonLinearity.d/MooneyRivlinMat.C
 NonLinearity.d/BilinPlasKinHardMatInstance.C
+NonLinearity.d/CrushableFoam.C
 NonLinearity.d/GaussIntgElem.C
 NonLinearity.d/NLHexahedral.C
 NonLinearity.d/NLPentahedral.C

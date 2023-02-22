@@ -1,0 +1,294 @@
+{
+	"archive" : {},
+	"artifacts" : 
+	[
+		{
+			"path" : "Linpack.d/liblinpa.a"
+		}
+	],
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_library",
+			"add_definitions",
+			"include_directories",
+			"INCLUDE_DIRECTORIES"
+		],
+		"files" : 
+		[
+			"Linpack.d/CMakeLists.txt",
+			"CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 1,
+				"parent" : 0
+			},
+			{
+				"file" : 1
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 429,
+				"parent" : 2
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 221,
+				"parent" : 2
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 450,
+				"parent" : 2
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 442,
+				"parent" : 2
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 413,
+				"parent" : 2
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 286,
+				"parent" : 2
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 335,
+				"parent" : 2
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 125,
+				"parent" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 287,
+				"parent" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 337,
+				"parent" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 414,
+				"parent" : 2
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 456,
+				"parent" : 2
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : " -fopenmp -g -fPIC  "
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 3,
+					"define" : "DISTRIBUTED"
+				},
+				{
+					"backtrace" : 4,
+					"define" : "EIGEN_DONT_PARALLELIZE"
+				},
+				{
+					"backtrace" : 4,
+					"define" : "EIGEN_QUATERNIONBASE_PLUGIN=<Element.d/MpcElement.d/QuaternionBasePlugin.h>"
+				},
+				{
+					"backtrace" : 5,
+					"define" : "F_NEEDS_UNDSC"
+				},
+				{
+					"backtrace" : 5,
+					"define" : "MAP_MIN_MEMORY"
+				},
+				{
+					"backtrace" : 3,
+					"define" : "MPICH_IGNORE_CXX_SEEK"
+				},
+				{
+					"backtrace" : 6,
+					"define" : "PRINT_CHANGESETID"
+				},
+				{
+					"backtrace" : 5,
+					"define" : "SOWER_SURFS"
+				},
+				{
+					"backtrace" : 7,
+					"define" : "USE_BOOST"
+				},
+				{
+					"backtrace" : 4,
+					"define" : "USE_EIGEN3"
+				},
+				{
+					"backtrace" : 8,
+					"define" : "USE_METIS"
+				},
+				{
+					"backtrace" : 3,
+					"define" : "USE_MPI"
+				},
+				{
+					"backtrace" : 9,
+					"define" : "USE_SCOTCH"
+				},
+				{
+					"backtrace" : 5,
+					"define" : "_TEMPLATE_FIX_"
+				},
+				{
+					"backtrace" : 10,
+					"define" : "__LINUX"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 11,
+					"path" : "/apps/easybuild/software/tinkercliffs-rome/METIS/5.1.0-GCCcore-8.3.0/include"
+				},
+				{
+					"backtrace" : 12,
+					"path" : "/apps/easybuild/software/tinkercliffs-rome/SCOTCH/6.0.9-iimpi-2019b/include"
+				},
+				{
+					"backtrace" : 13,
+					"path" : "/apps/easybuild/software/tinkercliffs-rome/Boost/1.71.0-iimpi-2019b/include"
+				},
+				{
+					"backtrace" : 14,
+					"path" : "/home/anarkhede/tinkercliffs/FEMTesting/."
+				},
+				{
+					"backtrace" : 14,
+					"path" : "/apps/easybuild/software/tinkercliffs-rome/impi/2018.5.288-iccifort-2019.5.281/intel64/include"
+				},
+				{
+					"backtrace" : 14,
+					"path" : "/home/anarkhede/tinkercliffs/FEMTesting/Extermal.d/include"
+				}
+			],
+			"language" : "Fortran",
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2,
+				3,
+				4,
+				5,
+				6
+			]
+		}
+	],
+	"id" : "linpa::@15472d73640afe231c45",
+	"name" : "linpa",
+	"nameOnDisk" : "liblinpa.a",
+	"paths" : 
+	{
+		"build" : "Linpack.d",
+		"source" : "Linpack.d"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2,
+				3,
+				4,
+				5,
+				6
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Linpack.d/dsifa.f",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Linpack.d/dsisl.f",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Linpack.d/dsvdc.f",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Linpack.d/drot.f",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Linpack.d/drotg.f",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Linpack.d/dpofa.f",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Linpack.d/dtrsl.f",
+			"sourceGroupIndex" : 0
+		}
+	],
+	"type" : "STATIC_LIBRARY"
+}

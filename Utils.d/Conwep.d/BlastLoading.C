@@ -6,6 +6,62 @@
 #include <fstream>
 // ====================================================================================================
 // This is the main function.
+
+void BlastLoading::Conwep::SetUnitConversionsAndMassCubeRoot(BlastLoading::BlastData& P)
+{
+  switch (P.UnitConversionId)
+  {
+    case 1: {
+      P.ScaleLength = 1.0; //per foot
+      P.ScaleMass = 1.0; //per pound-mass
+      P.ScaleTime = 1000; //per s
+      P.ScalePressure = 1.0; //per Psi
+      break;
+    }
+    case 2: {
+      P.ScaleLength = 3.28084; //per m
+      P.ScaleMass = 2.20462; //per kg
+      P.ScaleTime = 1000; //per s
+      P.ScalePressure = 0.000145038; //per Pa
+      break;
+    }
+    case 3: {
+      P.ScaleLength = 0.0328084; //per cm
+      P.ScaleMass = 0.00220462; //per gm
+      P.ScaleTime = 0.001; //per microseconds
+      P.ScalePressure = 14503773.800722; //per megabar
+      break;
+    }
+    case 4: {
+      P.ScaleLength = 0.00328084; //per mm
+      P.ScaleMass = 2.20462; //per kg
+      P.ScaleTime = 1.0; //per ms
+      P.ScalePressure = 145038; //per GPa
+      break;
+    }
+    case 5: {
+      P.ScaleLength = 0.00328084; //per mm
+      P.ScaleMass = 0.00220462; //per gm
+      P.ScaleTime = 1000; //per s
+      P.ScalePressure = 0.000145038; //per Pa
+      break;
+    }
+    default: {
+      std::cerr << " ***WARNING: Unknown units conversion defined under the CONWEP card in the\n"
+                << "             input file. Setting units to Kg-m-s-Pa.\n";
+      P.ScaleLength = 3.28084; //per m
+      P.ScaleMass = 2.20462; //per kg
+      P.ScaleTime = 1000; //per s
+      P.ScalePressure = 0.000145038; //per Pa
+      break;
+    }
+  }
+
+  // Compute mass cube root
+  P.ExplosiveWeightCubeRoot = std::pow(P.ExplosiveWeight*P.ScaleMass, 1.0/3.0);
+
+}
+
 double BlastLoading::Conwep::Blast(const BlastLoading::BlastData& P,
                                    const double CurrentElementFacePosition[3],
                                    const double CurrentElementFaceNormalDirection[3],
@@ -28,7 +84,7 @@ double BlastLoading::Conwep::Blast(const BlastLoading::BlastData& P,
   DirectionFromElementFaceToExplosive[1] /= DistanceFromElementFaceCentroidToExplosive;
   DirectionFromElementFaceToExplosive[2] /= DistanceFromElementFaceCentroidToExplosive;
   // Convert this distance to feet:
-  DistanceFromElementFaceCentroidToExplosive = DistanceFromElementFaceCentroidToExplosive/P.ScaleLength*3.2808399;
+  DistanceFromElementFaceCentroidToExplosive = DistanceFromElementFaceCentroidToExplosive*P.ScaleLength;
   // Calculate the current element's position cosine:
   double CurrentElementPositionCosine =  CurrentElementFaceNormalDirection[0]*DirectionFromElementFaceToExplosive[0]
                                         +CurrentElementFaceNormalDirection[1]*DirectionFromElementFaceToExplosive[1]
@@ -54,7 +110,7 @@ double BlastLoading::Conwep::Blast(const BlastLoading::BlastData& P,
                  IncidentWaveDecayExponent,
                  ReflectedWaveDecayExponent);
   // Calculate the time since the detonation and convert it to milliseconds:
-  double CurrentTimeSinceDetonationTime = (CurrentTime- P.ExplosiveDetonationTime)*1000.0*P.ScaleTime;
+  double CurrentTimeSinceDetonationTime = (CurrentTime- P.ExplosiveDetonationTime)*P.ScaleTime;
   // Call the pressure function to calculate the pressure on the current element:
   double Pressure = Conwep::Pressure(CurrentTimeSinceDetonationTime,
                                      IncidentWaveArrivalTime,
@@ -494,6 +550,9 @@ double BlastLoading::Conwep::Pressure(double CurrentTimeSinceExplosionTime,
 double BlastLoading::ComputeShellPressureLoad(const double* CurrentElementNodePositions,
                                               double CurrentTime,
                                               const BlastLoading::BlastData& P) {
+  // (AN) set unit convertors
+  Conwep::SetUnitConversionsAndMassCubeRoot(const_cast<BlastLoading::BlastData&>(P));
+
   // Note: CurrentElementNodePositions contains the positions of the nodes of the current element.
   // CurrentElementNodePositions[0,1,2] = X,Y,Z position of node 1, CurrentElementNodePositions[3,4,5] = X,Y,Z position of node 2, etc.
   // Calculate 2 of the current element's edge directions:
@@ -540,9 +599,8 @@ double BlastLoading::ComputeShellPressureLoad(const double* CurrentElementNodePo
   // Calculate the pressure at the centroid of the current element:
   double CurrentElementPressure = Conwep::Blast(P,CurrentElementCentroidCoordinates,CurrentElementNormalVector,CurrentTime);
   // Return the pressure at the centroid of the current element:
-  // Note that the pressure is in psi: convert it to Pa (6.89e3 factor), then use ScaleLength,
-  // ScaleTime and ScaleMass to convert it to the correct pressure units.
-  return -CurrentElementPressure*6.8947573e3/P.ScaleMass*P.ScaleLength*P.ScaleTime*P.ScaleTime;
+  // Note that the pressure is in psi: convert to appropriate units
+  return -CurrentElementPressure/P.ScalePressure;
 }
 // ====================================================================================================
 // Calculate the pressure at a gauss point of the current element:
@@ -550,12 +608,15 @@ double BlastLoading::ComputeGaussPointPressure(const double CurrentElementGaussP
                                               const double CurrentElementGaussPointNormalVector[3],
                                               double CurrentTime,
                                               const BlastLoading::BlastData& P) {
+  // (AN) set unit convertors
+  Conwep::SetUnitConversionsAndMassCubeRoot(const_cast<BlastLoading::BlastData&>(P));
+
   // Calculate the pressure at a gauss point of the current element:
   double CurrentElementPressure = Conwep::Blast(P,CurrentElementGaussPointCoordinates,CurrentElementGaussPointNormalVector,CurrentTime);
   // Return the pressure at a gauss point of the current element:
   // Note that the pressure is in psi: convert it to Pa (6.89e3 factor), then use ScaleLength,
   // ScaleTime and ScaleMass to convert it to the correct pressure units.
-  return -CurrentElementPressure*6.8947573e3/P.ScaleMass*P.ScaleLength*P.ScaleTime*P.ScaleTime;
+  return -CurrentElementPressure/P.ScalePressure;
 }
 // ====================================================================================================
 // Print the BlastLoading::BlastData member variables to screen:
@@ -568,11 +629,12 @@ void BlastLoading::BlastData::print() {
   std::cerr << "ScaleLength = " << ScaleLength << std::endl;
   std::cerr << "ScaleTime = " << ScaleTime << std::endl;
   std::cerr << "ScaleMass = " << ScaleMass << std::endl;
+  std::cerr << "ScalePressure = " << ScalePressure << std::endl;
 }
 // ====================================================================================================
 // Initialize the BlastLoading::InputFileData structure and other static member variables:
 BlastLoading::BlastData BlastLoading::InputFileData = {{0.0,0.0,0.0},0.0,
-                                                BlastLoading::BlastData::AirBurst,1.0,0.0,0.3048,1.0,1.0};
+                                                BlastLoading::BlastData::AirBurst,1.0,2,0.3048,1.0,1.0,1.0,0.0};
 bool BlastLoading::WarnedZeroDist = false;
 bool BlastLoading::WarnedDecayExp = false;
 // ====================================================================================================

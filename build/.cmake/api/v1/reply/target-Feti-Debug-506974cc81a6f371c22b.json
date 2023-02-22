@@ -1,0 +1,549 @@
+{
+	"archive" : {},
+	"artifacts" : 
+	[
+		{
+			"path" : "Feti.d/libFeti.a"
+		}
+	],
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"ADD_LIBRARY",
+			"add_definitions",
+			"include_directories",
+			"INCLUDE_DIRECTORIES",
+			"TARGET_LINK_LIBRARIES"
+		],
+		"files" : 
+		[
+			"Feti.d/CMakeLists.txt",
+			"CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 1,
+				"parent" : 0
+			},
+			{
+				"file" : 1
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 429,
+				"parent" : 2
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 221,
+				"parent" : 2
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 450,
+				"parent" : 2
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 442,
+				"parent" : 2
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 413,
+				"parent" : 2
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 286,
+				"parent" : 2
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 335,
+				"parent" : 2
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 125,
+				"parent" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 287,
+				"parent" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 337,
+				"parent" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 414,
+				"parent" : 2
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 456,
+				"parent" : 2
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 41,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 37,
+				"parent" : 0
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : " -Wno-literal-suffix -fopenmp -g -fPIC  "
+				},
+				{
+					"fragment" : "-std=gnu++14"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 3,
+					"define" : "DISTRIBUTED"
+				},
+				{
+					"backtrace" : 4,
+					"define" : "EIGEN_DONT_PARALLELIZE"
+				},
+				{
+					"backtrace" : 4,
+					"define" : "EIGEN_QUATERNIONBASE_PLUGIN=<Element.d/MpcElement.d/QuaternionBasePlugin.h>"
+				},
+				{
+					"backtrace" : 5,
+					"define" : "F_NEEDS_UNDSC"
+				},
+				{
+					"backtrace" : 5,
+					"define" : "MAP_MIN_MEMORY"
+				},
+				{
+					"backtrace" : 3,
+					"define" : "MPICH_IGNORE_CXX_SEEK"
+				},
+				{
+					"backtrace" : 6,
+					"define" : "PRINT_CHANGESETID"
+				},
+				{
+					"backtrace" : 5,
+					"define" : "SOWER_SURFS"
+				},
+				{
+					"backtrace" : 7,
+					"define" : "USE_BOOST"
+				},
+				{
+					"backtrace" : 4,
+					"define" : "USE_EIGEN3"
+				},
+				{
+					"backtrace" : 8,
+					"define" : "USE_METIS"
+				},
+				{
+					"backtrace" : 3,
+					"define" : "USE_MPI"
+				},
+				{
+					"backtrace" : 9,
+					"define" : "USE_SCOTCH"
+				},
+				{
+					"backtrace" : 5,
+					"define" : "_TEMPLATE_FIX_"
+				},
+				{
+					"backtrace" : 10,
+					"define" : "__LINUX"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 11,
+					"path" : "/apps/easybuild/software/tinkercliffs-rome/METIS/5.1.0-GCCcore-8.3.0/include"
+				},
+				{
+					"backtrace" : 12,
+					"path" : "/apps/easybuild/software/tinkercliffs-rome/SCOTCH/6.0.9-iimpi-2019b/include"
+				},
+				{
+					"backtrace" : 13,
+					"path" : "/apps/easybuild/software/tinkercliffs-rome/Boost/1.71.0-iimpi-2019b/include"
+				},
+				{
+					"backtrace" : 14,
+					"path" : "/home/anarkhede/tinkercliffs/FEMTesting/."
+				},
+				{
+					"backtrace" : 14,
+					"path" : "/home/anarkhede/tinkercliffs/FEMTesting/Extermal.d/include"
+				},
+				{
+					"backtrace" : 15,
+					"path" : "/home/anarkhede/tinkercliffs/FEMTesting/Feti.d/.."
+				},
+				{
+					"backtrace" : 16,
+					"isSystem" : true,
+					"path" : "/apps/easybuild/software/tinkercliffs-rome/Eigen/3.3.8-GCCcore-10.2.0/include"
+				}
+			],
+			"language" : "CXX",
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				3,
+				5,
+				8,
+				9,
+				11,
+				12,
+				16,
+				17,
+				18,
+				21,
+				23,
+				25,
+				27,
+				28,
+				30,
+				31,
+				33,
+				35,
+				36,
+				38
+			]
+		}
+	],
+	"id" : "Feti::@3d7b9a6e7774efcc7e87",
+	"name" : "Feti",
+	"nameOnDisk" : "libFeti.a",
+	"paths" : 
+	{
+		"build" : "Feti.d",
+		"source" : "Feti.d"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				3,
+				5,
+				8,
+				9,
+				11,
+				12,
+				16,
+				17,
+				18,
+				21,
+				23,
+				25,
+				27,
+				28,
+				30,
+				31,
+				33,
+				35,
+				36,
+				38
+			]
+		},
+		{
+			"name" : "Header Files",
+			"sourceIndexes" : 
+			[
+				2,
+				4,
+				6,
+				7,
+				10,
+				13,
+				14,
+				15,
+				19,
+				20,
+				22,
+				24,
+				26,
+				29,
+				32,
+				34,
+				37,
+				39
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Feti.d/CoarseSetCore.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Feti.d/CoarseSet.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Feti.d/CoarseSet.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Feti.d/CGOrthoSet.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Feti.d/CGOrthoSet.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Feti.d/DistrVectorCore.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Feti.d/DistrVector.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Feti.d/DistrVectorSet.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Feti.d/FetiCore.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Feti.d/FetiOpCore.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Feti.d/FetiOpControler.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Feti.d/FetiDP.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Feti.d/Feti.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Feti.d/Feti.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Feti.d/FetiInfo.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Feti.d/FetiOp.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Feti.d/FetiOp.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Feti.d/NLFetiCore.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Feti.d/CCtSolver.d/BlockCCt.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Feti.d/CCtSolver.d/CCtSolver.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Feti.d/CCtSolver.d/GlobalCCt.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Feti.d/CCtSolver.d/GlobalCCt.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Feti.d/CCtSolver.d/SuperBlockCCt.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Feti.d/CCtSolver.d/SuperBlockCCt.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Feti.d/FetiSub.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Feti.d/FETISolver.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Feti.d/FETISolver.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Feti.d/FetiSub.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Feti.d/Operators.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Feti.d/Operators.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Feti.d/FetiBaseSub.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Feti.d/FetiBaseClass.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Feti.d/FetiBaseClass.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Feti.d/CornerSelector.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Feti.d/CornerSelector.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Feti.d/MultiLevelFetiDP.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Feti.d/DecomposedSystem.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Feti.d/DecomposedSystem.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Feti.d/SetOfSubs.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Feti.d/SetOfSubs.h",
+			"sourceGroupIndex" : 1
+		}
+	],
+	"type" : "STATIC_LIBRARY"
+}

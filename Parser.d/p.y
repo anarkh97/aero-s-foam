@@ -1222,21 +1222,18 @@ DynamInfo:
 Conwep:
         CONWEP NewLine ConwepData NewLine
         { domain->solInfo().ConwepOnOff = true;
-          BlastLoading::InputFileData = $3; }
-        ;
+          BlastLoading::InputFileData = $3; 
+        };
 ConwepData:
-        Float Float Float Float Float Integer
+        Float Float Float Float Float Integer Integer
         { // Note: chargeWeight must be entered in the units of mass of the problem, not units of force.
           $$.ExplosivePosition[0] = $1;
           $$.ExplosivePosition[1] = $2;
           $$.ExplosivePosition[2] = $3;
+          $$.ExplosiveWeight = $4;
           $$.ExplosiveDetonationTime = $5;
-          ($6 == 0.0? BlastLoading::BlastData::SurfaceBurst : BlastLoading::BlastData::AirBurst);
-          $$.ScaleLength = 1.0;
-          $$.ScaleTime = 1.0;
-          $$.ScaleMass = 1.0;
-          $$.ExplosiveWeight = $4*2.2; // The 2.2 factor is to convert from kilograms to pounds force.
-          $$.ExplosiveWeightCubeRoot = pow($$.ExplosiveWeight,1.0/3.0);
+          ($6 == 0 ? BlastLoading::BlastData::SurfaceBurst : BlastLoading::BlastData::AirBurst);
+          $$.UnitConversionId = $7;
         };
 TimeIntegration:
         NEWMARK NewLine

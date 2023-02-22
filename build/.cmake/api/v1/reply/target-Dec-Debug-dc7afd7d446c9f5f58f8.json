@@ -1,0 +1,323 @@
+{
+	"archive" : {},
+	"artifacts" : 
+	[
+		{
+			"path" : "Dec.d/libDec.a"
+		}
+	],
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"ADD_LIBRARY",
+			"add_definitions",
+			"include_directories",
+			"INCLUDE_DIRECTORIES",
+			"TARGET_LINK_LIBRARIES"
+		],
+		"files" : 
+		[
+			"Dec.d/CMakeLists.txt",
+			"CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 1,
+				"parent" : 0
+			},
+			{
+				"file" : 1
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 429,
+				"parent" : 2
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 221,
+				"parent" : 2
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 450,
+				"parent" : 2
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 442,
+				"parent" : 2
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 413,
+				"parent" : 2
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 286,
+				"parent" : 2
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 335,
+				"parent" : 2
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 125,
+				"parent" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 287,
+				"parent" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 337,
+				"parent" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 414,
+				"parent" : 2
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 456,
+				"parent" : 2
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 7,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 8,
+				"parent" : 0
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : " -Wno-literal-suffix -fopenmp -g -fPIC  "
+				},
+				{
+					"fragment" : "-std=gnu++14"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 3,
+					"define" : "DISTRIBUTED"
+				},
+				{
+					"backtrace" : 4,
+					"define" : "EIGEN_DONT_PARALLELIZE"
+				},
+				{
+					"backtrace" : 4,
+					"define" : "EIGEN_QUATERNIONBASE_PLUGIN=<Element.d/MpcElement.d/QuaternionBasePlugin.h>"
+				},
+				{
+					"backtrace" : 5,
+					"define" : "F_NEEDS_UNDSC"
+				},
+				{
+					"backtrace" : 5,
+					"define" : "MAP_MIN_MEMORY"
+				},
+				{
+					"backtrace" : 3,
+					"define" : "MPICH_IGNORE_CXX_SEEK"
+				},
+				{
+					"backtrace" : 6,
+					"define" : "PRINT_CHANGESETID"
+				},
+				{
+					"backtrace" : 5,
+					"define" : "SOWER_SURFS"
+				},
+				{
+					"backtrace" : 7,
+					"define" : "USE_BOOST"
+				},
+				{
+					"backtrace" : 4,
+					"define" : "USE_EIGEN3"
+				},
+				{
+					"backtrace" : 8,
+					"define" : "USE_METIS"
+				},
+				{
+					"backtrace" : 3,
+					"define" : "USE_MPI"
+				},
+				{
+					"backtrace" : 9,
+					"define" : "USE_SCOTCH"
+				},
+				{
+					"backtrace" : 5,
+					"define" : "_TEMPLATE_FIX_"
+				},
+				{
+					"backtrace" : 10,
+					"define" : "__LINUX"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 11,
+					"path" : "/apps/easybuild/software/tinkercliffs-rome/METIS/5.1.0-GCCcore-8.3.0/include"
+				},
+				{
+					"backtrace" : 12,
+					"path" : "/apps/easybuild/software/tinkercliffs-rome/SCOTCH/6.0.9-iimpi-2019b/include"
+				},
+				{
+					"backtrace" : 13,
+					"path" : "/apps/easybuild/software/tinkercliffs-rome/Boost/1.71.0-iimpi-2019b/include"
+				},
+				{
+					"backtrace" : 14,
+					"path" : "/home/anarkhede/tinkercliffs/FEMTesting/."
+				},
+				{
+					"backtrace" : 14,
+					"path" : "/home/anarkhede/tinkercliffs/FEMTesting/Extermal.d/include"
+				},
+				{
+					"backtrace" : 15,
+					"path" : "/home/anarkhede/tinkercliffs/FEMTesting/Dec.d/.."
+				},
+				{
+					"backtrace" : 16,
+					"isSystem" : true,
+					"path" : "/apps/easybuild/software/tinkercliffs-rome/Eigen/3.3.8-GCCcore-10.2.0/include"
+				}
+			],
+			"language" : "CXX",
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2,
+				3,
+				4,
+				5,
+				6,
+				7
+			]
+		}
+	],
+	"id" : "Dec::@72fe613d6acdd2bb87e6",
+	"name" : "Dec",
+	"nameOnDisk" : "libDec.a",
+	"paths" : 
+	{
+		"build" : "Dec.d",
+		"source" : "Dec.d"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2,
+				3,
+				4,
+				5,
+				6,
+				7
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Dec.d/Decomp.d/Greedy.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Dec.d/Decomp.d/DecOpti.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Dec.d/Geom.d/IPoints.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Dec.d/Geom.d/Mesh.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Dec.d/Geom.d/PolyObj.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Dec.d/dec.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Dec.d/ElemMFCheck.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Dec.d/AddE.C",
+			"sourceGroupIndex" : 0
+		}
+	],
+	"type" : "STATIC_LIBRARY"
+}

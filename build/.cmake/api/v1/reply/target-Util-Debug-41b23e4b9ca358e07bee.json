@@ -1,0 +1,430 @@
+{
+	"archive" : {},
+	"artifacts" : 
+	[
+		{
+			"path" : "Utils.d/libUtil.a"
+		}
+	],
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"ADD_LIBRARY",
+			"add_definitions",
+			"include_directories",
+			"INCLUDE_DIRECTORIES",
+			"TARGET_LINK_LIBRARIES",
+			"TARGET_SOURCES"
+		],
+		"files" : 
+		[
+			"Utils.d/CMakeLists.txt",
+			"CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 1,
+				"parent" : 0
+			},
+			{
+				"file" : 1
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 429,
+				"parent" : 2
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 221,
+				"parent" : 2
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 450,
+				"parent" : 2
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 442,
+				"parent" : 2
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 413,
+				"parent" : 2
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 286,
+				"parent" : 2
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 335,
+				"parent" : 2
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 125,
+				"parent" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 287,
+				"parent" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 337,
+				"parent" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 414,
+				"parent" : 2
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 456,
+				"parent" : 2
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 25,
+				"parent" : 0
+			},
+			{
+				"command" : 5,
+				"file" : 0,
+				"line" : 24,
+				"parent" : 0
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : " -Wno-literal-suffix -fopenmp -g -fPIC  "
+				},
+				{
+					"fragment" : "-std=gnu++14"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 3,
+					"define" : "DISTRIBUTED"
+				},
+				{
+					"backtrace" : 4,
+					"define" : "EIGEN_DONT_PARALLELIZE"
+				},
+				{
+					"backtrace" : 4,
+					"define" : "EIGEN_QUATERNIONBASE_PLUGIN=<Element.d/MpcElement.d/QuaternionBasePlugin.h>"
+				},
+				{
+					"backtrace" : 5,
+					"define" : "F_NEEDS_UNDSC"
+				},
+				{
+					"backtrace" : 5,
+					"define" : "MAP_MIN_MEMORY"
+				},
+				{
+					"backtrace" : 3,
+					"define" : "MPICH_IGNORE_CXX_SEEK"
+				},
+				{
+					"backtrace" : 6,
+					"define" : "PRINT_CHANGESETID"
+				},
+				{
+					"backtrace" : 5,
+					"define" : "SOWER_SURFS"
+				},
+				{
+					"backtrace" : 7,
+					"define" : "USE_BOOST"
+				},
+				{
+					"backtrace" : 4,
+					"define" : "USE_EIGEN3"
+				},
+				{
+					"backtrace" : 8,
+					"define" : "USE_METIS"
+				},
+				{
+					"backtrace" : 3,
+					"define" : "USE_MPI"
+				},
+				{
+					"backtrace" : 9,
+					"define" : "USE_SCOTCH"
+				},
+				{
+					"backtrace" : 5,
+					"define" : "_TEMPLATE_FIX_"
+				},
+				{
+					"backtrace" : 10,
+					"define" : "__LINUX"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 11,
+					"path" : "/apps/easybuild/software/tinkercliffs-rome/METIS/5.1.0-GCCcore-8.3.0/include"
+				},
+				{
+					"backtrace" : 12,
+					"path" : "/apps/easybuild/software/tinkercliffs-rome/SCOTCH/6.0.9-iimpi-2019b/include"
+				},
+				{
+					"backtrace" : 13,
+					"path" : "/apps/easybuild/software/tinkercliffs-rome/Boost/1.71.0-iimpi-2019b/include"
+				},
+				{
+					"backtrace" : 14,
+					"path" : "/home/anarkhede/tinkercliffs/FEMTesting/."
+				},
+				{
+					"backtrace" : 14,
+					"path" : "/home/anarkhede/tinkercliffs/FEMTesting/Extermal.d/include"
+				},
+				{
+					"backtrace" : 15,
+					"isSystem" : true,
+					"path" : "/apps/easybuild/software/tinkercliffs-rome/Eigen/3.3.8-GCCcore-10.2.0/include"
+				}
+			],
+			"language" : "CXX",
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2,
+				3,
+				4,
+				5,
+				6,
+				7,
+				8,
+				9,
+				10,
+				11,
+				12,
+				13,
+				14,
+				15,
+				16,
+				17
+			]
+		}
+	],
+	"id" : "Util::@ba02329633d3bbbc4d4a",
+	"name" : "Util",
+	"nameOnDisk" : "libUtil.a",
+	"paths" : 
+	{
+		"build" : "Utils.d",
+		"source" : "Utils.d"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2,
+				3,
+				4,
+				5,
+				6,
+				7,
+				8,
+				9,
+				10,
+				11,
+				12,
+				13,
+				14,
+				15,
+				16,
+				17
+			]
+		},
+		{
+			"name" : "Header Files",
+			"sourceIndexes" : 
+			[
+				18,
+				19,
+				20,
+				21
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Utils.d/Connectivity.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Utils.d/dofset.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Utils.d/BlockAlloc.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Utils.d/DistHelper.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Utils.d/MFTT.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Utils.d/BinaryOutputFile.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Utils.d/CompositeInfo.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Utils.d/pstress.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Utils.d/b2Rotation.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Utils.d/list.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Utils.d/BinaryResultFile.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Utils.d/NodeSpaceArray.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Utils.d/MathUtils.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Utils.d/dbg_alloca.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Utils.d/SolverInfo.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Utils.d/GlobalToLocalMap.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Utils.d/Conwep.d/BlastLoading.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Utils.d/Scotch.C",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Utils.d/AutoTimer.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Utils.d/BinFileHandler.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 16,
+			"path" : "Utils.d/ConnectivityT.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 16,
+			"path" : "Utils.d/ConnectivityTImpl.h",
+			"sourceGroupIndex" : 1
+		}
+	],
+	"type" : "STATIC_LIBRARY"
+}

@@ -9,15 +9,26 @@ class BlastLoading {
             double ExplosiveDetonationTime;
             enum {SurfaceBurst, AirBurst} BlastType;
             double ExplosiveWeight;
+
+            /*
+            (AN) Now user specifies an integer ID for unit conversions.
+            Locally, we need units to be in pound-mass, foot, ms, psi.
+            */
+
+            int UnitConversionId;
+            double ScaleLength; // units specified by user to foot
+            double ScaleMass; // units specified by user to pound-mass
+            double ScaleTime; // units specified by user to ms
+            double ScalePressure; // units specified by user to psi
             double ExplosiveWeightCubeRoot;
-            double ScaleLength;
-            double ScaleTime;
-            double ScaleMass;
             void print();
         };
     private:
         class Conwep {
             public:
+                static void SetUnitConversionsAndMassCubeRoot(
+                    BlastLoading::BlastData& P
+                );
                 static double Blast(
                     const BlastLoading::BlastData& P,
                     const double CurrentElementFaceCentroidPosition[3],
@@ -78,5 +89,6 @@ class BlastLoading {
         static BlastData InputFileData;
         static bool WarnedZeroDist;
         static bool WarnedDecayExp;
+
 };
 #endif

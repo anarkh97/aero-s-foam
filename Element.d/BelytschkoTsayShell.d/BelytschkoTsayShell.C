@@ -641,6 +641,40 @@ BelytschkoTsayShell::getInternalForce(GeomState& geomState, CoordSet& cs, FullSq
   }
 }
 
+double BelytschkoTsayShell::getDissipatedEnergy(GeomState &curState, CoordSet &cs)
+{
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
+  auto &nd4 = cs.getNode(nn[3]);
+
+  ::Vector r1(3), r2(3), r3(3), r4(3);
+
+  r1[0] = nd1.x; r1[1] = nd1.y; r1[2] = nd1.z;
+  r2[0] = nd2.x; r2[1] = nd2.y; r2[2] = nd2.z;
+  r3[0] = nd3.x; r3[1] = nd3.y; r3[2] = nd3.z;
+  r4[0] = nd4.x; r4[1] = nd4.y; r4[2] = nd4.z;
+
+  ::Vector v1(3), v2(3), v3(3), v4(3), v5(3);
+
+  v1 = r2 - r1;
+  v2 = r3 - r1;
+  v3 = r4 - r1;
+
+  v4 = v1.cross(v2);
+  v5 = v2.cross(v3);
+
+  double area = 0.5*(v4.magnitude() + v5.magnitude());
+  double eh = expmat->ematpro[19];
+  double volume = area*eh;
+
+  int j = (mgaus[2] - 1)/2; // mgauss is the number of gauss points through thickness
+  if(expmat->optctv != 1) {
+    return volume*(mat[j]->GetDissipatedEnergy());
+  }
+  else return 0.0; // hypoelastic case
+}
+
 bool BelytschkoTsayShell::checkElementDeletion(GeomState &)
 {
   bool deleteElem = false;

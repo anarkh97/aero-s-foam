@@ -85,6 +85,10 @@ public:
     Corotator *getCorotator(CoordSet&, double*, int , int) override;
     void getStiffAndForce(GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double) override;
     void getInternalForce(GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double) override;
+
+    // (AN): Local implementation for calculating dissipated energy
+    double getDissipatedEnergy(GeomState &, CoordSet &) override;
+
     bool checkElementDeletion(GeomState &) override;
     void extractDeformations(GeomState &geomState, CoordSet &cs, double *vld, int &nlflag) override;
 

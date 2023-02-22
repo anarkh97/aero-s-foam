@@ -1,5 +1,7 @@
 {
     "files.associations": {
-        "BlastLoading.C": "cpp"
+        "BlastLoading.C": "cpp",
+        "GeoSourceCore.C": "cpp",
+        "NLStatic.C": "cpp"
     }
 }

@@ -1000,9 +1000,9 @@ OutInfo:
         { $$.initialize(); $$.type = (OutputInfo::Type) $1; $$.width = $2; $$.precision = $3; $$.filename = $4; $$.interval = $5; }
         | STRESSID FNAME Integer Integer // unformatted output for one node
         { $$.initialize(); $$.type = (OutputInfo::Type) $1; $$.filename = $2; $$.interval = $3; $$.nodeNumber = $4-1; }
-        | STRESSID FNAME Integer GROUPTYPE Integer // TDL: unformatted output for node group or node
+        | STRESSID FNAME Integer GROUPTYPE Integer // TDL: unformatted output for attribute, node group or node
         { $$.initialize(); $$.type = (OutputInfo::Type) $1; $$.filename = $2; $$.interval = $3; 
-          if ($4 == OutputInfo::NodeGroup) $$.groupNumber = $5; else $$.nodeNumber = $5-1;}
+          if ($4 == OutputInfo::Nodal) $$.nodeNumber = $5; else $$.groupNumber = $5-1;}
         | STRESSID Integer Integer FNAME Integer Integer // formatted output for one node
         { $$.initialize(); $$.type = (OutputInfo::Type) $1; $$.width = $2; $$.precision = $3; $$.filename = $4; $$.interval = $5; $$.nodeNumber = $6-1; }
         | STRESSID Integer Integer FNAME Integer GROUPTYPE Integer // TDL: formatted output for node group or node

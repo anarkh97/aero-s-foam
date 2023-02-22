@@ -4992,6 +4992,16 @@ void GeoSource::setSurfaceGroup(int sn, int id)  {
   surfaceGroup[id].push_back(sn);
 }
 
+bool GeoSource::isInNodeGroup(int id) {
+        bool flag = (nodeGroup.count(id) > 0) ? true : false;
+        return flag;
+}
+
+bool GeoSource::isInAttrGroup(int id) {
+        bool flag = (group.count(id) > 0) ? true : false;
+        return flag;
+}
+
 void GeoSource::printGroups()
 {
   for(std::map<int, Group >::iterator it = group.begin(); it != group.end(); ++it) {

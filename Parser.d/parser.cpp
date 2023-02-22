@@ -6662,7 +6662,7 @@ yyreduce:
   case 294:
 #line 1004 "p.y" /* yacc.c:1646  */
     { (yyval.oinfo).initialize(); (yyval.oinfo).type = (OutputInfo::Type) (yyvsp[-4].ival); (yyval.oinfo).filename = (yyvsp[-3].strval); (yyval.oinfo).interval = (yyvsp[-2].ival); 
-          if ((yyvsp[-1].ival) == OutputInfo::NodeGroup) (yyval.oinfo).groupNumber = (yyvsp[0].ival); else (yyval.oinfo).nodeNumber = (yyvsp[0].ival)-1;}
+          if ((yyvsp[-1].ival) == OutputInfo::Nodal) (yyval.oinfo).nodeNumber = (yyvsp[0].ival); else (yyval.oinfo).groupNumber = (yyvsp[0].ival)-1;}
 #line 6667 "/home/anarkhede/tinkercliffs/FEMTesting/Parser.d/parser.cpp" /* yacc.c:1646  */
     break;
 

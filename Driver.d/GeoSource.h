@@ -682,6 +682,10 @@ public:
 	// AN: required to access group number
 	int getGroupNumber(int fileNum) { return oinfo[fileNum].groupNumber; }
 
+	// AN: simple checks for id in node or attribute group
+    bool isInNodeGroup(int);
+	bool isInAttrGroup(int);
+
 	// Sfem stuff
 	enum Rprop { A, E, NU, RHO, T, KX, KY, KZ }; // sfem
 	void setGroupRandomProperty(int g, Rprop prop_type, double mean, double std_dev);

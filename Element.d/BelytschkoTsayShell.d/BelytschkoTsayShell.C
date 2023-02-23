@@ -369,10 +369,10 @@ BelytschkoTsayShell::getMass(const CoordSet& cs) const
 
   ::Vector r1(3), r2(3), r3(3), r4(3);
 
-  r1[0] = nd1.x; r1[1] = nd1.y; r1[2] = 0.0;
-  r2[0] = nd2.x; r2[1] = nd2.y; r2[2] = 0.0;
-  r3[0] = nd3.x; r3[1] = nd3.y; r3[2] = 0.0;
-  r4[0] = nd4.x; r4[1] = nd4.y; r4[2] = 0.0;
+  r1[0] = nd1.x; r1[1] = nd1.y; r1[2] = nd1.z;
+  r2[0] = nd2.x; r2[1] = nd2.y; r2[2] = nd2.z;
+  r3[0] = nd3.x; r3[1] = nd3.y; r3[2] = nd3.z;
+  r4[0] = nd4.x; r4[1] = nd4.y; r4[2] = nd4.z;
 
   ::Vector v1(3), v2(3), v3(3), v4(3), v5(3);
 

@@ -92,9 +92,10 @@ class ShellElementTemplate : public Membrane<doublereal>, public Bending<doubler
              ShellMaterial<doublereal> *nmat, int sflg, int tflg, doublereal *ndtemps,
              doublereal dt = 0);
 
+    // (AN) function updated ... now recieves the t_n+1 state
     static void
     andesden(int elm, doublereal *X, doublereal *Y, doublereal *Z,
-             ShellMaterial<doublereal> *gpmat, doublereal &D);
+             ShellMaterial<doublereal> *gpmat, doublereal *statenp, doublereal &D);
 
     static void
     andesfrm(int elm, doublereal *x, doublereal *y, doublereal *z, doublereal *aframe,

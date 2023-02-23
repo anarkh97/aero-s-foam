@@ -122,7 +122,7 @@ template \
 void \
 ShellElementTemplate<double,Membrane,Bending> \
 ::andesden(int elm, double *X, double *Y, double *Z, \
-           ShellMaterial<double> *gpmat, double &D);
+           ShellMaterial<double> *gpmat, double *statenp, double &D);
 
 SHELLELEMENTTEMPLATE_INSTANTIATION_HELPER(EffMembraneTriangle,AndesBendingTriangle);
 SHELLELEMENTTEMPLATE_INSTANTIATION_HELPER(EffMembraneTriangle,NoBendingTriangle);

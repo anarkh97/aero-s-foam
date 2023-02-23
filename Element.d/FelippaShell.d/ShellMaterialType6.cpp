@@ -276,7 +276,7 @@ template<typename doublereal, typename localmaterial>
 doublereal
 ShellMaterialType6<doublereal,localmaterial>
 ::GetDissipatedEnergy(int point, doublereal *statenp)
-{ 
+{
     doublereal D = 0;
     int ilayer;
 

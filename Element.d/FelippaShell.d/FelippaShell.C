@@ -990,7 +990,7 @@ FelippaShell::initStates(double *staten)
 }
 
 double
-FelippaShell::getDissipatedEnergy(GeomState &, CoordSet &cs)
+FelippaShell::getDissipatedEnergy(GeomState &curState, CoordSet &cs)
 {
   if(type != 4) {
 
@@ -1008,8 +1008,11 @@ FelippaShell::getDissipatedEnergy(GeomState &, CoordSet &cs)
     x[1] = node2.x; y[1] = node2.y; z[1] = node2.z;
     x[2] = node3.x; y[2] = node3.y; z[2] = node3.z;
 
+    // AN: following part updated. Now send state to andesden
+    double *statenp = curState.getElemState(getGlNum()) + subNum*numStates();;
+
     double D;
-    Impl::andesden(glNum+1, x, y, z, gpmat, D);
+    Impl::andesden(glNum+1, x, y, z, gpmat, statenp, D);
 
     return D;
   }

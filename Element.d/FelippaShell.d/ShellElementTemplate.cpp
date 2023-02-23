@@ -2347,11 +2347,13 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     area = side21length * .5 * sqrt(signedarea);
 }
 
+//(AN) Following routine now takes in statenp and passes it to the material dissipated energy function.
+
 template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>
 void
 ShellElementTemplate<doublereal,Membrane,Bending>
 ::andesden(int elm, doublereal *X, doublereal *Y, doublereal *Z,
-           ShellMaterial<doublereal> *gpmat, doublereal &D)
+           ShellMaterial<doublereal> *gpmat, doublereal *statenp, doublereal &D)
 {
   // Local variables
   int i;
@@ -2388,7 +2390,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     doublereal zeta[3][3] = { { 0.,.5,.5 }, { .5,0.,.5 }, { .5,.5,0. } }; // triangular coordinates of gauss integration points
     doublereal weight[3] = { 1/3., 1/3., 1/3. };
     for(i = 0; i < 3; ++i) {
-      D += area*weight[i]*gpmat->GetDissipatedEnergy(i);
+      D += area*weight[i]*gpmat->GetDissipatedEnergy(i, statenp);
     }
 }
 

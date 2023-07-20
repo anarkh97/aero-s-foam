@@ -123,7 +123,8 @@ PronyViscoElastic<Material, tensor_policy>::integrate(Tensor *_stress, Tensor *_
   // dt      - current time step size
 
   // compute hyperelastic response
-  std::cerr << "PronyViscoElastic::integrate (with tm) is not implemented. Calling the version without tm.\n"; //exit(-1);
+  // AN 2023: tm not needed for dynamic analysis.
+  //std::cerr << "PronyViscoElastic::integrate (with tm) is not implemented. Calling the version without tm.\n"; //exit(-1);
   integrate(_stress, en, enp, staten, statenp, temp, cache, dt);
 /*
   Material::integrate(_stress, _tm, en, enp, staten, statenp, temp, cache, dt);

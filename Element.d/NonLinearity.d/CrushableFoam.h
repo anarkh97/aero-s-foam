@@ -12,8 +12,8 @@ protected:
 	// base material properties -- not used.
 	//double rho, Ep, sigE, theta;
 	double E, nu;
-    // foam properties
-    double rhoF, sigP, alpha2, beta, gamma, epsD, alphaDF;
+    	// foam properties
+    	double rhoF, sigP, alpha2, beta, gamma, epsD, alphaDF;
 	// alpha is the thermal expansion coefficient and Tref is the reference temperature
 	double alpha = 0, Tref = 0;
 	// epsF is the equivalent plastic strain at failure
@@ -23,15 +23,14 @@ protected:
 	// tolerance for convergence of nonlinear solve
 	double tol;
 
-
 public:
 	CrushableFoam(double _rhoF, double _EF, double _nuF, double _sigP, double _alpha2,
 				  double _gamma, double _beta, double _epsD, double _alphaDF = sqrt(9./2), 
                   double _tol = 1e-6, double _epsF=std::numeric_limits<double>::infinity())
 	{ 
 		rhoF = _rhoF; E = _EF; nu = _nuF; sigP = _sigP; alpha2 = _alpha2; gamma = _gamma;
-        beta = _beta; epsD = _epsD; alphaDF = _alphaDF; tol = _tol; epsF = _epsF; ysst = NULL;
-    }
+		beta = _beta; epsD = _epsD; alphaDF = _alphaDF; tol = _tol; epsF = _epsF; ysst = NULL;
+	}
 
 	void getStress(Tensor *stress, Tensor &strain, double *, double temp) override;
 

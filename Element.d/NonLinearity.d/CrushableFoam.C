@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <limits>
 #include <cstddef>
+#include <cfloat>
 
 #ifdef USE_EIGEN3
 void
@@ -192,7 +193,12 @@ CrushableFoam::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tensor  &_en
     double sigmatrialnp = sqrt(1./stressFactor)*sqrt(pow(strialVMnp, 2) + pow(alphaDF*strialmnp, 2));
 
     double trialyieldnp;
-    if(!ysst) trialyieldnp = sigmatrialnp - (sigP+gamma*(staten[12]/epsD)-alpha2*log(1-pow(staten[12]/epsD, beta))); // Yield Criterion (Deshpande and Fleck)
+    if(!ysst) {
+      // Yield Criterion from Deshpande and Fleck -- behavior beyond densification not defined
+      bool hasReachedDensification = (staten[12]-epsD) < 1e-6;
+      trialyieldnp = (hasReachedDensification) ? -DBL_MAX : 
+                     sigmatrialnp - (sigP+gamma*(staten[12]/epsD)-alpha2*log(1-pow(staten[12]/epsD, beta)));
+    }
     else {
       ysst->getValAndSlopeAlt2(staten[12], &v, &s);
       trialyieldnp = sigmatrialnp - v;
@@ -231,14 +237,15 @@ CrushableFoam::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tensor  &_en
             s = gamma/epsD + (alpha2*beta/epsD)/(pow(compf, 1- beta) - compf);
           }
 
-	        sigmnp = strialmnp*v/(v+A2*deltahateps); // mean stress at n+1
+	  sigmnp = strialmnp*v/(v+A2*deltahateps); // mean stress at n+1
           sigVMnp = strialVMnp*v/(v+A1*deltahateps); // von mises stress at n+1
           sigmatrialnp = sqrt((1./stressFactor)*(pow(sigVMnp,2)+pow(alphaDF*sigmnp,2)));
           trialyieldnp = sigmatrialnp - v;
 
-          if(isnan(trialyieldnp)) {
-            fprintf(stderr, "Found NAN in integrate(1). [%d](%e, %e, %e, %e).\n", i, deltahateps, staten[12], epsD, v);
-            exit(-1);
+          if(isnan(trialyieldnp)) { // nan means foam has densified; behavior beyond this point not defined
+	    // AN: might want to implement volumetric failure instead
+	    deltahateps =  epsD - staten[12];
+	    break;
           }
           if(std::abs(trialyieldnp) <= tol*(ysst ? ysst->getVal(0) : sigP)) break;
 
@@ -264,7 +271,7 @@ CrushableFoam::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tensor  &_en
         statenp[i] = staten[i] + (deltaepsVM/dt)*normalnp[i];
         stress[i] -= 2*mu*deltaepsVM*normalnp[i]; 
  
- 	      if(i==0 || i==3 || i==5) {
+ 	if(i==0 || i==3 || i==5) {
           statenp[i] += (1./3)*(deltaepsv/dt);
           stress[i] -= bulk*deltaepsv;
         }
@@ -389,7 +396,12 @@ CrushableFoam::integrate(Tensor *_stress, Tensor &_en, Tensor  &_enp,
     double sigmatrialnp = sqrt(1./stressFactor)*sqrt(pow(strialVMnp, 2) + pow(alphaDF*strialmnp, 2));
 
     double trialyieldnp;
-    if(!ysst) trialyieldnp = sigmatrialnp - (sigP+gamma*(staten[12]/epsD)-alpha2*log(1-pow(staten[12]/epsD, beta))); // Yield Criterion (Deshpande and Fleck)
+    if(!ysst) {
+      // Yield Criterion from Deshpande and Fleck -- behavior beyond densification not defined
+      bool hasReachedDensification = (staten[12]-epsD) < 1e-6;
+      trialyieldnp = (hasReachedDensification) ? -DBL_MAX : 
+                     sigmatrialnp - (sigP+gamma*(staten[12]/epsD)-alpha2*log(1-pow(staten[12]/epsD, beta)));
+    }
     else {
       ysst->getValAndSlopeAlt2(staten[12], &v, &s);
       trialyieldnp = sigmatrialnp - v;
@@ -432,10 +444,11 @@ CrushableFoam::integrate(Tensor *_stress, Tensor &_en, Tensor  &_enp,
           sigmatrialnp = sqrt((1./stressFactor)*(pow(sigVMnp,2)+pow(alphaDF*sigmnp,2)));
           trialyieldnp = sigmatrialnp - v;
 
-          if(isnan(trialyieldnp)) {
-            fprintf(stderr, "Found NAN in integrate(2). [%d](%e, %e, %e, %e).\n", i, deltahateps, staten[12], epsD, v);
-            exit(-1);
-          }
+          if(isnan(trialyieldnp)) { // nan means foam has densified; behavior beyond this point not defined
+	    // AN: might want to implement volumetric failure instead
+	    deltahateps =  epsD - staten[12];
+	    break;
+	  }
           if(std::abs(trialyieldnp) <= tol*(ysst ? ysst->getVal(0) : sigP)) break;
 
           dsigmahat = s*sigmatrialnp/v - (1/(stressFactor*sigmatrialnp))*(pow(sigVMnp, 2)*(s + A1)/(v + A1*deltahateps) + 

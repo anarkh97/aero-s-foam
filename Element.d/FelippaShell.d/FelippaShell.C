@@ -997,7 +997,7 @@ FelippaShell::getDissipatedEnergy(GeomState &curState, CoordSet &cs)
     return 0.0;
   }
   else { // nonlinear material...
-
+    
     // Get Nodes original coordinates (C0 configuration)
     Node &node1 = cs.getNode( n1 );
     Node &node2 = cs.getNode( n2 );

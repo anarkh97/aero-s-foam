@@ -156,7 +156,7 @@ CrushableFoam::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tensor  &_en
     Eigen::Matrix3d cauchy = (1./J)*Fnp*S*Fnp.transpose();
     statenp[6]  = cauchy(0,0); statenp[7]  = cauchy(0,1);  statenp[8]  = cauchy(0,2);
                                statenp[9]  = cauchy(1,1); statenp[10]  = cauchy(1,2);
-    							                                        statenp[11]  = cauchy(2,2);
+    	                                                  statenp[11]  = cauchy(2,2);
     
   }
   else {
@@ -195,7 +195,7 @@ CrushableFoam::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tensor  &_en
     double trialyieldnp;
     if(!ysst) {
       // Yield Criterion from Deshpande and Fleck -- behavior beyond densification not defined
-      bool hasReachedDensification = (staten[12]-epsD) < 1e-6;
+      bool hasReachedDensification = std::abs(staten[12]-epsD) < 1e-6;
       trialyieldnp = (hasReachedDensification) ? -DBL_MAX : 
                      sigmatrialnp - (sigP+gamma*(staten[12]/epsD)-alpha2*log(1-pow(staten[12]/epsD, beta)));
     }
@@ -398,7 +398,7 @@ CrushableFoam::integrate(Tensor *_stress, Tensor &_en, Tensor  &_enp,
     double trialyieldnp;
     if(!ysst) {
       // Yield Criterion from Deshpande and Fleck -- behavior beyond densification not defined
-      bool hasReachedDensification = (staten[12]-epsD) < 1e-6;
+      bool hasReachedDensification = std::abs(staten[12]-epsD) < 1e-6;
       trialyieldnp = (hasReachedDensification) ? -DBL_MAX : 
                      sigmatrialnp - (sigP+gamma*(staten[12]/epsD)-alpha2*log(1-pow(staten[12]/epsD, beta)));
     }

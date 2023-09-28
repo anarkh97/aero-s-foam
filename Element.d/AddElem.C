@@ -94,6 +94,7 @@ extern std::map<int,double> fieldWeightList;
 #include <Element.d/Rigid.d/RigidTransSprlink.h>
 #include <Element.d/Rigid.d/RigidRotnSprlink.h>
 #include <Element.d/Rigid.d/RigidEightNodeBrick.h>
+//#include <Element.d/Rigid.d/RigidTetrahedral.h>
 #include <Element.d/Rigid.d/RigidSolid.h>
 #include <Element.d/Rigid.d/RigidThreeNodeShell.h>
 #include <Element.d/Rigid.d/RigidTwoNodeTruss.h>
@@ -685,6 +686,10 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        ele = new (ba) PseudoTangentialMomentElement(n);
        ele->setCategory(Element::Structural);
        break;
+//     case 150:
+//       ele = new (ba) RigidTetrahedral(n);
+//       ele->setCategory(Element::Structural);
+//       break;
      case 173:
        ele = new (ba) SegVariSegDistanceConstraintElement(n);
        ele->setCategory(Element::Structural);

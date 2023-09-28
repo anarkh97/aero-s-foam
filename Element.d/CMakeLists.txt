@@ -290,6 +290,7 @@ Radiation.d/TriangleRadiation.C
 Radiation.d/QuadRadiation.C
 Rigid.d/RigidBeam.C
 Rigid.d/RigidEightNodeBrick.C
+##Rigid.d/RigidTetrahedral.C
 Rigid.d/RigidRotnSprlink.C
 Rigid.d/RigidSolid6Dof.C
 Rigid.d/RigidSolid.C

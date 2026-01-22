@@ -16,11 +16,11 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake" "/usr/l
 set(WITH_MUMPS true CACHE BOOL "Whether to use mumps or not")
 
 # Conan approach
-if(EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+if(EXISTS ${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
 	message("Using conan for most libraries (in build directory -- prefered method")
-	include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+	include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
 	set(USE_CONAN true)
-	set(CONAN_BUILD_DIR ${CMAKE_BINARY_DIR})
+	set(CONAN_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR})
 elseif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/build/conanbuildinfo.cmake) #Clion, with conanbuildinfo.cmake in build folder
 	message("Using in-source conan for most libraries")
 	include(${CMAKE_CURRENT_SOURCE_DIR}/build/conanbuildinfo.cmake)
@@ -95,7 +95,7 @@ if(NOT LAPACK_FOUND)
 	FIND_PACKAGE(LAPACK)
 endif(NOT LAPACK_FOUND)
 
-SET(INC_DIR .)
+SET(INC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 SET(BINDIR ${CMAKE_CURRENT_BINARY_DIR}/bin)
 SET(LIBDIR ${CMAKE_CURRENT_BINARY_DIR}/lib)
 SET(EXTRALIB ${EXTRALIB} CACHE STRING "Extra link parameters")
@@ -432,20 +432,29 @@ if(MPI_FOUND)
 	SET(INC_DIR ${INC_DIR} ${MPI_INCLUDE_PATH})
 endif(MPI_FOUND)
 
-FIND_PROGRAM(MERCURIAL_EXECUTABLE hg)
-
-IF(MERCURIAL_EXECUTABLE)
+OPTION(WITH_GIT "Detect git commit ID" ON)
+IF(WITH_GIT)
+  FIND_PROGRAM(GIT_EXECUTABLE git)
+  IF(GIT_EXECUTABLE)
+	ADD_CUSTOM_COMMAND(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/GitIdentity.C
+			COMMAND echo "const char *THE_VERSION = \\\""
+			`${GIT_EXECUTABLE} log --pretty=format:'%h' -n 1` "\\\"" "\;" > ${CMAKE_CURRENT_BINARY_DIR}/GitIdentity.C
+			DEPENDS main.C
+			WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+	ADD_DEFINITIONS(-DPRINT_CHANGESETID)
+	SET(IDENTITY_FILE "${CMAKE_CURRENT_BINARY_DIR}/GitIdentity.C")
+  ENDIF(GIT_EXECUTABLE)
+ELSE(WITH_GIT)
+  FIND_PROGRAM(MERCURIAL_EXECUTABLE hg)
+  IF(MERCURIAL_EXECUTABLE)
 	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/HgIdentity.C
 			COMMAND echo "const char *THE_VERSION = \\\"" `${MERCURIAL_EXECUTABLE} identify -i` "\\\"" "\;" > ${CMAKE_CURRENT_BINARY_DIR}/HgIdentity.C
 			DEPENDS main.C
 			WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 	add_definitions(-DPRINT_CHANGESETID)
-ELSE (MERCURIAL_EXECUTABLE)
-	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/HgIdentity.C
-			COMMAND echo "const char *THE_VERSION = \\\"\\\"\;" > ${CMAKE_CURRENT_BINARY_DIR}/HgIdentity.C
-			DEPENDS main.C
-			WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-ENDIF (MERCURIAL_EXECUTABLE)
+	SET(IDENTITY_FILE "${CMAKE_CURRENT_BINARY_DIR}/HgIdentity.C")
+  ENDIF (MERCURIAL_EXECUTABLE)
+ENDIF(WITH_GIT)
 
 add_definitions(-D_TEMPLATE_FIX_ -DF_NEEDS_UNDSC -DSOWER_SURFS -DMAP_MIN_MEMORY)
 
@@ -495,6 +504,15 @@ ENDIF(ACME_FOUND AND (ZOLTAN_FOUND OR NOT MPI_FOUND))
 #  SET(ALLLIBS Pita ${ALLLIBS} )
 #ENDIF(MPI_FOUND)
 
+# to store all libraries in one place
+foreach(LIB ${ALLLIBS})
+    set_target_properties(${LIB} PROPERTIES
+        ARCHIVE_OUTPUT_DIRECTORY ${LIBDIR}
+        LIBRARY_OUTPUT_DIRECTORY ${LIBDIR}
+        RUNTIME_OUTPUT_DIRECTORY ${LIBDIR}
+    )
+endforeach()
+
 SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${EXTRALIB})
 if(MPI_FOUND)
 	SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${EXTRALIB_MPI})
@@ -502,8 +520,8 @@ endif(MPI_FOUND)
 
 IF(CREATE_DSO)
 	add_definitions(-DCREATE_DSO)
-	ADD_LIBRARY(femlib main.C HgIdentity.C)
-	# ADD_LIBRARY(femlib EXCLUDE_FROM_ALL main.C HgIdentity.C)
+	ADD_LIBRARY(femlib main.C ${IDENTITY_FILE})
+	# ADD_LIBRARY(femlib EXCLUDE_FROM_ALL main.C ${IDENTITY_FILE})
 	target_link_libraries(femlib Parser
 			Driver Elem Feti solver Corotational Mortar Rom Math
 			Dec Threads linpa Sfem paral Problems Driver Hetero Timers Comm Material Util getopt Parser
@@ -518,7 +536,7 @@ IF(CREATE_DSO)
 endif(CREATE_DSO)
 
 IF(NOT CREATE_DSO)
-	add_executable(femexecutable  main.C HgIdentity.C Types.h)
+	add_executable(femexecutable  main.C ${IDENTITY_FILE} Types.h)
 
 	SET_TARGET_PROPERTIES(femexecutable
 			PROPERTIES

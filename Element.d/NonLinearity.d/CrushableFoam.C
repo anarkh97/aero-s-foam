@@ -242,7 +242,7 @@ CrushableFoam::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tensor  &_en
           sigmatrialnp = sqrt((1./stressFactor)*(pow(sigVMnp,2)+pow(alphaDF*sigmnp,2)));
           trialyieldnp = sigmatrialnp - v;
 
-          if(isnan(trialyieldnp)) { // nan means foam has densified; behavior beyond this point not defined
+          if(std::isnan(trialyieldnp)) { // nan means foam has densified; behavior beyond this point not defined
 	    // AN: might want to implement volumetric failure instead
 	    deltahateps =  epsD - staten[12];
 	    break;
@@ -444,7 +444,7 @@ CrushableFoam::integrate(Tensor *_stress, Tensor &_en, Tensor  &_enp,
           sigmatrialnp = sqrt((1./stressFactor)*(pow(sigVMnp,2)+pow(alphaDF*sigmnp,2)));
           trialyieldnp = sigmatrialnp - v;
 
-          if(isnan(trialyieldnp)) { // nan means foam has densified; behavior beyond this point not defined
+          if(std::isnan(trialyieldnp)) { // nan means foam has densified; behavior beyond this point not defined
 	    // AN: might want to implement volumetric failure instead
 	    deltahateps =  epsD - staten[12];
 	    break;
